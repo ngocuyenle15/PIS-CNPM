@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: pis-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: pis
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - pis-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Backend (Spring Boot)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pis-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: 8080
+      MySQL_JDBC_URL: jdbc:mysql://mysql:3306/pis
+      MySQL_USER: root
+      MySQL_PASSWORD: 123456
+      EMAIL_USERNAME: 
+      EMAIL_PASSWORD: 
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - pis-network
+
+  # Frontend (Vite + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8080/api
+    container_name: pis-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - pis-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  pis-network:
+    driver: bridge
