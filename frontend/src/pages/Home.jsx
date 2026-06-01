@@ -4,6 +4,74 @@ import api from '../services/api';
 import SearchableSelect from '../components/SearchableSelect';
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
+const printContent = (title, htmlContent) => {
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
+  if (!printWindow) {
+    alert('Vui lòng cho phép mở popup để in phiếu!');
+    return;
+  }
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          body {
+            font-family: 'Inter', sans-serif, Arial;
+            padding: 20px;
+            color: #333;
+          }
+          h2 {
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+          }
+          .info-item {
+            font-size: 14px;
+            line-height: 1.5;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+          }
+          th, td {
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            text-align: left;
+            font-size: 13px;
+          }
+          th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+          }
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            };
+          };
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+};
+
 const mockCustomers = [
   {
     customerID: 'KH-ANH-091',
@@ -407,6 +475,96 @@ function Home() {
     } catch (error) {
       console.error('Lỗi tải phiếu xuất:', error);
     }
+  };
+
+  const handlePrintReceipt = () => {
+    if (!selectedReceipt) return;
+    const detailsRows = selectedReceipt.details?.map((d, i) => `
+      <tr>
+        <td style="text-align: center;">#${i + 1}</td>
+        <td style="font-weight: bold;">${d.medicineName}</td>
+        <td>${d.batchId || '---'}</td>
+        <td>${d.manufacturedDate || '---'}</td>
+        <td>${d.expiryDate || '---'}</td>
+        <td>${d.quantity}</td>
+        <td>x${d.conversionRate}</td>
+        <td style="text-align: right;">${d.importPrice ? d.importPrice.toLocaleString() + 'đ' : '---'}</td>
+      </tr>
+    `).join('') || '';
+
+    const htmlContent = `
+      <h2>Phiếu Nhập Kho</h2>
+      <div class="info-grid">
+        <div class="info-item"><strong>Mã phiếu:</strong> ${selectedReceipt.receiptId}</div>
+        <div class="info-item"><strong>Nhà cung cấp:</strong> ${selectedReceipt.supplierName}</div>
+        <div class="info-item"><strong>Người lập:</strong> ${selectedReceipt.employeeName}</div>
+        <div class="info-item"><strong>Thời gian:</strong> ${selectedReceipt.receiptTime ? new Date(selectedReceipt.receiptTime).toLocaleString('vi-VN') : '---'}</div>
+        <div class="info-item"><strong>Trạng thái:</strong> ${selectedReceipt.status}</div>
+        <div class="info-item" style="grid-column: span 2;"><strong>Ghi chú:</strong> ${selectedReceipt.note || '(Không có)'}</div>
+      </div>
+      
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 50px;">STT</th>
+            <th>Tên thuốc</th>
+            <th>Mã lô</th>
+            <th>NSX</th>
+            <th>HSD</th>
+            <th>SL</th>
+            <th>Quy đổi</th>
+            <th style="text-align: right;">Đơn giá nhập</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${detailsRows}
+        </tbody>
+      </table>
+    `;
+
+    printContent(`Phiếu Nhập - ${selectedReceipt.receiptId}`, htmlContent);
+  };
+
+  const handlePrintIssue = () => {
+    if (!selectedIssue) return;
+    const detailsRows = selectedIssue.details?.map((d, i) => `
+      <tr>
+        <td style="text-align: center;">#${i + 1}</td>
+        <td style="font-weight: bold;">${d.medicineName}</td>
+        <td>${d.batchId || '---'}</td>
+        <td>${d.quantity}</td>
+        <td>x${d.conversionRate}</td>
+      </tr>
+    `).join('') || '';
+
+    const htmlContent = `
+      <h2>Phiếu Xuất Kho</h2>
+      <div class="info-grid">
+        <div class="info-item"><strong>Mã phiếu:</strong> ${selectedIssue.issueId}</div>
+        <div class="info-item"><strong>Lý do xuất:</strong> ${selectedIssue.issueType}</div>
+        <div class="info-item"><strong>Người lập:</strong> ${selectedIssue.employeeName}</div>
+        <div class="info-item"><strong>Thời gian:</strong> ${selectedIssue.issueTime ? new Date(selectedIssue.issueTime).toLocaleString('vi-VN') : '---'}</div>
+        <div class="info-item"><strong>Trạng thái:</strong> ${selectedIssue.status}</div>
+        <div class="info-item" style="grid-column: span 2;"><strong>Ghi chú:</strong> ${selectedIssue.note || '(Không có)'}</div>
+      </div>
+      
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 50px;">STT</th>
+            <th>Tên thuốc</th>
+            <th>Mã lô</th>
+            <th>Số lượng xuất</th>
+            <th>Quy đổi</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${detailsRows}
+        </tbody>
+      </table>
+    `;
+
+    printContent(`Phiếu Xuất - ${selectedIssue.issueId}`, htmlContent);
   };
 
   const fetchAudits = async (
@@ -2018,7 +2176,7 @@ function Home() {
                 <h1 className="content-title" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Tổng Quan Hệ Thống</h1>
                 <span style={{ fontSize: '13px', color: '#64748b' }}>Đang tải số liệu từ hệ thống...</span>
               </div>
-              
+
               {/* Skeleton Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                 {[1, 2, 3, 4].map(n => (
@@ -2060,19 +2218,19 @@ function Home() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h1 className="content-title" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Tổng Quan Hệ Thống</h1>
-              <button 
-                onClick={fetchDashboardData} 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '6px', 
-                  padding: '8px 14px', 
-                  borderRadius: '6px', 
-                  border: '1px solid #e2e8f0', 
-                  backgroundColor: '#ffffff', 
-                  fontSize: '13px', 
-                  fontWeight: '600', 
-                  color: '#334155', 
+              <button
+                onClick={fetchDashboardData}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#334155',
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
@@ -2080,7 +2238,7 @@ function Home() {
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
                 </svg>
                 Làm mới
               </button>
@@ -2088,7 +2246,7 @@ function Home() {
 
             {/* KPI Cards Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-              
+
               {/* Card 1: Tổng số đầu thuốc */}
               <div className="content-card kpi-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderLeft: '4px solid #4f46e5', borderRadius: '12px', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', boxShadow: 'none' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -2098,8 +2256,8 @@ function Home() {
                 </div>
                 <div style={{ backgroundColor: '#eeebff', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#4f46e5' }}>
-                    <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/>
-                    <path d="m8.5 8.5 7 7"/>
+                    <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+                    <path d="m8.5 8.5 7 7" />
                   </svg>
                 </div>
               </div>
@@ -2113,9 +2271,9 @@ function Home() {
                 </div>
                 <div style={{ backgroundColor: '#fef9c3', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#eab308' }}>
-                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-                    <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>
+                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                    <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
                   </svg>
                 </div>
               </div>
@@ -2129,8 +2287,8 @@ function Home() {
                 </div>
                 <div style={{ backgroundColor: '#ffedd5', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f97316' }}>
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
                   </svg>
                 </div>
               </div>
@@ -2144,9 +2302,9 @@ function Home() {
                 </div>
                 <div style={{ backgroundColor: '#fee2e2', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ef4444' }}>
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                    <line x1="12" y1="9" x2="12" y2="13"/>
-                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
                   </svg>
                 </div>
               </div>
@@ -2155,13 +2313,13 @@ function Home() {
 
             {/* Recharts Visualizations Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px' }}>
-              
+
               {/* Chart 1: Xu hướng giao dịch kho */}
               <div className="content-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#4f46e5' }}>
-                    <path d="M3 3v18h18"/>
-                    <path d="m19 9-5 5-4-4-3 3"/>
+                    <path d="M3 3v18h18" />
+                    <path d="m19 9-5 5-4-4-3 3" />
                   </svg>
                   Tần Suất Biến Động Kho (7 ngày gần nhất)
                 </h3>
@@ -2170,19 +2328,19 @@ function Home() {
                     <AreaChart data={dashboardTrendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorNhap" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.01}/>
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
                         </linearGradient>
                         <linearGradient id="colorXuat" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
-                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.01}/>
+                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.01} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}/>
-                      <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false}/>
-                      <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', fontSize: '12px' }}/>
-                      <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}/>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+                      <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', fontSize: '12px' }} />
+                      <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                       <Area type="monotone" name="Giao dịch Nhập" dataKey="Nhập kho" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorNhap)" />
                       <Area type="monotone" name="Giao dịch Xuất" dataKey="Xuất kho" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#colorXuat)" />
                     </AreaChart>
@@ -2194,19 +2352,19 @@ function Home() {
               <div className="content-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#10b981' }}>
-                    <path d="M3 3v18h18"/>
-                    <rect x="7" y="10" width="4" height="7" rx="1"/>
-                    <rect x="15" y="5" width="4" height="12" rx="1"/>
+                    <path d="M3 3v18h18" />
+                    <rect x="7" y="10" width="4" height="7" rx="1" />
+                    <rect x="15" y="5" width="4" height="12" rx="1" />
                   </svg>
                   Phân Bổ Thuốc Theo Nhóm Danh Mục
                 </h3>
                 <div style={{ width: '100%', height: '300px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={dashboardCategoryData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
-                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}/>
-                      <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false}/>
-                      <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} cursor={{ fill: '#f8fafc' }}/>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+                      <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} cursor={{ fill: '#f8fafc' }} />
                       <Bar name="Số lượng thuốc" dataKey="Số lượng đầu thuốc" fill="#4f46e5" radius={[4, 4, 0, 0]} maxBarSize={40} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -2217,14 +2375,14 @@ function Home() {
 
             {/* Bottom Insights Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px' }}>
-              
+
               {/* Left Widget: Recent Operations Log */}
               <div className="content-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#2563eb' }}>
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12 6 12 12 16 14"/>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
                     </svg>
                     Nhật Ký Hoạt Động Kho Gần Đây
                   </h3>
@@ -2257,9 +2415,9 @@ function Home() {
                           }
 
                           return (
-                            <tr 
-                              key={op.id} 
-                              onClick={() => handleActivityClick(op)} 
+                            <tr
+                              key={op.id}
+                              onClick={() => handleActivityClick(op)}
                               className="activity-row"
                               style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}
                             >
@@ -2294,24 +2452,24 @@ function Home() {
               <div className="content-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ef4444' }}>
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                    <line x1="12" y1="9" x2="12" y2="13"/>
-                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
                   </svg>
                   Cảnh Báo Tồn Kho Khẩn Cấp
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '270px', overflowY: 'auto', paddingRight: '4px' }}>
                   {criticalAlerts.length > 0 ? (
                     criticalAlerts.map((alert) => (
-                      <div 
-                        key={alert.id} 
-                        style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center', 
-                          padding: '12px 14px', 
-                          borderRadius: '8px', 
-                          backgroundColor: alert.type === 'EXPIRED' ? '#fee2e2' : '#fffbeb', 
+                      <div
+                        key={alert.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '12px 14px',
+                          borderRadius: '8px',
+                          backgroundColor: alert.type === 'EXPIRED' ? '#fee2e2' : '#fffbeb',
                           border: alert.type === 'EXPIRED' ? '1px solid #fecaca' : '1px solid #fef3c7',
                           transition: 'transform 0.15s'
                         }}
@@ -2346,22 +2504,22 @@ function Home() {
                       </div>
                     ))
                   ) : (
-                    <div style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      padding: '40px 20px', 
-                      color: '#10b981', 
-                      backgroundColor: '#f0fdf4', 
-                      borderRadius: '8px', 
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '40px 20px',
+                      color: '#10b981',
+                      backgroundColor: '#f0fdf4',
+                      borderRadius: '8px',
                       border: '1px solid #bbf7d0',
                       gap: '8px',
                       height: '180px'
                     }}>
                       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
                       </svg>
                       <span style={{ fontSize: '13px', fontWeight: '600' }}>Tồn kho an toàn, không có cảnh báo!</span>
                     </div>
@@ -4473,23 +4631,33 @@ function Home() {
                     <h2 style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase' }}>
                       {receiptFormMode === 'add' ? (receiptForm.receiptId ? `Hiệu Chỉnh Phiếu Nhập Nháp (${receiptForm.receiptId})` : 'Lập Phiếu Nhập Mới') : 'Chi Tiết Phiếu Nhập'}
                     </h2>
-                    <button className="btn-action btn-delete" style={{ padding: '4px 8px' }} onClick={() => setReceiptFormMode(null)}>X đóng</button>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {receiptFormMode === 'view' && (
+                        <button
+                          type="button"
+                          className="btn-action btn-select"
+                          style={{ padding: '4px 12px' }}
+                          onClick={handlePrintReceipt}
+                        >
+                          In Phiếu
+                        </button>
+                      )}
+                      <button className="btn-action btn-delete" style={{ padding: '4px 8px' }} onClick={() => setReceiptFormMode(null)}>X đóng</button>
+                    </div>
                   </div>
 
                   {receiptFormMode === 'add' ? (
                     <form onSubmit={handleSaveReceiptDraft}>
                       <div className="form-group">
                         <label className="label">Nhà cung cấp:</label>
-                        <select
-                          className="select-input"
+                        <SearchableSelect
+                          options={suppliersList}
                           value={receiptForm.supplierId}
-                          onChange={(e) => setReceiptForm({ ...receiptForm, supplierId: e.target.value })}
-                          required
-                        >
-                          {suppliersList.map(s => (
-                            <option key={s.supplierID} value={s.supplierID}>{s.supplierName}</option>
-                          ))}
-                        </select>
+                          onChange={(val) => setReceiptForm({ ...receiptForm, supplierId: val })}
+                          idKey="supplierID"
+                          nameKey="supplierName"
+                          placeholder="Chọn nhà cung cấp..."
+                        />
                       </div>
 
                       <div className="form-group">
@@ -4559,28 +4727,26 @@ function Home() {
                                   <tr key={idx}>
                                     <td style={{ textAlign: 'center', padding: '8px', fontWeight: '600' }}>#{idx + 1}</td>
                                     <td style={{ padding: '8px' }}>
-                                      <select
-                                        className="select-input"
-                                        style={{ padding: '6px', width: '100%' }}
+                                      <SearchableSelect
+                                        options={allMedicines.length > 0 ? allMedicines : medicinesList}
                                         value={line.medicineId}
-                                        onChange={(e) => handleLineChange(idx, 'medicineId', e.target.value)}
-                                      >
-                                        {(allMedicines.length > 0 ? allMedicines : medicinesList).map(m => (
-                                          <option key={m.medicineID} value={m.medicineID}>{m.medicineName}</option>
-                                        ))}
-                                      </select>
+                                        onChange={(val) => handleLineChange(idx, 'medicineId', val)}
+                                        idKey="medicineID"
+                                        nameKey="medicineName"
+                                        placeholder="Chọn thuốc..."
+                                        style={{ padding: '6px 12px', minHeight: '34px', height: '34px', borderRadius: '6px', fontSize: '13px' }}
+                                      />
                                     </td>
                                     <td style={{ padding: '8px' }}>
-                                      <select
-                                        className="select-input"
-                                        style={{ padding: '6px', width: '100%' }}
+                                      <SearchableSelect
+                                        options={unitsList}
                                         value={line.transactionUnitId}
-                                        onChange={(e) => handleLineChange(idx, 'transactionUnitId', e.target.value)}
-                                      >
-                                        {rowUnits.map(u => (
-                                          <option key={u.unitID} value={u.unitID}>{u.unitName}</option>
-                                        ))}
-                                      </select>
+                                        onChange={(val) => handleLineChange(idx, 'transactionUnitId', val)}
+                                        idKey="unitID"
+                                        nameKey="unitName"
+                                        placeholder="Chọn đơn vị..."
+                                        style={{ padding: '6px 12px', minHeight: '34px', height: '34px', borderRadius: '6px', fontSize: '13px' }}
+                                      />
                                     </td>
                                     <td style={{ padding: '8px' }}>
                                       <input
@@ -4657,7 +4823,7 @@ function Home() {
 
                       <div className="form-actions">
                         <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white' }} onClick={() => setReceiptFormMode(null)}>Hủy bỏ</button>
-                        <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1 }}>Lưu nháp chứng từ 💾</button>
+                        <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1 }}>Lưu nháp chứng từ</button>
                       </div>
                     </form>
                   ) : (
@@ -5186,7 +5352,19 @@ function Home() {
                     <h2 style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase' }}>
                       {issueFormMode === 'add' ? (issueForm.issueId ? `Hiệu Chỉnh Phiếu Xuất Nháp (${issueForm.issueId})` : 'Lập Phiếu Xuất Mới') : 'Chi Tiết Phiếu Xuất'}
                     </h2>
-                    <button className="btn-action btn-delete" style={{ padding: '4px 8px' }} onClick={() => setIssueFormMode(null)}>X đóng</button>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {issueFormMode === 'view' && (
+                        <button
+                          type="button"
+                          className="btn-action btn-select"
+                          style={{ padding: '4px 12px' }}
+                          onClick={handlePrintIssue}
+                        >
+                          In Phiếu
+                        </button>
+                      )}
+                      <button className="btn-action btn-delete" style={{ padding: '4px 8px' }} onClick={() => setIssueFormMode(null)}>X đóng</button>
+                    </div>
                   </div>
 
                   {issueFormMode === 'add' ? (
@@ -5236,98 +5414,102 @@ function Home() {
                             </tr>
                           </thead>
                           <tbody>
-                            {issueForm.details.length === 0 ? (
-                              <tr>
-                                <td colSpan="6" style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', padding: '24px' }}>Chưa có lô xuất nào được chọn.</td>
-                              </tr>
-                            ) : (
-                              issueForm.details.map((line, idx) => {
-                                const inv = inventoriesList.find(v => v.id === line.inventoryId);
-                                const rowUnits = [];
-                                if (inv && inv.medicine) {
-                                  const med = inv.medicine;
-                                  if (med.baseUnit) {
-                                    rowUnits.push({
-                                      unitID: med.baseUnit.unitID,
-                                      unitName: med.baseUnit.unitName,
-                                      conversionRate: 1
-                                    });
+                            {(() => {
+                              const mappedInventories = (allInventories.length > 0 ? allInventories : inventoriesList).map(inv => ({
+                                ...inv,
+                                displayName: `${inv.medicine?.medicineName || 'Không rõ'} (Lô: ${inv.batchId} | Còn: ${inv.stockQuantity})`
+                              }));
+                              return issueForm.details.length === 0 ? (
+                                <tr>
+                                  <td colSpan="6" style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', padding: '24px' }}>Chưa có lô xuất nào được chọn.</td>
+                                </tr>
+                              ) : (
+                                issueForm.details.map((line, idx) => {
+                                  const inv = inventoriesList.find(v => v.id === line.inventoryId);
+                                  const rowUnits = [];
+                                  if (inv && inv.medicine) {
+                                    const med = inv.medicine;
+                                    if (med.baseUnit) {
+                                      rowUnits.push({
+                                        unitID: med.baseUnit.unitID,
+                                        unitName: med.baseUnit.unitName,
+                                        conversionRate: 1
+                                      });
+                                    }
+                                    if (med.alternativeUnits) {
+                                      med.alternativeUnits.forEach(au => {
+                                        const uId = au.unitID || au.unit?.unitID;
+                                        const uName = au.unitName || au.unit?.unitName || uId;
+                                        if (uId) {
+                                          rowUnits.push({
+                                            unitID: uId,
+                                            unitName: uName,
+                                            conversionRate: au.conversionRate
+                                          });
+                                        }
+                                      });
+                                    }
                                   }
-                                  if (med.alternativeUnits) {
-                                    med.alternativeUnits.forEach(au => {
-                                      const uId = au.unitID || au.unit?.unitID;
-                                      const uName = au.unitName || au.unit?.unitName || uId;
-                                      if (uId) {
-                                        rowUnits.push({
-                                          unitID: uId,
-                                          unitName: uName,
-                                          conversionRate: au.conversionRate
-                                        });
-                                      }
-                                    });
-                                  }
-                                }
-                                return (
-                                  <tr key={idx}>
-                                    <td style={{ textAlign: 'center', padding: '8px', fontWeight: '600' }}>#{idx + 1}</td>
-                                    <td style={{ padding: '8px' }}>
-                                      <select
-                                        className="select-input"
-                                        style={{ padding: '6px', width: '100%' }}
-                                        value={line.inventoryId}
-                                        onChange={(e) => handleIssueLineChange(idx, 'inventoryId', e.target.value)}
-                                      >
-                                        {(allInventories.length > 0 ? allInventories : inventoriesList).map(inv => (
-                                          <option key={inv.id} value={inv.id}>{inv.medicine.medicineName} (Lô: {inv.batchId} | Còn: {inv.stockQuantity})</option>
-                                        ))}
-                                      </select>
-                                    </td>
-                                    <td style={{ padding: '8px' }}>
-                                      <select
-                                        className="select-input"
-                                        style={{ padding: '6px', width: '100%' }}
-                                        value={line.transactionUnitId}
-                                        onChange={(e) => handleIssueLineChange(idx, 'transactionUnitId', e.target.value)}
-                                      >
-                                        {rowUnits.map(u => (
-                                          <option key={u.unitID} value={u.unitID}>{u.unitName}</option>
-                                        ))}
-                                      </select>
-                                    </td>
-                                    <td style={{ padding: '8px' }}>
-                                      <input
-                                        type="number"
-                                        className="input"
-                                        style={{ padding: '6px', width: '100%' }}
-                                        value={line.quantity}
-                                        onChange={(e) => handleIssueLineChange(idx, 'quantity', e.target.value)}
-                                        required
-                                      />
-                                    </td>
-                                    <td style={{ padding: '8px' }}>
-                                      <input
-                                        type="number"
-                                        className="input"
-                                        style={{ padding: '6px', width: '100%' }}
-                                        value={line.conversionRate}
-                                        onChange={(e) => handleIssueLineChange(idx, 'conversionRate', e.target.value)}
-                                        required
-                                      />
-                                    </td>
-                                    <td style={{ padding: '8px', textAlign: 'center' }}>
-                                      <button type="button" className="btn-action btn-delete" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => handleRemoveIssueLine(idx)}>Xóa</button>
-                                    </td>
-                                  </tr>
-                                );
-                              })
-                            )}
+                                  return (
+                                    <tr key={idx}>
+                                      <td style={{ textAlign: 'center', padding: '8px', fontWeight: '600' }}>#{idx + 1}</td>
+                                      <td style={{ padding: '8px' }}>
+                                        <SearchableSelect
+                                          options={mappedInventories}
+                                          value={line.inventoryId}
+                                          onChange={(val) => handleIssueLineChange(idx, 'inventoryId', val)}
+                                          idKey="id"
+                                          nameKey="displayName"
+                                          placeholder="Chọn lô xuất..."
+                                          style={{ padding: '6px 12px', minHeight: '34px', height: '34px', borderRadius: '6px', fontSize: '13px' }}
+                                        />
+                                      </td>
+                                      <td style={{ padding: '8px' }}>
+                                        <SearchableSelect
+                                          options={rowUnits}
+                                          value={line.transactionUnitId}
+                                          onChange={(val) => handleIssueLineChange(idx, 'transactionUnitId', val)}
+                                          idKey="unitID"
+                                          nameKey="unitName"
+                                          placeholder="Chọn đơn vị..."
+                                          style={{ padding: '6px 12px', minHeight: '34px', height: '34px', borderRadius: '6px', fontSize: '13px' }}
+                                        />
+                                      </td>
+                                      <td style={{ padding: '8px' }}>
+                                        <input
+                                          type="number"
+                                          className="input"
+                                          style={{ padding: '6px', width: '100%' }}
+                                          value={line.quantity}
+                                          onChange={(e) => handleIssueLineChange(idx, 'quantity', e.target.value)}
+                                          required
+                                        />
+                                      </td>
+                                      <td style={{ padding: '8px' }}>
+                                        <input
+                                          type="number"
+                                          className="input"
+                                          style={{ padding: '6px', width: '100%' }}
+                                          value={line.conversionRate}
+                                          onChange={(e) => handleIssueLineChange(idx, 'conversionRate', e.target.value)}
+                                          required
+                                        />
+                                      </td>
+                                      <td style={{ padding: '8px', textAlign: 'center' }}>
+                                        <button type="button" className="btn-action btn-delete" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => handleRemoveIssueLine(idx)}>Xóa</button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              );
+                            })()}
                           </tbody>
                         </table>
                       </div>
 
                       <div className="form-actions">
                         <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white' }} onClick={() => setIssueFormMode(null)}>Hủy bỏ</button>
-                        <button type="submit" className="btn-action btn-delete" style={{ flexGrow: 1, backgroundColor: 'var(--error-color)' }}>Lưu phiếu xuất nháp 💾</button>
+                        <button type="submit" className="btn-action btn-delete" style={{ flexGrow: 1, backgroundColor: 'var(--error-color)' }}>Lưu phiếu xuất nháp</button>
                       </div>
                     </form>
                   ) : (
@@ -5785,7 +5967,7 @@ function Home() {
 
                       <div className="form-actions">
                         <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white' }} onClick={() => setAuditFormMode(null)}>Đóng</button>
-                        <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, backgroundColor: 'var(--warning-hover)' }}>Lưu số thực tế đếm tạm 💾</button>
+                        <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, backgroundColor: 'var(--warning-hover)' }}>Lưu số thực tế đếm tạm</button>
                       </div>
                     </form>
                   ) : (
@@ -8102,23 +8284,32 @@ function Home() {
                   {accountFormMode === 'add' ? (
                     <div className="form-group" style={{ marginBottom: '16px' }}>
                       <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px', display: 'block' }}>Nhân viên liên kết:</label>
-                      <select
-                        className="select-input"
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
-                        value={accountForm.employeeID}
-                        onChange={(e) => setAccountForm({ ...accountForm, employeeID: e.target.value })}
-                        required
-                      >
-                        {unlinkedEmployees.length > 0 ? (
-                          unlinkedEmployees.map(emp => (
-                            <option key={emp.employeeID} value={emp.employeeID}>
-                              {emp.fullName} ({emp.employeeID})
-                            </option>
-                          ))
-                        ) : (
-                          <option value="">(Không còn nhân viên nào chưa có tài khoản)</option>
-                        )}
-                      </select>
+                      {unlinkedEmployees.length > 0 ? (
+                        (() => {
+                          const mappedEmployees = unlinkedEmployees.map(emp => ({
+                            ...emp,
+                            displayName: `${emp.fullName} (${emp.employeeID})`
+                          }));
+                          return (
+                            <SearchableSelect
+                              options={mappedEmployees}
+                              value={accountForm.employeeID}
+                              onChange={(val) => setAccountForm({ ...accountForm, employeeID: val })}
+                              idKey="employeeID"
+                              nameKey="displayName"
+                              placeholder="Chọn nhân viên..."
+                            />
+                          );
+                        })()
+                      ) : (
+                        <input
+                          type="text"
+                          className="input"
+                          style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', color: '#64748b' }}
+                          value="(Không còn nhân viên nào chưa có tài khoản)"
+                          disabled
+                        />
+                      )}
                     </div>
                   ) : (
                     <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -8448,23 +8639,33 @@ function Home() {
               {/* Chọn Khách hàng */}
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Khách hàng thành viên:</label>
-                <select
-                  className="select-input"
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                  value={posSelectedCustomer?.customerID || ''}
-                  onChange={(e) => {
-                    const c = customersList.find(cust => cust.customerID === e.target.value);
-                    setPosSelectedCustomer(c || null);
-                    if (c) {
-                      setPosAddress(c.address || '');
-                    }
-                  }}
-                >
-                  <option value="">-- Khách lẻ vãng lai (Không tích điểm) --</option>
-                  {customersList.map(c => (
-                    <option key={c.customerID} value={c.customerID}>{c.fullName} ({c.phoneNumber})</option>
-                  ))}
-                </select>
+                {(() => {
+                  const mappedCustomers = [
+                    { customerID: '', displayName: '-- Khách lẻ vãng lai (Không tích điểm) --' },
+                    ...customersList.map(c => ({
+                      ...c,
+                      displayName: `${c.fullName} (${c.phoneNumber})`
+                    }))
+                  ];
+                  return (
+                    <SearchableSelect
+                      options={mappedCustomers}
+                      value={posSelectedCustomer?.customerID || ''}
+                      onChange={(val) => {
+                        const c = customersList.find(cust => cust.customerID === val);
+                        setPosSelectedCustomer(c || null);
+                        if (c) {
+                          setPosAddress(c.address || '');
+                        } else {
+                          setPosAddress('');
+                        }
+                      }}
+                      idKey="customerID"
+                      nameKey="displayName"
+                      placeholder="Chọn khách hàng..."
+                    />
+                  );
+                })()}
               </div>
 
               {/* Nhập Địa chỉ */}

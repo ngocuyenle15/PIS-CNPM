@@ -238,8 +238,9 @@ public class DataInitializer implements CommandLineRunner {
         }
         log.info("Đã seed xong {} Origin.", origins.size());
 
-        // 7. Seed Supplier (Nhà cung cấp) - 26 bản ghi
+        // 7. Seed Supplier (Nhà cung cấp) - 27 bản ghi
         List<String> supplierNames = List.of(
+            "TỒN KHO KHỞI TẠO",
             "Dược Phẩm Trung Ương 1", "Dược Hậu Giang (DHG)", "Traphaco", "Imexpharm", "Pharmedic",
             "OPC Pharmaceutical", "Domesco", "Dược Hà Tây", "Dược Phẩm OPC", "Dược Sanofi",
             "Dược Bến Tre", "Dược Lâm Đồng", "Dược Cửu Long", "Dược Phẩm Boston", "Dược Phẩm Nam Hà",

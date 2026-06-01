@@ -18,7 +18,8 @@ function SearchableSelect({
   placeholder = 'Chọn...',
   idKey = 'id',
   nameKey = 'name',
-  disabled = false
+  disabled = false,
+  style = {}
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,10 +82,11 @@ function SearchableSelect({
   };
 
   return (
-    <div className="searchable-select-container" ref={containerRef}>
+    <div className="searchable-select-container" ref={containerRef} style={{ zIndex: isOpen ? 100 : 1 }}>
       {/* Trigger Button */}
       <div
         className={`searchable-select-trigger ${disabled ? 'disabled' : ''} ${isOpen ? 'active' : ''}`}
+        style={style}
         onClick={handleToggle}
       >
         <span className={selectedOption ? 'selected-text' : 'placeholder-text'}>
