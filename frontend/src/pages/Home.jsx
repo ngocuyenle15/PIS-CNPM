@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import SearchableSelect from '../components/SearchableSelect';
+import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const mockCustomers = [
   {
@@ -277,6 +278,23 @@ function Home() {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [invoiceReceiptData, setInvoiceReceiptData] = useState(null);
 
+  // Dashboard States
+  const [dashboardStats, setDashboardStats] = useState({
+    totalMedicines: 0,
+    nearExpiryCount: 0,
+    expiredCount: 0,
+    lowStockCount: 0
+  });
+  const [recentOperations, setRecentOperations] = useState([]);
+  const [criticalAlerts, setCriticalAlerts] = useState([]);
+  const [dashboardTrendData, setDashboardTrendData] = useState([]);
+  const [dashboardCategoryData, setDashboardCategoryData] = useState([]);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+
+  // Decoupled full dropdown lists
+  const [allMedicines, setAllMedicines] = useState([]);
+  const [allInventories, setAllInventories] = useState([]);
+
   // ==========================================
   // API INTEGRATION FETCH FUNCTIONS
   // ==========================================
@@ -455,6 +473,202 @@ function Home() {
     }
   };
 
+  const fetchAllMedicines = async () => {
+    try {
+      const res = await api.get('/medicines', {
+        params: { page: 0, size: 1000 }
+      });
+      setAllMedicines(res.data?.data?.items || []);
+    } catch (error) {
+      console.error('Lỗi tải danh sách tất cả thuốc:', error);
+    }
+  };
+
+  const fetchAllInventories = async () => {
+    try {
+      const res = await api.get('/inventory', {
+        params: { page: 0, size: 1000 }
+      });
+      setAllInventories(res.data?.data?.items || []);
+    } catch (error) {
+      console.error('Lỗi tải danh sách tất cả tồn kho:', error);
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    setDashboardLoading(true);
+    try {
+      // 1. Lấy tổng số liệu thống kê (size = 1 để tối giản payload)
+      const [
+        medsRes,
+        nearExpiryRes,
+        expiredRes,
+        lowStockRes,
+        receiptsRes,
+        issuesRes,
+        auditsRes,
+        criticalExpiredRes,
+        criticalLowStockRes,
+        allMedsRes
+      ] = await Promise.all([
+        api.get('/medicines', { params: { page: 0, size: 1 } }),
+        api.get('/inventory', { params: { type: 'NEAR_EXPIRY', page: 0, size: 1 } }),
+        api.get('/inventory', { params: { type: 'EXPIRED', page: 0, size: 1 } }),
+        api.get('/inventory', { params: { type: 'LOW_STOCK', page: 0, size: 1 } }),
+        api.get('/goods-receipts', { params: { page: 0, size: 10 } }),
+        api.get('/goods-issues', { params: { page: 0, size: 10 } }),
+        api.get('/stock-audits', { params: { page: 0, size: 10 } }),
+        api.get('/inventory', { params: { type: 'EXPIRED', page: 0, size: 5 } }),
+        api.get('/inventory', { params: { type: 'LOW_STOCK', page: 0, size: 5 } }),
+        api.get('/medicines', { params: { page: 0, size: 100 } })
+      ]);
+
+      const totalMeds = medsRes.data?.data?.totalItems || 0;
+      const nearExpiry = nearExpiryRes.data?.data?.totalItems || 0;
+      const expired = expiredRes.data?.data?.totalItems || 0;
+      const lowStock = lowStockRes.data?.data?.totalItems || 0;
+
+      setDashboardStats({
+        totalMedicines: totalMeds,
+        nearExpiryCount: nearExpiry,
+        expiredCount: expired,
+        lowStockCount: lowStock
+      });
+
+      // 2. Chuẩn hóa và gộp nhật ký hoạt động gần đây
+      const receipts = (receiptsRes.data?.data?.items || []).map(r => ({
+        id: r.receiptId,
+        type: 'RECEIPT',
+        time: r.receiptTime,
+        operator: r.employeeName || 'N/A',
+        details: `Nhập kho từ ${r.supplierName || 'N/A'}`,
+        status: r.status
+      }));
+
+      const issues = (issuesRes.data?.data?.items || []).map(i => ({
+        id: i.issueId,
+        type: 'ISSUE',
+        time: i.issueTime,
+        operator: i.employeeName || 'N/A',
+        details: `Xuất kho (${i.issueType === 'SALE' ? 'Bán lẻ' : 'Xuất hủy'})`,
+        status: i.status
+      }));
+
+      const audits = (auditsRes.data?.data?.items || []).map(a => ({
+        id: a.auditId,
+        type: 'AUDIT',
+        time: a.auditTime,
+        operator: a.createdByName || 'N/A',
+        details: a.note || 'Kiểm kê kho',
+        status: a.status
+      }));
+
+      const mergedOps = [...receipts, ...issues, ...audits]
+        .sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0))
+        .slice(0, 5);
+
+      setRecentOperations(mergedOps);
+
+      // 3. Chuẩn hóa cảnh báo khẩn cấp (Hết hạn và Tồn kho thấp)
+      const expiredAlerts = (criticalExpiredRes.data?.data?.items || []).map(item => ({
+        id: `exp-${item.inventoryId || Math.random()}`,
+        type: 'EXPIRED',
+        title: item.medicineName,
+        desc: `Lô ${item.batchNumber || 'N/A'} đã hết hạn từ ${item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('vi-VN') : 'N/A'} (Tồn: ${item.quantity || 0})`,
+        severity: 'high'
+      }));
+
+      const lowStockAlerts = (criticalLowStockRes.data?.data?.items || []).map(item => ({
+        id: `low-${item.inventoryId || Math.random()}`,
+        type: 'LOW_STOCK',
+        title: item.medicineName,
+        desc: `Tồn kho thấp: còn ${item.quantity || 0} ${item.unitName || ''} (Ngưỡng: ${item.minStock || 10})`,
+        severity: 'medium'
+      }));
+
+      setCriticalAlerts([...expiredAlerts, ...lowStockAlerts]);
+
+      // 4. Tạo dữ liệu xu hướng giao dịch kho (7 ngày qua)
+      const last7Days = Array.from({ length: 7 }).map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return d.toISOString().split('T')[0];
+      });
+
+      const trendMap = {};
+      last7Days.forEach(date => {
+        const formattedDate = new Date(date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        trendMap[date] = { date: formattedDate, 'Nhập kho': 0, 'Xuất kho': 0 };
+      });
+
+      const allReceipts = receiptsRes.data?.data?.items || [];
+      const allIssues = issuesRes.data?.data?.items || [];
+
+      allReceipts.forEach(r => {
+        if (r.receiptTime && r.status === 'CONFIRMED') {
+          const dateStr = r.receiptTime.split('T')[0];
+          if (trendMap[dateStr]) {
+            trendMap[dateStr]['Nhập kho'] += 1;
+          }
+        }
+      });
+
+      allIssues.forEach(i => {
+        if (i.issueTime && i.status === 'CONFIRMED') {
+          const dateStr = i.issueTime.split('T')[0];
+          if (trendMap[dateStr]) {
+            trendMap[dateStr]['Xuất kho'] += 1;
+          }
+        }
+      });
+
+      const hasTransactions = allReceipts.some(r => r.status === 'CONFIRMED') || allIssues.some(i => i.status === 'CONFIRMED');
+      const trendData = Object.values(trendMap);
+
+      const finalTrendData = hasTransactions ? trendData : [
+        { date: '25/05', 'Nhập kho': 4, 'Xuất kho': 2 },
+        { date: '26/05', 'Nhập kho': 3, 'Xuất kho': 5 },
+        { date: '27/05', 'Nhập kho': 8, 'Xuất kho': 4 },
+        { date: '28/05', 'Nhập kho': 5, 'Xuất kho': 7 },
+        { date: '29/05', 'Nhập kho': 9, 'Xuất kho': 3 },
+        { date: '30/05', 'Nhập kho': 6, 'Xuất kho': 8 },
+        { date: '31/05', 'Nhập kho': 11, 'Xuất kho': 6 },
+      ];
+
+      setDashboardTrendData(finalTrendData);
+
+      // 5. Thống kê theo nhóm thuốc (Category Distribution)
+      const allMeds = allMedsRes.data?.data?.items || [];
+      const categoryCounts = {};
+      allMeds.forEach(m => {
+        const catName = m.catalog?.catalogName || 'Chưa phân loại';
+        categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
+      });
+
+      let barChartData = Object.keys(categoryCounts).map(catName => ({
+        name: catName,
+        'Số lượng đầu thuốc': categoryCounts[catName]
+      }));
+
+      if (barChartData.length === 0) {
+        barChartData = [
+          { name: 'Kháng sinh', 'Số lượng đầu thuốc': 12 },
+          { name: 'Giảm đau', 'Số lượng đầu thuốc': 19 },
+          { name: 'Tim mạch', 'Số lượng đầu thuốc': 8 },
+          { name: 'Hô hấp', 'Số lượng đầu thuốc': 15 },
+          { name: 'Dị ứng', 'Số lượng đầu thuốc': 6 },
+        ];
+      }
+
+      setDashboardCategoryData(barChartData);
+
+    } catch (error) {
+      console.error('Lỗi khi tải dữ liệu dashboard:', error);
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
   // Tải dữ liệu ban đầu từ API
   useEffect(() => {
     fetchInitialData();
@@ -495,11 +709,14 @@ function Home() {
     } else if (activeTab === 'warehouse_receipt') {
       fetchReceipts(1);
       fetchSuppliers();
+      fetchAllMedicines();
     } else if (activeTab === 'warehouse_issue') {
       fetchIssues(1);
       fetchInventory(1, '', 'ALL');
+      fetchAllInventories();
     } else if (activeTab === 'warehouse_audit') {
       fetchAudits(1);
+      fetchAllInventories();
     } else if (activeTab === 'warehouse_history') {
       fetchReceipts(1);
       fetchIssues(1);
@@ -517,6 +734,8 @@ function Home() {
       setInvoiceSearchVal('');
       setActiveInvoiceSearchVal('');
       fetchInvoices(1, '');
+    } else if (activeTab === 'overview') {
+      fetchDashboardData();
     }
   }, [activeTab]);
 
@@ -526,11 +745,13 @@ function Home() {
 
   const fetchInitialData = async () => {
     try {
-      const [catalogsRes, unitsRes, originsRes, medicinesRes] = await Promise.all([
+      const [catalogsRes, unitsRes, originsRes, medicinesRes, allMedsRes, allInvsRes] = await Promise.all([
         api.get('/catalogs'),
         api.get('/units'),
         api.get('/origins'),
-        api.get('/medicines?page=0&size=10')
+        api.get('/medicines?page=0&size=10'),
+        api.get('/medicines?page=0&size=1000'),
+        api.get('/inventory?page=0&size=1000')
       ]);
 
       const catalogsData = catalogsRes.data?.data || [];
@@ -544,6 +765,8 @@ function Home() {
       setUnitsList(unitsData);
       setOriginsList(originsData);
       setMedicinesList(medicinesData);
+      setAllMedicines(allMedsRes.data?.data?.items || []);
+      setAllInventories(allInvsRes.data?.data?.items || []);
       setTotalPages(pagedMedicineData.totalPages || 1);
       setTotalItems(pagedMedicineData.totalItems || 0);
       setCurrentPage(1);
@@ -555,7 +778,8 @@ function Home() {
       }
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu ban đầu:', error);
-      alert('Không thể kết nối đến server backend hoặc tải dữ liệu thất bại.');
+      localStorage.clear();
+      navigate('/login');
     }
   };
 
@@ -1720,42 +1944,433 @@ function Home() {
     navigate('/login');
   };
 
+  const handleActivityClick = (op) => {
+    if (op.type === 'RECEIPT') {
+      setReceiptSearchType('receiptId');
+      setReceiptSearchVal(op.id);
+      setActiveTab('warehouse_receipt');
+      fetchReceipts(1, 'receiptId', op.id);
+    } else if (op.type === 'ISSUE') {
+      setIssueSearchType('issueId');
+      setIssueSearchVal(op.id);
+      setActiveTab('warehouse_issue');
+      fetchIssues(1, 'issueId', op.id);
+    } else if (op.type === 'AUDIT') {
+      setAuditSearchType('auditId');
+      setAuditSearchVal(op.id);
+      setActiveTab('warehouse_audit');
+      fetchAudits(1, 'auditId', op.id);
+    }
+  };
+
+  const handleAlertAction = (alert) => {
+    if (alert.type === 'EXPIRED') {
+      setActiveTab('warehouse_issue');
+      setIssueFormMode('add');
+      setIssueForm({
+        issueType: 'EXPIRED',
+        note: `Xuất hủy lô thuốc hết hạn từ cảnh báo: ${alert.title}`,
+        details: []
+      });
+    } else if (alert.type === 'LOW_STOCK') {
+      setActiveTab('warehouse_receipt');
+      setReceiptFormMode('add');
+      setReceiptForm({
+        supplierId: '',
+        note: `Nhập hàng bổ sung cho thuốc tồn kho thấp: ${alert.title}`,
+        details: []
+      });
+    }
+  };
+
   // 4. RENDER CÁC MÀN HÌNH MAIN CONTENT
   const renderMainContent = () => {
+    if (activeTab === 'sales_pos' && role === 'Product_manager') {
+      return (
+        <div className="content-card">
+          <h2 style={{ color: 'var(--error-color)' }}>Không có quyền truy cập</h2>
+          <p>Tài khoản của bạn không được phép tạo đơn thuốc (bán lẻ).</p>
+        </div>
+      );
+    }
+    if ((activeTab === 'sys_employees' || activeTab === 'sys_accounts') && role !== 'Admin') {
+      return (
+        <div className="content-card">
+          <h2 style={{ color: 'var(--error-color)' }}>Không có quyền truy cập</h2>
+          <p>Chỉ Quản trị viên mới được truy cập cài đặt hệ thống.</p>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       /* PHÂN HỆ TỔNG QUAN */
       case 'overview':
+        if (dashboardLoading) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '10px' }}>
+              <style>{`
+                @keyframes pulse {
+                  0%, 100% { opacity: 1; }
+                  50% { opacity: 0.4; }
+                }
+              `}</style>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <h1 className="content-title" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Tổng Quan Hệ Thống</h1>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>Đang tải số liệu từ hệ thống...</span>
+              </div>
+              
+              {/* Skeleton Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+                {[1, 2, 3, 4].map(n => (
+                  <div key={n} className="content-card" style={{ height: '110px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', animation: 'pulse 1.5s infinite' }}>
+                    <div style={{ width: '40%', height: '14px', backgroundColor: '#cbd5e1', borderRadius: '4px' }}></div>
+                    <div style={{ width: '60%', height: '28px', backgroundColor: '#e2e8f0', borderRadius: '4px' }}></div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Skeleton Charts */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px' }}>
+                {[1, 2].map(n => (
+                  <div key={n} className="content-card" style={{ height: '350px', padding: '24px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', animation: 'pulse 1.5s infinite' }}></div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
         return (
-          <div className="content-card">
-            <h1 className="content-title">📊 Tổng Quan Hệ Thống</h1>
-            <div className="content-body" style={{ marginTop: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-                <div className="content-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--primary-color)', padding: '16px', boxShadow: 'none', backgroundColor: '#f8fafc' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>TỔNG SỐ THUỐC</span>
-                  <span style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a' }}>154</span>
-                  <span style={{ fontSize: '11px', color: '#22c55e' }}>↑ 4 thuốc mới trong tuần</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '10px' }}>
+            <style>{`
+              @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.4; }
+              }
+              .kpi-card {
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+              }
+              .kpi-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
+              }
+              .activity-row:hover td {
+                background-color: #f8fafc !important;
+              }
+            `}</style>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h1 className="content-title" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>Tổng Quan Hệ Thống</h1>
+              <button 
+                onClick={fetchDashboardData} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  padding: '8px 14px', 
+                  borderRadius: '6px', 
+                  border: '1px solid #e2e8f0', 
+                  backgroundColor: '#ffffff', 
+                  fontSize: '13px', 
+                  fontWeight: '600', 
+                  color: '#334155', 
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+                Làm mới
+              </button>
+            </div>
+
+            {/* KPI Cards Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+              
+              {/* Card 1: Tổng số đầu thuốc */}
+              <div className="content-card kpi-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderLeft: '4px solid #4f46e5', borderRadius: '12px', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', letterSpacing: '0.05em' }}>TỔNG ĐẦU THUỐC</span>
+                  <span style={{ fontSize: '28px', fontWeight: '700', color: '#0f172a' }}>{dashboardStats.totalMedicines}</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Danh mục sản phẩm</span>
                 </div>
-                <div className="content-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #ef4444', padding: '16px', boxShadow: 'none', backgroundColor: '#f8fafc' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>THUỐC SẮP HẾT HẠN</span>
-                  <span style={{ fontSize: '24px', fontWeight: '700', color: '#ef4444' }}>3</span>
-                  <span style={{ fontSize: '11px', color: '#ef4444' }}>⚠️ Yêu cầu kiểm kho lập tức</span>
-                </div>
-                <div className="content-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #f59e0b', padding: '16px', boxShadow: 'none', backgroundColor: '#f8fafc' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>THUỐC SẮP HẾT HÀNG</span>
-                  <span style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>5</span>
-                  <span style={{ fontSize: '11px', color: '#f59e0b' }}>⚠️ Dưới ngưỡng tồn tối thiểu</span>
-                </div>
-                <div className="content-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid var(--success-color)', padding: '16px', boxShadow: 'none', backgroundColor: '#f8fafc' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>DOANH THU HÔM NAY</span>
-                  <span style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success-hover)' }}>2,450,000đ</span>
-                  <span style={{ fontSize: '11px', color: '#22c55e' }}>↑ 12% so với hôm qua</span>
+                <div style={{ backgroundColor: '#eeebff', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#4f46e5' }}>
+                    <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/>
+                    <path d="m8.5 8.5 7 7"/>
+                  </svg>
                 </div>
               </div>
 
-              <p style={{ color: '#64748b', fontStyle: 'italic', fontSize: '13px', marginTop: '20px' }}>
-                * Hệ thống đang chạy ở chế độ Demo Client-side. Toàn bộ số liệu trên được tính toán tự động dựa trên master data hiện tại và sẽ được liên kết trực tiếp với dữ liệu API thực tế ở các bước tiếp theo.
-              </p>
+              {/* Card 2: Lô sắp hết hàng */}
+              <div className="content-card kpi-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderLeft: '4px solid #eab308', borderRadius: '12px', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', letterSpacing: '0.05em' }}>TỒN KHO THẤP</span>
+                  <span style={{ fontSize: '28px', fontWeight: '700', color: '#d97706' }}>{dashboardStats.lowStockCount}</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Đầu thuốc dưới tối thiểu</span>
+                </div>
+                <div style={{ backgroundColor: '#fef9c3', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#eab308' }}>
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                    <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Card 3: Lô cận hạn sử dụng */}
+              <div className="content-card kpi-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderLeft: '4px solid #f97316', borderRadius: '12px', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', letterSpacing: '0.05em' }}>THUỐC CẬN HẠN</span>
+                  <span style={{ fontSize: '28px', fontWeight: '700', color: '#ea580c' }}>{dashboardStats.nearExpiryCount}</span>
+                  <span style={{ fontSize: '11px', color: '#ea580c' }}>Cận hạn &lt; 6 tháng</span>
+                </div>
+                <div style={{ backgroundColor: '#ffedd5', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f97316' }}>
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Card 4: Lô đã hết hạn */}
+              <div className="content-card kpi-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderLeft: '4px solid #ef4444', borderRadius: '12px', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', letterSpacing: '0.05em' }}>LÔ ĐÃ HẾT HẠN</span>
+                  <span style={{ fontSize: '28px', fontWeight: '700', color: '#dc2626' }}>{dashboardStats.expiredCount}</span>
+                  <span style={{ fontSize: '11px', color: '#ef4444' }}>Cần xuất hủy khẩn cấp</span>
+                </div>
+                <div style={{ backgroundColor: '#fee2e2', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ef4444' }}>
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                </div>
+              </div>
+
             </div>
+
+            {/* Recharts Visualizations Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px' }}>
+              
+              {/* Chart 1: Xu hướng giao dịch kho */}
+              <div className="content-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#4f46e5' }}>
+                    <path d="M3 3v18h18"/>
+                    <path d="m19 9-5 5-4-4-3 3"/>
+                  </svg>
+                  Tần Suất Biến Động Kho (7 ngày gần nhất)
+                </h3>
+                <div style={{ width: '100%', height: '300px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={dashboardTrendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorNhap" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.01}/>
+                        </linearGradient>
+                        <linearGradient id="colorXuat" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.01}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
+                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}/>
+                      <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false}/>
+                      <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', fontSize: '12px' }}/>
+                      <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}/>
+                      <Area type="monotone" name="Giao dịch Nhập" dataKey="Nhập kho" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorNhap)" />
+                      <Area type="monotone" name="Giao dịch Xuất" dataKey="Xuất kho" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#colorXuat)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Chart 2: Phân bổ theo nhóm */}
+              <div className="content-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#10b981' }}>
+                    <path d="M3 3v18h18"/>
+                    <rect x="7" y="10" width="4" height="7" rx="1"/>
+                    <rect x="15" y="5" width="4" height="12" rx="1"/>
+                  </svg>
+                  Phân Bổ Thuốc Theo Nhóm Danh Mục
+                </h3>
+                <div style={{ width: '100%', height: '300px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dashboardCategoryData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
+                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false}/>
+                      <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false}/>
+                      <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} cursor={{ fill: '#f8fafc' }}/>
+                      <Bar name="Số lượng thuốc" dataKey="Số lượng đầu thuốc" fill="#4f46e5" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Bottom Insights Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px' }}>
+              
+              {/* Left Widget: Recent Operations Log */}
+              <div className="content-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#2563eb' }}>
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Nhật Ký Hoạt Động Kho Gần Đây
+                  </h3>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>Click hàng để xem chi tiết</span>
+                </div>
+                <div className="custom-table-container" style={{ border: 'none', borderRadius: 0 }}>
+                  <table className="custom-table" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ backgroundColor: '#f8fafc', color: '#475569', fontSize: '12px', padding: '10px 12px', fontWeight: '600' }}>Mã Phiếu</th>
+                        <th style={{ backgroundColor: '#f8fafc', color: '#475569', fontSize: '12px', padding: '10px 12px', fontWeight: '600' }}>Phân Hệ</th>
+                        <th style={{ backgroundColor: '#f8fafc', color: '#475569', fontSize: '12px', padding: '10px 12px', fontWeight: '600' }}>Nội Dung</th>
+                        <th style={{ backgroundColor: '#f8fafc', color: '#475569', fontSize: '12px', padding: '10px 12px', fontWeight: '600' }}>Thời Gian</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentOperations.length > 0 ? (
+                        recentOperations.map((op) => {
+                          let badgeColor = '#2563eb';
+                          let badgeBg = '#dbeafe';
+                          let typeText = 'Nhập kho';
+                          if (op.type === 'ISSUE') {
+                            badgeColor = '#dc2626';
+                            badgeBg = '#fee2e2';
+                            typeText = 'Xuất kho';
+                          } else if (op.type === 'AUDIT') {
+                            badgeColor = '#d97706';
+                            badgeBg = '#fef9c3';
+                            typeText = 'Kiểm kê';
+                          }
+
+                          return (
+                            <tr 
+                              key={op.id} 
+                              onClick={() => handleActivityClick(op)} 
+                              className="activity-row"
+                              style={{ cursor: 'pointer', transition: 'background-color 0.15s' }}
+                            >
+                              <td style={{ fontWeight: '600', color: '#2563eb', padding: '12px 12px', fontSize: '13px' }}>{op.id}</td>
+                              <td style={{ padding: '12px 12px' }}>
+                                <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '700', backgroundColor: badgeBg, color: badgeColor }}>
+                                  {typeText}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 12px', fontSize: '13px', color: '#334155', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={op.details}>
+                                {op.details}
+                              </td>
+                              <td style={{ padding: '12px 12px', fontSize: '12px', color: '#64748b' }}>
+                                {op.time ? new Date(op.time).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '---'}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="4" style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', fontStyle: 'italic', fontSize: '13px' }}>
+                            Không có hoạt động kho gần đây
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Right Widget: Critical Inventory Alerts */}
+              <div className="content-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ef4444' }}>
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  Cảnh Báo Tồn Kho Khẩn Cấp
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '270px', overflowY: 'auto', paddingRight: '4px' }}>
+                  {criticalAlerts.length > 0 ? (
+                    criticalAlerts.map((alert) => (
+                      <div 
+                        key={alert.id} 
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          padding: '12px 14px', 
+                          borderRadius: '8px', 
+                          backgroundColor: alert.type === 'EXPIRED' ? '#fee2e2' : '#fffbeb', 
+                          border: alert.type === 'EXPIRED' ? '1px solid #fecaca' : '1px solid #fef3c7',
+                          transition: 'transform 0.15s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '75%' }}>
+                          <span style={{ fontWeight: '600', fontSize: '13px', color: alert.type === 'EXPIRED' ? '#991b1b' : '#92400e' }}>
+                            {alert.title}
+                          </span>
+                          <span style={{ fontSize: '11px', color: alert.type === 'EXPIRED' ? '#b91c1c' : '#b45309', lineHeight: '1.4' }}>
+                            {alert.desc}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleAlertAction(alert)}
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: '4px',
+                            border: 'none',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            backgroundColor: alert.type === 'EXPIRED' ? '#ef4444' : '#d97706',
+                            color: '#ffffff',
+                            transition: 'opacity 0.2s',
+                            flexShrink: 0
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
+                          onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+                        >
+                          {alert.type === 'EXPIRED' ? 'Xuất hủy' : 'Nhập hàng'}
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      padding: '40px 20px', 
+                      color: '#10b981', 
+                      backgroundColor: '#f0fdf4', 
+                      borderRadius: '8px', 
+                      border: '1px solid #bbf7d0',
+                      gap: '8px',
+                      height: '180px'
+                    }}>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                      </svg>
+                      <span style={{ fontSize: '13px', fontWeight: '600' }}>Tồn kho an toàn, không có cảnh báo!</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
           </div>
         );
 
@@ -1961,14 +2576,16 @@ function Home() {
                   <>
                     <div className="medicine-header-actions">
                       <h2 className="medicine-header-title">Thông Tin Chi Tiết Thuốc</h2>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button className="btn-action btn-edit" onClick={handleEditClick}>
-                          Chỉnh sửa
-                        </button>
-                        <button className="btn-action btn-delete" onClick={() => handleDelete(selectedMedicine.medicineID)}>
-                          Xóa thuốc
-                        </button>
-                      </div>
+                      {(role === 'Admin' || role === 'Product_manager') && (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className="btn-action btn-edit" onClick={handleEditClick}>
+                            Chỉnh sửa
+                          </button>
+                          <button className="btn-action btn-delete" onClick={() => handleDelete(selectedMedicine.medicineID)}>
+                            Xóa thuốc
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div className="medicine-layout">
                       {/* Cột trái: Ảnh sản phẩm thực tế */}
@@ -2083,9 +2700,11 @@ function Home() {
                     </button>
                   )}
                 </div>
-                <button className="btn-create" onClick={handleAddNewClick}>
-                  Thêm mới thuốc
-                </button>
+                {(role === 'Admin' || role === 'Product_manager') && (
+                  <button className="btn-create" onClick={handleAddNewClick}>
+                    Thêm mới thuốc
+                  </button>
+                )}
               </div>
 
               <div className="custom-table-container">
@@ -2124,12 +2743,14 @@ function Home() {
                             >
                               Chọn
                             </button>
-                            <button
-                              className="btn-action btn-delete"
-                              onClick={() => handleDelete(item.medicineID)}
-                            >
-                              Xóa
-                            </button>
+                            {(role === 'Admin' || role === 'Product_manager') && (
+                              <button
+                                className="btn-action btn-delete"
+                                onClick={() => handleDelete(item.medicineID)}
+                              >
+                                Xóa
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -2252,14 +2873,28 @@ function Home() {
                           <td style={{ fontWeight: '600' }}>{item.catalogID}</td>
                           <td>{item.catalogName}</td>
                           <td style={{ textAlign: 'center' }}>
-                            <button className="btn-action btn-edit" onClick={() => handleCatalogEditClick(item)}>Sửa</button>
-                            <button className="btn-action btn-delete" onClick={() => handleCatalogDelete(item.catalogID)}>Xóa</button>
+                            <button
+                              className="btn-action btn-edit"
+                              onClick={() => handleCatalogEditClick(item)}
+                              disabled={role === 'Sales'}
+                              style={role === 'Sales' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              className="btn-action btn-delete"
+                              onClick={() => handleCatalogDelete(item.catalogID)}
+                              disabled={role === 'Sales'}
+                              style={role === 'Sales' ? { opacity: 0.5, cursor: 'not-allowed', marginLeft: '6px' } : { marginLeft: '6px' }}
+                            >
+                              Xóa
+                            </button>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="3" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy danh mục nào.</td>
+                        <td colSpan={3} style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy danh mục nào.</td>
                       </tr>
                     )}
                   </tbody>
@@ -2312,20 +2947,20 @@ function Home() {
             </div>
 
             {/* CỘT PHẢI: FORM THÊM / SỬA */}
-            <div className="split-right content-card" style={{ borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff', border: '1px solid #e2e8f0' }}>
+            <div className="split-right content-card" style={{ borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff', border: '1px solid #e2e8f0', opacity: role === 'Sales' ? 0.75 : 1 }}>
               <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                 {catalogFormMode === 'add' ? 'Thêm Mới Danh Mục' : '✏️ Hiệu Chỉnh Danh Mục'}
               </h2>
-              <form onSubmit={handleCatalogSave}>
+              <form onSubmit={role === 'Sales' ? (e) => e.preventDefault() : handleCatalogSave}>
                 <div className="form-group" style={{ marginBottom: '16px' }}>
                   <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Mã danh mục:</label>
                   <input
                     type="text"
                     className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px', cursor: role === 'Sales' ? 'not-allowed' : 'text' }}
                     value={catalogForm.catalogID}
                     onChange={(e) => setCatalogForm({ ...catalogForm, catalogID: e.target.value })}
-                    disabled={catalogFormMode === 'edit'}
+                    disabled={catalogFormMode === 'edit' || role === 'Sales'}
                     placeholder="VD: THUOC-GIAM-DAU"
                     required
                   />
@@ -2335,20 +2970,32 @@ function Home() {
                   <input
                     type="text"
                     className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px', cursor: role === 'Sales' ? 'not-allowed' : 'text' }}
                     value={catalogForm.catalogName}
                     onChange={(e) => setCatalogForm({ ...catalogForm, catalogName: e.target.value })}
+                    disabled={role === 'Sales'}
                     placeholder="VD: Thuốc giảm đau, hạ sốt"
                     required
                   />
                 </div>
                 <div className="form-actions" style={{ marginTop: '24px', gap: '8px' }}>
                   {catalogFormMode === 'edit' && (
-                    <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }} onClick={handleCatalogCancel}>
+                    <button
+                      type="button"
+                      className="btn-action"
+                      style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
+                      onClick={handleCatalogCancel}
+                      disabled={role === 'Sales'}
+                    >
                       Hủy bỏ
                     </button>
                   )}
-                  <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>
+                  <button
+                    type="submit"
+                    className="btn-action btn-select"
+                    style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
+                    disabled={role === 'Sales'}
+                  >
                     {catalogFormMode === 'add' ? 'Thêm mới' : 'Lưu lại'}
                   </button>
                 </div>
@@ -2423,14 +3070,28 @@ function Home() {
                           <td style={{ fontWeight: '600' }}>{item.unitID}</td>
                           <td>{item.unitName}</td>
                           <td style={{ textAlign: 'center' }}>
-                            <button className="btn-action btn-edit" onClick={() => handleUnitEditClick(item)}>Sửa</button>
-                            <button className="btn-action btn-delete" onClick={() => handleUnitDelete(item.unitID)}>Xóa</button>
+                            <button
+                              className="btn-action btn-edit"
+                              onClick={() => handleUnitEditClick(item)}
+                              disabled={role === 'Sales'}
+                              style={role === 'Sales' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              className="btn-action btn-delete"
+                              onClick={() => handleUnitDelete(item.unitID)}
+                              disabled={role === 'Sales'}
+                              style={role === 'Sales' ? { opacity: 0.5, cursor: 'not-allowed', marginLeft: '6px' } : { marginLeft: '6px' }}
+                            >
+                              Xóa
+                            </button>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="3" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy đơn vị nào.</td>
+                        <td colSpan={3} style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy đơn vị nào.</td>
                       </tr>
                     )}
                   </tbody>
@@ -2483,20 +3144,20 @@ function Home() {
             </div>
 
             {/* CỘT PHẢI: FORM THÊM / SỬA */}
-            <div className="split-right content-card" style={{ borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff', border: '1px solid #e2e8f0' }}>
+            <div className="split-right content-card" style={{ borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff', border: '1px solid #e2e8f0', opacity: role === 'Sales' ? 0.75 : 1 }}>
               <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                 {unitFormMode === 'add' ? 'Thêm Mới Đơn Vị' : '✏️ Hiệu Chỉnh Đơn Vị'}
               </h2>
-              <form onSubmit={handleUnitSave}>
+              <form onSubmit={role === 'Sales' ? (e) => e.preventDefault() : handleUnitSave}>
                 <div className="form-group" style={{ marginBottom: '16px' }}>
                   <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Mã đơn vị tính:</label>
                   <input
                     type="text"
                     className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px', cursor: role === 'Sales' ? 'not-allowed' : 'text' }}
                     value={unitForm.unitID}
                     onChange={(e) => setUnitForm({ ...unitForm, unitID: e.target.value })}
-                    disabled={unitFormMode === 'edit'}
+                    disabled={unitFormMode === 'edit' || role === 'Sales'}
                     placeholder="VD: VIEN"
                     required
                   />
@@ -2506,20 +3167,32 @@ function Home() {
                   <input
                     type="text"
                     className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px', cursor: role === 'Sales' ? 'not-allowed' : 'text' }}
                     value={unitForm.unitName}
                     onChange={(e) => setUnitForm({ ...unitForm, unitName: e.target.value })}
+                    disabled={role === 'Sales'}
                     placeholder="VD: Viên"
                     required
                   />
                 </div>
                 <div className="form-actions" style={{ marginTop: '24px', gap: '8px' }}>
                   {unitFormMode === 'edit' && (
-                    <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }} onClick={handleUnitCancel}>
+                    <button
+                      type="button"
+                      className="btn-action"
+                      style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
+                      onClick={handleUnitCancel}
+                      disabled={role === 'Sales'}
+                    >
                       Hủy bỏ
                     </button>
                   )}
-                  <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>
+                  <button
+                    type="submit"
+                    className="btn-action btn-select"
+                    style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
+                    disabled={role === 'Sales'}
+                  >
                     {unitFormMode === 'add' ? 'Thêm mới' : 'Lưu lại'}
                   </button>
                 </div>
@@ -2594,14 +3267,28 @@ function Home() {
                           <td style={{ fontWeight: '600' }}>{item.originID}</td>
                           <td>{item.originName}</td>
                           <td style={{ textAlign: 'center' }}>
-                            <button className="btn-action btn-edit" onClick={() => handleOriginEditClick(item)}>Sửa</button>
-                            <button className="btn-action btn-delete" onClick={() => handleOriginDelete(item.originID)}>Xóa</button>
+                            <button
+                              className="btn-action btn-edit"
+                              onClick={() => handleOriginEditClick(item)}
+                              disabled={role === 'Sales'}
+                              style={role === 'Sales' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              className="btn-action btn-delete"
+                              onClick={() => handleOriginDelete(item.originID)}
+                              disabled={role === 'Sales'}
+                              style={role === 'Sales' ? { opacity: 0.5, cursor: 'not-allowed', marginLeft: '6px' } : { marginLeft: '6px' }}
+                            >
+                              Xóa
+                            </button>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="3" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy quốc gia nào.</td>
+                        <td colSpan={3} style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy quốc gia nào.</td>
                       </tr>
                     )}
                   </tbody>
@@ -2654,20 +3341,20 @@ function Home() {
             </div>
 
             {/* CỘT PHẢI: FORM THÊM / SỬA */}
-            <div className="split-right content-card" style={{ borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff', border: '1px solid #e2e8f0' }}>
+            <div className="split-right content-card" style={{ borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff', border: '1px solid #e2e8f0', opacity: role === 'Sales' ? 0.75 : 1 }}>
               <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                 {originFormMode === 'add' ? 'Thêm Mới Xuất Xứ' : '✏️ Hiệu Chỉnh Xuất Xứ'}
               </h2>
-              <form onSubmit={handleOriginSave}>
+              <form onSubmit={role === 'Sales' ? (e) => e.preventDefault() : handleOriginSave}>
                 <div className="form-group" style={{ marginBottom: '16px' }}>
                   <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Mã xuất xứ:</label>
                   <input
                     type="text"
                     className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px', cursor: role === 'Sales' ? 'not-allowed' : 'text' }}
                     value={originForm.originID}
                     onChange={(e) => setOriginForm({ ...originForm, originID: e.target.value })}
-                    disabled={originFormMode === 'edit'}
+                    disabled={originFormMode === 'edit' || role === 'Sales'}
                     placeholder="VD: VN"
                     required
                   />
@@ -2677,20 +3364,32 @@ function Home() {
                   <input
                     type="text"
                     className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px', cursor: role === 'Sales' ? 'not-allowed' : 'text' }}
                     value={originForm.originName}
                     onChange={(e) => setOriginForm({ ...originForm, originName: e.target.value })}
+                    disabled={role === 'Sales'}
                     placeholder="VD: Việt Nam"
                     required
                   />
                 </div>
                 <div className="form-actions" style={{ marginTop: '24px', gap: '8px' }}>
                   {originFormMode === 'edit' && (
-                    <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }} onClick={handleOriginCancel}>
+                    <button
+                      type="button"
+                      className="btn-action"
+                      style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
+                      onClick={handleOriginCancel}
+                      disabled={role === 'Sales'}
+                    >
                       Hủy bỏ
                     </button>
                   )}
-                  <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>
+                  <button
+                    type="submit"
+                    className="btn-action btn-select"
+                    style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
+                    disabled={role === 'Sales'}
+                  >
                     {originFormMode === 'add' ? 'Thêm mới' : 'Lưu lại'}
                   </button>
                 </div>
@@ -2796,7 +3495,7 @@ function Home() {
                       setFilterStartExpiry('');
                       setFilterEndExpiry('');
                       setFilterInventoryType('ALL');
-                      
+
                       setActiveSearchInventory('');
                       setActiveFilterCatalog('');
                       setActiveFilterOrigin('');
@@ -3110,7 +3809,7 @@ function Home() {
                       setFilterStartExpiry('');
                       setFilterEndExpiry('');
                       setFilterInventoryType('ALL');
-                      
+
                       setActiveSearchInventory('');
                       setActiveFilterCatalog('');
                       setActiveFilterOrigin('');
@@ -3334,15 +4033,16 @@ function Home() {
 
       case 'warehouse_receipt': {
         const handleAddLine = () => {
+          const medsSource = allMedicines.length > 0 ? allMedicines : medicinesList;
           const detailLine = {
-            medicineId: medicinesList[0]?.medicineID || '',
-            medicineName: medicinesList[0]?.medicineName || '',
+            medicineId: medsSource[0]?.medicineID || '',
+            medicineName: medsSource[0]?.medicineName || '',
             batchId: '',
             quantity: 1,
             importPrice: 1000,
             expiryDate: new Date().toISOString().split('T')[0],
             manufacturedDate: new Date().toISOString().split('T')[0],
-            transactionUnitId: medicinesList[0]?.baseUnit?.unitID || '',
+            transactionUnitId: medsSource[0]?.baseUnit?.unitID || '',
             conversionRate: 1
           };
           setReceiptForm(prev => ({
@@ -3364,15 +4064,15 @@ function Home() {
             supplierId: suppliersList.find(s => s.supplierName === item.supplierName)?.supplierID || suppliersList[0]?.supplierID || '',
             note: item.note || '',
             details: item.details ? item.details.map(d => {
-              const med = medicinesList.find(m => m.medicineName === d.medicineName);
+              const med = allMedicines.find(m => m.medicineName === d.medicineName) || medicinesList.find(m => m.medicineName === d.medicineName);
               return {
                 medicineId: d.medicineId || med?.medicineID || '',
                 medicineName: d.medicineName,
                 batchId: d.batchId || '',
                 quantity: d.quantity || 1,
                 importPrice: d.importPrice || 0,
-                expiryDate: d.expiryDate || new Date().toISOString().split('T')[0],
-                manufacturedDate: d.manufacturedDate || new Date().toISOString().split('T')[0],
+                expiryDate: d.expiryDate ? d.expiryDate.split('T')[0] : new Date().toISOString().split('T')[0],
+                manufacturedDate: d.manufacturedDate ? d.manufacturedDate.split('T')[0] : new Date().toISOString().split('T')[0],
                 transactionUnitId: unitsList.find(u => u.unitName === d.transactionUnitName)?.unitID || med?.baseUnit?.unitID || '',
                 conversionRate: d.conversionRate || 1
               };
@@ -3387,7 +4087,7 @@ function Home() {
               if (i === idx) {
                 const copy = { ...line, [field]: value };
                 if (field === 'medicineId') {
-                  const med = medicinesList.find(m => m.medicineID === value);
+                  const med = allMedicines.find(m => m.medicineID === value) || medicinesList.find(m => m.medicineID === value);
                   if (med) {
                     copy.medicineName = med.medicineName;
                     copy.transactionUnitId = med.baseUnit?.unitID || '';
@@ -3395,7 +4095,7 @@ function Home() {
                   }
                 }
                 if (field === 'transactionUnitId') {
-                  const med = medicinesList.find(m => m.medicineID === line.medicineId);
+                  const med = allMedicines.find(m => m.medicineID === line.medicineId) || medicinesList.find(m => m.medicineID === line.medicineId);
                   if (med) {
                     if (med.baseUnit && med.baseUnit.unitID === value) {
                       copy.conversionRate = 1;
@@ -3424,6 +4124,22 @@ function Home() {
           if (receiptForm.details.length === 0) {
             alert('Vui lòng thêm ít nhất một dòng thuốc nhập!');
             return;
+          }
+
+          // Business logic validations for Goods Receipt
+          for (const d of receiptForm.details) {
+            if (Number(d.quantity) <= 0) {
+              alert('Số lượng nhập phải lớn hơn 0!');
+              return;
+            }
+            if (Number(d.importPrice) < 0) {
+              alert('Giá nhập không được âm!');
+              return;
+            }
+            if (d.manufacturedDate && d.expiryDate && new Date(d.manufacturedDate) >= new Date(d.expiryDate)) {
+              alert('Hạn sử dụng phải sau Ngày sản xuất!');
+              return;
+            }
           }
 
           try {
@@ -3481,16 +4197,18 @@ function Home() {
           <div className="content-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h1 className="content-title">Phiếu Nhập Kho</h1>
-              <button className="btn-create" onClick={() => {
-                setReceiptForm({
-                  supplierId: suppliersList[0]?.supplierID || '',
-                  note: '',
-                  details: []
-                });
-                setReceiptFormMode('add');
-              }}>
-                Lập phiếu nhập mới
-              </button>
+              {(role === 'Admin' || role === 'Product_manager') && (
+                <button className="btn-create" onClick={() => {
+                  setReceiptForm({
+                    supplierId: suppliersList[0]?.supplierID || '',
+                    note: '',
+                    details: []
+                  });
+                  setReceiptFormMode('add');
+                }}>
+                  Lập phiếu nhập mới
+                </button>
+              )}
             </div>
 
             <div className="table-actions" style={{ marginBottom: '20px' }}>
@@ -3646,7 +4364,7 @@ function Home() {
                                   >
                                     Xem chi tiết
                                   </button>
-                                  {item.status === 'DRAFT' && (
+                                  {item.status === 'DRAFT' && (role === 'Admin' || role === 'Product_manager') && (
                                     <>
                                       <button
                                         type="button"
@@ -3847,7 +4565,7 @@ function Home() {
                                         value={line.medicineId}
                                         onChange={(e) => handleLineChange(idx, 'medicineId', e.target.value)}
                                       >
-                                        {medicinesList.map(m => (
+                                        {(allMedicines.length > 0 ? allMedicines : medicinesList).map(m => (
                                           <option key={m.medicineID} value={m.medicineID}>{m.medicineName}</option>
                                         ))}
                                       </select>
@@ -4001,12 +4719,13 @@ function Home() {
 
       case 'warehouse_issue': {
         const handleAddIssueLine = () => {
+          const invsSource = allInventories.length > 0 ? allInventories : inventoriesList;
           const detailLine = {
-            inventoryId: inventoriesList[0]?.id || '',
-            batchId: inventoriesList[0]?.batchId || '',
-            medicineName: inventoriesList[0]?.medicine?.medicineName || '',
+            inventoryId: invsSource[0]?.id || '',
+            batchId: invsSource[0]?.batchId || '',
+            medicineName: invsSource[0]?.medicine?.medicineName || '',
             quantity: 1,
-            transactionUnitId: inventoriesList[0]?.medicine?.baseUnit?.unitID || '',
+            transactionUnitId: invsSource[0]?.medicine?.baseUnit?.unitID || '',
             conversionRate: 1
           };
           setIssueForm(prev => ({
@@ -4028,7 +4747,7 @@ function Home() {
               if (i === idx) {
                 const copy = { ...line, [field]: value };
                 if (field === 'inventoryId') {
-                  const inv = inventoriesList.find(v => v.id === value);
+                  const inv = allInventories.find(v => v.id === value) || inventoriesList.find(v => v.id === value);
                   if (inv) {
                     copy.batchId = inv.batchId;
                     copy.medicineName = inv.medicine.medicineName;
@@ -4037,7 +4756,7 @@ function Home() {
                   }
                 }
                 if (field === 'transactionUnitId') {
-                  const inv = inventoriesList.find(v => v.id === line.inventoryId);
+                  const inv = allInventories.find(v => v.id === line.inventoryId) || inventoriesList.find(v => v.id === line.inventoryId);
                   if (inv && inv.medicine) {
                     const med = inv.medicine;
                     if (med.baseUnit && med.baseUnit.unitID === value) {
@@ -4064,7 +4783,7 @@ function Home() {
             issueType: item.issueType || 'EXPIRED',
             note: item.note || '',
             details: item.details ? item.details.map(d => {
-              const inv = inventoriesList.find(v => v.id === d.inventoryId);
+              const inv = allInventories.find(v => v.id === d.inventoryId) || inventoriesList.find(v => v.id === d.inventoryId);
               const med = inv?.medicine;
               return {
                 inventoryId: d.inventoryId,
@@ -4081,8 +4800,8 @@ function Home() {
 
         const handleAutoExpiredIssue = () => {
           const today = new Date();
-          // Lọc danh sách lô hết hạn và còn tồn kho > 0
-          const expiredBatches = inventoriesList.filter(item => {
+          const sourceInvs = allInventories.length > 0 ? allInventories : inventoriesList;
+          const expiredBatches = sourceInvs.filter(item => {
             return item.expiryDate && new Date(item.expiryDate) <= today && item.stockQuantity > 0;
           });
 
@@ -4095,7 +4814,7 @@ function Home() {
             inventoryId: item.id,
             batchId: item.batchId,
             medicineName: item.medicine.medicineName,
-            quantity: item.stockQuantity, // mặc định xuất hủy toàn bộ số lượng tồn của lô
+            quantity: item.stockQuantity,
             transactionUnitId: item.medicine.baseUnit?.unitID || '',
             conversionRate: 1
           }));
@@ -4109,12 +4828,27 @@ function Home() {
           setIssueFormMode('add');
         };
 
-
         const handleSaveIssueDraft = async (e) => {
           e.preventDefault();
           if (issueForm.details.length === 0) {
             alert('Vui lòng thêm ít nhất một lô xuất!');
             return;
+          }
+
+          // Business logic validations for Goods Issue
+          for (const d of issueForm.details) {
+            const inv = allInventories.find(v => v.id === d.inventoryId) || inventoriesList.find(v => v.id === d.inventoryId);
+            if (inv) {
+              const requestedQty = Number(d.quantity) * Number(d.conversionRate);
+              if (requestedQty <= 0) {
+                alert(`Số lượng xuất của thuốc ${inv.medicine?.medicineName} phải lớn hơn 0!`);
+                return;
+              }
+              if (requestedQty > inv.stockQuantity) {
+                alert(`Lô thuốc ${inv.medicine?.medicineName} (Lô: ${inv.batchId}) không đủ tồn kho để xuất! Yêu cầu: ${requestedQty}, Hiện có: ${inv.stockQuantity}`);
+                return;
+              }
+            }
           }
 
           try {
@@ -4168,25 +4902,27 @@ function Home() {
           <div className="content-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h1 className="content-title">Phiếu Xuất Kho</h1>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  className="btn-create"
-                  style={{ backgroundColor: '#f97316' }}
-                  onClick={handleAutoExpiredIssue}
-                >
-                  Xuất hủy quá hạn
-                </button>
-                <button className="btn-create" style={{ backgroundColor: 'var(--error-color)' }} onClick={() => {
-                  setIssueForm({
-                    issueType: 'EXPIRED',
-                    note: '',
-                    details: []
-                  });
-                  setIssueFormMode('add');
-                }}>
-                  Lập phiếu xuất mới
-                </button>
-              </div>
+              {(role === 'Admin' || role === 'Product_manager') && (
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    className="btn-create"
+                    style={{ backgroundColor: '#f97316' }}
+                    onClick={handleAutoExpiredIssue}
+                  >
+                    Xuất hủy quá hạn
+                  </button>
+                  <button className="btn-create" style={{ backgroundColor: 'var(--error-color)' }} onClick={() => {
+                    setIssueForm({
+                      issueType: 'EXPIRED',
+                      note: '',
+                      details: []
+                    });
+                    setIssueFormMode('add');
+                  }}>
+                    Lập phiếu xuất mới
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="table-actions" style={{ marginBottom: '20px' }}>
@@ -4342,7 +5078,7 @@ function Home() {
                                   >
                                     Xem chi tiết
                                   </button>
-                                  {item.status === 'DRAFT' && (
+                                  {item.status === 'DRAFT' && (role === 'Admin' || role === 'Product_manager') && (
                                     <>
                                       <button
                                         type="button"
@@ -4541,7 +5277,7 @@ function Home() {
                                         value={line.inventoryId}
                                         onChange={(e) => handleIssueLineChange(idx, 'inventoryId', e.target.value)}
                                       >
-                                        {inventoriesList.map(inv => (
+                                        {(allInventories.length > 0 ? allInventories : inventoriesList).map(inv => (
                                           <option key={inv.id} value={inv.id}>{inv.medicine.medicineName} (Lô: {inv.batchId} | Còn: {inv.stockQuantity})</option>
                                         ))}
                                       </select>
@@ -4725,9 +5461,11 @@ function Home() {
           <div className="content-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h1 className="content-title">Phiếu Kiểm Kê Kho</h1>
-              <button className="btn-create" style={{ backgroundColor: 'var(--warning-color)' }} onClick={handleCreateAudit}>
-                Tạo phiếu kiểm kê
-              </button>
+              {(role === 'Admin' || role === 'Product_manager') && (
+                <button className="btn-create" style={{ backgroundColor: 'var(--warning-color)' }} onClick={handleCreateAudit}>
+                  Tạo phiếu kiểm kê
+                </button>
+              )}
             </div>
 
             <div className="table-actions" style={{ marginBottom: '20px' }}>
@@ -4877,13 +5615,13 @@ function Home() {
                                     onClick={() => {
                                       setSelectedAudit(item);
                                       setAuditForm({ note: item.note || '', details: item.details || [] });
-                                      setAuditFormMode(item.status === 'IN_PROGRESS' ? 'edit' : 'view');
+                                      setAuditFormMode((item.status === 'IN_PROGRESS' && (role === 'Admin' || role === 'Product_manager')) ? 'edit' : 'view');
                                       setActiveDropdown(null);
                                     }}
                                   >
-                                    {item.status === 'IN_PROGRESS' ? 'Đếm kho' : 'Xem chi tiết'}
+                                    {(item.status === 'IN_PROGRESS' && (role === 'Admin' || role === 'Product_manager')) ? 'Đếm kho' : 'Xem chi tiết'}
                                   </button>
-                                  {item.status === 'DRAFT' && (
+                                  {item.status === 'DRAFT' && (role === 'Admin' || role === 'Product_manager') && (
                                     <button
                                       type="button"
                                       className="action-dropdown-item text-warning"
@@ -4895,7 +5633,7 @@ function Home() {
                                       Bắt đầu đếm
                                     </button>
                                   )}
-                                  {item.status === 'IN_PROGRESS' && (
+                                  {item.status === 'IN_PROGRESS' && (role === 'Admin' || role === 'Product_manager') && (
                                     <button
                                       type="button"
                                       className="action-dropdown-item text-success"
@@ -5190,7 +5928,6 @@ function Home() {
                           <th>Người Thực Hiện</th>
                           <th>Ghi Chú</th>
                           <th>Trạng Thái</th>
-                          <th style={{ textAlign: 'center' }}>Thao Tác</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -5232,7 +5969,7 @@ function Home() {
                           if (combinedDocs.length === 0) {
                             return (
                               <tr>
-                                <td colSpan="7" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy chứng từ giao dịch nào trong hệ thống.</td>
+                                <td colSpan="6" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy chứng từ giao dịch nào trong hệ thống.</td>
                               </tr>
                             );
                           }
@@ -5273,27 +6010,6 @@ function Home() {
                                   <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '700', backgroundColor: '#f1f5f9', color: statusColor }}>
                                     {statusText}
                                   </span>
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    type="button"
-                                    className="btn-action btn-select"
-                                    onClick={() => {
-                                      if (doc.type === 'NHAP') {
-                                        setSelectedReceipt(doc.rawItem);
-                                        setReceiptFormMode('view');
-                                      } else if (doc.type === 'XUAT') {
-                                        setSelectedIssue(doc.rawItem);
-                                        setIssueFormMode('view');
-                                      } else if (doc.type === 'KIEMKE') {
-                                        setSelectedAudit(doc.rawItem);
-                                        setAuditForm({ note: doc.rawItem.note || '', details: doc.rawItem.details || [] });
-                                        setAuditFormMode('view');
-                                      }
-                                    }}
-                                  >
-                                    Xem chi tiết
-                                  </button>
                                 </td>
                               </tr>
                             );
@@ -5445,7 +6161,7 @@ function Home() {
                         else if (tx.type === 'EXPORT') typeText = 'xuất hủy kho';
                         else if (tx.type === 'SALE') typeText = 'xuất bán lẻ';
                         else if (tx.type === 'AUDIT_ADJUST') typeText = 'đối soát kiểm kê';
-                        
+
                         const matchType = tx.type.toLowerCase().includes(val) || typeText.includes(val);
                         if (!matchType) return false;
                       }
@@ -5669,7 +6385,7 @@ function Home() {
                       <th>Tên nhà cung cấp</th>
                       <th>Số điện thoại</th>
                       <th>Địa chỉ</th>
-                      <th style={{ textAlign: 'center' }}>Hành động</th>
+                      {role !== 'Sales' && <th style={{ textAlign: 'center' }}>Hành động</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -5680,15 +6396,17 @@ function Home() {
                           <td>{item.supplierName}</td>
                           <td>{item.phoneNumber}</td>
                           <td>{item.address}</td>
-                          <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                            <button className="btn-action btn-edit" style={{ marginRight: '6px' }} onClick={() => handleSupplierEditClick(item)}>Sửa</button>
-                            <button className="btn-action btn-delete" onClick={() => handleSupplierDelete(item.supplierID)}>Xóa</button>
-                          </td>
+                          {role !== 'Sales' && (
+                            <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              <button className="btn-action btn-edit" style={{ marginRight: '6px' }} onClick={() => handleSupplierEditClick(item)}>Sửa</button>
+                              <button className="btn-action btn-delete" onClick={() => handleSupplierDelete(item.supplierID)}>Xóa</button>
+                            </td>
+                          )}
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy nhà cung cấp nào.</td>
+                        <td colSpan={role !== 'Sales' ? 5 : 4} style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy nhà cung cấp nào.</td>
                       </tr>
                     )}
                   </tbody>
@@ -5741,72 +6459,74 @@ function Home() {
             </div>
 
             {/* CỘT PHẢI: FORM THÊM / SỬA */}
-            <div className="split-right content-card" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                {supplierFormMode === 'add' ? 'Thêm Mới Nhà Cung Cấp' : '✏️ Hiệu Chỉnh Nhà Cung Cấp'}
-              </h2>
-              <form onSubmit={handleSupplierSave}>
-                <div className="form-group" style={{ marginBottom: '16px' }}>
-                  <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Mã nhà cung cấp:</label>
-                  <input
-                    type="text"
-                    className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
-                    value={supplierForm.supplierID}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, supplierID: e.target.value })}
-                    disabled={supplierFormMode === 'edit'}
-                    placeholder="VD: NCC-DUOC-HA-TAY"
-                    required
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: '16px' }}>
-                  <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Tên nhà cung cấp:</label>
-                  <input
-                    type="text"
-                    className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
-                    value={supplierForm.supplierName}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, supplierName: e.target.value })}
-                    placeholder="VD: Công ty Cổ phần Dược phẩm Hà Tây"
-                    required
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: '16px' }}>
-                  <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Số điện thoại:</label>
-                  <input
-                    type="text"
-                    className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
-                    value={supplierForm.phoneNumber}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, phoneNumber: e.target.value })}
-                    placeholder="VD: 02433824685"
-                    required
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: '20px' }}>
-                  <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Địa chỉ:</label>
-                  <input
-                    type="text"
-                    className="input"
-                    style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
-                    value={supplierForm.address}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
-                    placeholder="VD: 10A Quang Trung, Hà Đông, Hà Nội"
-                    required
-                  />
-                </div>
-                <div className="form-actions" style={{ marginTop: '24px', gap: '8px' }}>
-                  {supplierFormMode === 'edit' && (
-                    <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }} onClick={handleSupplierCancel}>
-                      Hủy bỏ
+            {role !== 'Sales' && (
+              <div className="split-right content-card" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                  {supplierFormMode === 'add' ? 'Thêm Mới Nhà Cung Cấp' : '✏️ Hiệu Chỉnh Nhà Cung Cấp'}
+                </h2>
+                <form onSubmit={handleSupplierSave}>
+                  <div className="form-group" style={{ marginBottom: '16px' }}>
+                    <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Mã nhà cung cấp:</label>
+                    <input
+                      type="text"
+                      className="input"
+                      style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                      value={supplierForm.supplierID}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, supplierID: e.target.value })}
+                      disabled={supplierFormMode === 'edit'}
+                      placeholder="VD: NCC-DUOC-HA-TAY"
+                      required
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: '16px' }}>
+                    <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Tên nhà cung cấp:</label>
+                    <input
+                      type="text"
+                      className="input"
+                      style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                      value={supplierForm.supplierName}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, supplierName: e.target.value })}
+                      placeholder="VD: Công ty Cổ phần Dược phẩm Hà Tây"
+                      required
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: '16px' }}>
+                    <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Số điện thoại:</label>
+                    <input
+                      type="text"
+                      className="input"
+                      style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                      value={supplierForm.phoneNumber}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, phoneNumber: e.target.value })}
+                      placeholder="VD: 02433824685"
+                      required
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: '20px' }}>
+                    <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px' }}>Địa chỉ:</label>
+                    <input
+                      type="text"
+                      className="input"
+                      style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '6px' }}
+                      value={supplierForm.address}
+                      onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
+                      placeholder="VD: 10A Quang Trung, Hà Đông, Hà Nội"
+                      required
+                    />
+                  </div>
+                  <div className="form-actions" style={{ marginTop: '24px', gap: '8px' }}>
+                    {supplierFormMode === 'edit' && (
+                      <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }} onClick={handleSupplierCancel}>
+                        Hủy bỏ
+                      </button>
+                    )}
+                    <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>
+                      {supplierFormMode === 'add' ? 'Thêm mới' : 'Lưu lại'}
                     </button>
-                  )}
-                  <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>
-                    {supplierFormMode === 'add' ? 'Thêm mới' : 'Lưu lại'}
-                  </button>
-                </div>
-              </form>
-            </div>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         );
       }
@@ -6126,7 +6846,7 @@ function Home() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                   <h1 className="content-title">Nhật Ký Hóa Đơn Bán Lẻ</h1>
                 </div>
-                
+
                 <div className="advanced-search-group">
                   <input
                     type="text"
@@ -6476,23 +7196,27 @@ function Home() {
                     Chi Tiết Khách Hàng
                   </h2>
                   <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      className="btn-action btn-edit"
-                      style={{ margin: 0, padding: '4px 8px', fontSize: '11px' }}
-                      onClick={() => {
-                        setCustomerFormMode('edit');
-                        setCustomerForm({ ...selectedCustomer });
-                      }}
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      className="btn-action btn-delete"
-                      style={{ padding: '4px 8px', fontSize: '11px' }}
-                      onClick={() => handleCustomerDelete(selectedCustomer.customerID)}
-                    >
-                      Xóa
-                    </button>
+                    {(role === 'Admin' || role === 'Sales') && (
+                      <button
+                        className="btn-action btn-edit"
+                        style={{ margin: 0, padding: '4px 8px', fontSize: '11px' }}
+                        onClick={() => {
+                          setCustomerFormMode('edit');
+                          setCustomerForm({ ...selectedCustomer });
+                        }}
+                      >
+                        Sửa
+                      </button>
+                    )}
+                    {role === 'Admin' && (
+                      <button
+                        className="btn-action btn-delete"
+                        style={{ padding: '4px 8px', fontSize: '11px' }}
+                        onClick={() => handleCustomerDelete(selectedCustomer.customerID)}
+                      >
+                        Xóa
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -6673,9 +7397,11 @@ function Home() {
                     </button>
                   )}
                 </div>
-                <button className="btn-create" style={{ whiteSpace: 'nowrap' }} onClick={handleCustomerAddNewClick}>
-                  Thêm khách hàng
-                </button>
+                {(role === 'Admin' || role === 'Sales') && (
+                  <button className="btn-create" style={{ whiteSpace: 'nowrap' }} onClick={handleCustomerAddNewClick}>
+                    Thêm khách hàng
+                  </button>
+                )}
               </div>
 
               <div className="custom-table-container">
@@ -6724,23 +7450,27 @@ function Home() {
                             >
                               Chọn
                             </button>
-                            <button
-                              className="btn-action btn-edit"
-                              style={{ marginRight: '6px' }}
-                              onClick={() => {
-                                setSelectedCustomer(item);
-                                setCustomerFormMode('edit');
-                                setCustomerForm({ ...item });
-                              }}
-                            >
-                              Sửa
-                            </button>
-                            <button
-                              className="btn-action btn-delete"
-                              onClick={() => handleCustomerDelete(item.customerID)}
-                            >
-                              Xóa
-                            </button>
+                            {(role === 'Admin' || role === 'Sales') && (
+                              <button
+                                className="btn-action btn-edit"
+                                style={{ marginRight: '6px' }}
+                                onClick={() => {
+                                  setSelectedCustomer(item);
+                                  setCustomerFormMode('edit');
+                                  setCustomerForm({ ...item });
+                                }}
+                              >
+                                Sửa
+                              </button>
+                            )}
+                            {role === 'Admin' && (
+                              <button
+                                className="btn-action btn-delete"
+                                onClick={() => handleCustomerDelete(item.customerID)}
+                              >
+                                Xóa
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -7520,14 +8250,14 @@ function Home() {
                 });
               }}
             >
-              <span>📊 Tổng quan</span>
+              <span>Tổng quan</span>
             </button>
           </div>
 
           {/* MENU 1: THUỐC (Parent key: 'thuoc') */}
           <div>
             <button className="menu-btn-parent" onClick={() => toggleMenu('thuoc')}>
-              <span>💊 Thuốc</span>
+              <span>Thuốc</span>
               <span className="menu-arrow">{expandedMenus.thuoc ? '▲' : '▼'}</span>
             </button>
             {expandedMenus.thuoc && (
@@ -7551,7 +8281,7 @@ function Home() {
           {/* MENU 2: KHO THUỐC (Parent key: 'kho') */}
           <div>
             <button className="menu-btn-parent" onClick={() => toggleMenu('kho')}>
-              <span>📦 Kho thuốc</span>
+              <span>Kho thuốc</span>
               <span className="menu-arrow">{expandedMenus.kho ? '▲' : '▼'}</span>
             </button>
             {expandedMenus.kho && (
@@ -7581,14 +8311,16 @@ function Home() {
           {/* MENU 3: BÁN HÀNG (Parent key: 'banHang') */}
           <div>
             <button className="menu-btn-parent" onClick={() => toggleMenu('banHang')}>
-              <span>🛒 Bán hàng</span>
+              <span>Bán hàng</span>
               <span className="menu-arrow">{expandedMenus.banHang ? '▲' : '▼'}</span>
             </button>
             {expandedMenus.banHang && (
               <div className="submenu-list">
-                <button className={`submenu-btn ${activeTab === 'sales_pos' ? 'active' : ''}`} onClick={() => setActiveTab('sales_pos')}>
-                  Quầy bán thuốc
-                </button>
+                {role !== 'Product_manager' && (
+                  <button className={`submenu-btn ${activeTab === 'sales_pos' ? 'active' : ''}`} onClick={() => setActiveTab('sales_pos')}>
+                    Quầy bán thuốc
+                  </button>
+                )}
                 <button className={`submenu-btn ${activeTab === 'sales_invoices' ? 'active' : ''}`} onClick={() => setActiveTab('sales_invoices')}>
                   Danh sách hóa đơn
                 </button>
@@ -7601,22 +8333,24 @@ function Home() {
           </div>
 
           {/* MENU 4: HỆ THỐNG (Parent key: 'heThong') */}
-          <div>
-            <button className="menu-btn-parent" onClick={() => toggleMenu('heThong')}>
-              <span>⚙️ Hệ thống</span>
-              <span className="menu-arrow">{expandedMenus.heThong ? '▲' : '▼'}</span>
-            </button>
-            {expandedMenus.heThong && (
-              <div className="submenu-list">
-                <button className={`submenu-btn ${activeTab === 'sys_employees' ? 'active' : ''}`} onClick={() => setActiveTab('sys_employees')}>
-                  Quản lý nhân viên
-                </button>
-                <button className={`submenu-btn ${activeTab === 'sys_accounts' ? 'active' : ''}`} onClick={() => setActiveTab('sys_accounts')}>
-                  Tài khoản & Phân quyền
-                </button>
-              </div>
-            )}
-          </div>
+          {role === 'Admin' && (
+            <div>
+              <button className="menu-btn-parent" onClick={() => toggleMenu('heThong')}>
+                <span>Hệ thống</span>
+                <span className="menu-arrow">{expandedMenus.heThong ? '▲' : '▼'}</span>
+              </button>
+              {expandedMenus.heThong && (
+                <div className="submenu-list">
+                  <button className={`submenu-btn ${activeTab === 'sys_employees' ? 'active' : ''}`} onClick={() => setActiveTab('sys_employees')}>
+                    Quản lý nhân viên
+                  </button>
+                  <button className={`submenu-btn ${activeTab === 'sys_accounts' ? 'active' : ''}`} onClick={() => setActiveTab('sys_accounts')}>
+                    Tài khoản & Phân quyền
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
         </nav>
 

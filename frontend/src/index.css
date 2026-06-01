@@ -26,7 +26,8 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-primary);
-  min-height: 100vh;
+  min-height: 133.333vh;
+  zoom: 0.75;
 }
 
 #root {
@@ -39,7 +40,7 @@ body {
   align-items: center;
   width: 100%;
   padding: 20px;
-  min-height: 100vh;
+  min-height: 133.333vh;
 }
 
 .card {
@@ -175,7 +176,7 @@ body {
 /* Dashboard Split Layout */
 .dashboard-layout {
   display: flex;
-  height: 100vh;
+  height: 133.333vh;
   width: 100%;
   overflow: hidden;
 }
@@ -994,6 +995,7 @@ body {
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -44,13 +44,14 @@ api.interceptors.response.use(
     // Chỉ bắt lỗi 401 Unauthorized và đảm bảo yêu cầu chưa từng retry
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       
-      // Bỏ qua các API phục vụ đăng nhập hoặc làm mới token để tránh lặp vô hạn
-      if (originalRequest.url.includes('/auth/login/') || originalRequest.url.includes('/auth/refresh/')) {
+      // Bỏ qua các API phục vụ đăng nhập hoặc làm mới token để tránh lặp vô hạn (không phân biệt gạch chéo cuối)
+      if (originalRequest.url.includes('/auth/login') || originalRequest.url.includes('/auth/refresh')) {
         return Promise.reject(error);
       }
 
       // Nếu đang có một tiến trình refresh token chạy song song, đợi nó hoàn thành
       if (isRefreshing) {
+        originalRequest._retry = true; // Đánh dấu đã retry để tránh lặp vô hạn nếu lỗi lặp lại
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -77,6 +78,10 @@ api.interceptors.response.use(
         const response = await axios.post(`${API_BASE_URL}/auth/refresh/`, {
           refreshToken: refreshToken,
         });
+
+        if (!response.data || !response.data.data) {
+          throw new Error('Dữ liệu trả về từ refresh token không hợp lệ');
+        }
 
         const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
