@@ -69,7 +69,7 @@ function ChangePassword() {
         <p className="subtitle">Đặt mật khẩu mới cho tài khoản của bạn</p>
 
         {infoMessage && !success && !error && (
-          <div className="alert alert-success" style={{ backgroundColor: 'rgba(79, 70, 229, 0.08)', color: '#4f46e5', borderColor: 'rgba(79, 70, 229, 0.15)' }}>
+          <div className="alert alert-success" style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)', borderColor: 'rgba(2, 132, 199, 0.15)' }}>
             {infoMessage}
           </div>
         )}

@@ -2248,14 +2248,14 @@ function Home() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
 
               {/* Card 1: Tổng số đầu thuốc */}
-              <div className="content-card kpi-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderLeft: '4px solid #4f46e5', borderRadius: '12px', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', boxShadow: 'none' }}>
+              <div className="content-card kpi-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', borderLeft: '4px solid var(--primary-color)', borderRadius: '12px', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', boxShadow: 'none' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', letterSpacing: '0.05em' }}>TỔNG ĐẦU THUỐC</span>
                   <span style={{ fontSize: '28px', fontWeight: '700', color: '#0f172a' }}>{dashboardStats.totalMedicines}</span>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>Danh mục sản phẩm</span>
                 </div>
-                <div style={{ backgroundColor: '#eeebff', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#4f46e5' }}>
+                <div style={{ backgroundColor: 'var(--primary-light)', padding: '10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary-color)' }}>
                     <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
                     <path d="m8.5 8.5 7 7" />
                   </svg>
@@ -2317,7 +2317,7 @@ function Home() {
               {/* Chart 1: Xu hướng giao dịch kho */}
               <div className="content-card" style={{ padding: '24px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#4f46e5' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary-color)' }}>
                     <path d="M3 3v18h18" />
                     <path d="m19 9-5 5-4-4-3 3" />
                   </svg>
@@ -2332,8 +2332,8 @@ function Home() {
                           <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
                         </linearGradient>
                         <linearGradient id="colorXuat" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.01} />
+                          <stop offset="5%" stopColor="#0284c7" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#0284c7" stopOpacity={0.01} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -2342,7 +2342,7 @@ function Home() {
                       <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', fontSize: '12px' }} />
                       <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                       <Area type="monotone" name="Giao dịch Nhập" dataKey="Nhập kho" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorNhap)" />
-                      <Area type="monotone" name="Giao dịch Xuất" dataKey="Xuất kho" stroke="#4f46e5" strokeWidth={2} fillOpacity={1} fill="url(#colorXuat)" />
+                      <Area type="monotone" name="Giao dịch Xuất" dataKey="Xuất kho" stroke="#0284c7" strokeWidth={2} fillOpacity={1} fill="url(#colorXuat)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -2365,7 +2365,7 @@ function Home() {
                       <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
                       <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
                       <Tooltip contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} cursor={{ fill: '#f8fafc' }} />
-                      <Bar name="Số lượng thuốc" dataKey="Số lượng đầu thuốc" fill="#4f46e5" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                      <Bar name="Số lượng thuốc" dataKey="Số lượng đầu thuốc" fill="#0284c7" radius={[4, 4, 0, 0]} maxBarSize={40} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -2719,7 +2719,7 @@ function Home() {
                   </div>
 
                   <div className="form-actions form-group-full">
-                    <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white' }} onClick={() => setFormMode(null)}>
+                    <button type="button" className="btn-action btn-cancel" onClick={() => setFormMode(null)}>
                       Hủy bỏ
                     </button>
                     <button type="submit" className="btn-action btn-select">
@@ -3140,8 +3140,8 @@ function Home() {
                   {catalogFormMode === 'edit' && (
                     <button
                       type="button"
-                      className="btn-action"
-                      style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
+                      className="btn-action btn-cancel"
+                      style={{ padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
                       onClick={handleCatalogCancel}
                       disabled={role === 'Sales'}
                     >
@@ -3337,8 +3337,8 @@ function Home() {
                   {unitFormMode === 'edit' && (
                     <button
                       type="button"
-                      className="btn-action"
-                      style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
+                      className="btn-action btn-cancel"
+                      style={{ padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
                       onClick={handleUnitCancel}
                       disabled={role === 'Sales'}
                     >
@@ -3534,8 +3534,8 @@ function Home() {
                   {originFormMode === 'edit' && (
                     <button
                       type="button"
-                      className="btn-action"
-                      style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
+                      className="btn-action btn-cancel"
+                      style={{ padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: role === 'Sales' ? 'not-allowed' : 'pointer', opacity: role === 'Sales' ? 0.5 : 1 }}
                       onClick={handleOriginCancel}
                       disabled={role === 'Sales'}
                     >
@@ -4642,7 +4642,7 @@ function Home() {
                           In Phiếu
                         </button>
                       )}
-                      <button className="btn-action btn-delete" style={{ padding: '4px 8px' }} onClick={() => setReceiptFormMode(null)}>X đóng</button>
+                      <button className="btn-action btn-cancel" style={{ padding: '4px 8px' }} onClick={() => setReceiptFormMode(null)}>X đóng</button>
                     </div>
                   </div>
 
@@ -4822,7 +4822,7 @@ function Home() {
                       </div>
 
                       <div className="form-actions">
-                        <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white' }} onClick={() => setReceiptFormMode(null)}>Hủy bỏ</button>
+                        <button type="button" className="btn-action btn-cancel" onClick={() => setReceiptFormMode(null)}>Hủy bỏ</button>
                         <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1 }}>Lưu nháp chứng từ</button>
                       </div>
                     </form>
@@ -5363,7 +5363,7 @@ function Home() {
                           In Phiếu
                         </button>
                       )}
-                      <button className="btn-action btn-delete" style={{ padding: '4px 8px' }} onClick={() => setIssueFormMode(null)}>X đóng</button>
+                      <button className="btn-action btn-cancel" style={{ padding: '4px 8px' }} onClick={() => setIssueFormMode(null)}>X đóng</button>
                     </div>
                   </div>
 
@@ -5398,7 +5398,7 @@ function Home() {
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '15px 0' }}>
                         <span className="label">Lô hàng xuất kho:</span>
-                        <button type="button" className="btn-action btn-delete" style={{ backgroundColor: 'var(--primary-color)' }} onClick={handleAddIssueLine}>+ Thêm lô xuất</button>
+                        <button type="button" className="btn-action btn-brand" onClick={handleAddIssueLine}>+ Thêm lô xuất</button>
                       </div>
 
                       <div style={{ height: '380px', overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '6px', marginBottom: '15px', background: '#f8fafc' }}>
@@ -5508,7 +5508,7 @@ function Home() {
                       </div>
 
                       <div className="form-actions">
-                        <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white' }} onClick={() => setIssueFormMode(null)}>Hủy bỏ</button>
+                        <button type="button" className="btn-action btn-cancel" onClick={() => setIssueFormMode(null)}>Hủy bỏ</button>
                         <button type="submit" className="btn-action btn-delete" style={{ flexGrow: 1, backgroundColor: 'var(--error-color)' }}>Lưu phiếu xuất nháp</button>
                       </div>
                     </form>
@@ -5901,7 +5901,7 @@ function Home() {
                     <h2 style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase' }}>
                       {auditFormMode === 'edit' ? 'Nhập Số Đếm Thực Tế' : 'Xem Chi Tiết Kiểm Kê'}
                     </h2>
-                    <button className="btn-action btn-delete" style={{ padding: '4px 8px' }} onClick={() => setAuditFormMode(null)}>X đóng</button>
+                    <button className="btn-action btn-cancel" style={{ padding: '4px 8px' }} onClick={() => setAuditFormMode(null)}>X đóng</button>
                   </div>
 
                   {auditFormMode === 'edit' ? (
@@ -5966,7 +5966,7 @@ function Home() {
                       </div>
 
                       <div className="form-actions">
-                        <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white' }} onClick={() => setAuditFormMode(null)}>Đóng</button>
+                        <button type="button" className="btn-action btn-cancel" onClick={() => setAuditFormMode(null)}>Đóng</button>
                         <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, backgroundColor: 'var(--warning-hover)' }}>Lưu số thực tế đếm tạm</button>
                       </div>
                     </form>
@@ -6407,7 +6407,7 @@ function Home() {
                                   typeColor = 'var(--error-hover)';
                                   typeText = 'Xuất hủy kho';
                                 } else if (tx.type === 'SALE') {
-                                  typeColor = '#4f46e5';
+                                  typeColor = 'var(--primary-color)';
                                   typeText = 'Xuất bán lẻ';
                                 } else if (tx.type === 'AUDIT_ADJUST') {
                                   typeColor = 'var(--warning-hover)';
@@ -6698,7 +6698,7 @@ function Home() {
                   </div>
                   <div className="form-actions" style={{ marginTop: '24px', gap: '8px' }}>
                     {supplierFormMode === 'edit' && (
-                      <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }} onClick={handleSupplierCancel}>
+                      <button type="button" className="btn-action btn-cancel" style={{ padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }} onClick={handleSupplierCancel}>
                         Hủy bỏ
                       </button>
                     )}
@@ -6992,8 +6992,7 @@ function Home() {
                 <div className="form-actions">
                   <button
                     type="button"
-                    className="btn-action"
-                    style={{ backgroundColor: '#94a3b8', color: 'white' }}
+                    className="btn-action btn-cancel"
                     onClick={() => {
                       if (window.confirm("Xóa toàn bộ giỏ hàng?")) setPosCart([]);
                     }}
@@ -7103,7 +7102,7 @@ function Home() {
                                 fontSize: '11px',
                                 fontWeight: '700',
                                 backgroundColor: '#f1f5f9',
-                                color: item.paymentMethod === 'Cash' ? '#22c55e' : '#4f46e5'
+                                color: item.paymentMethod === 'Cash' ? '#22c55e' : 'var(--primary-color)'
                               }}>
                                 {item.paymentMethod === 'Cash' ? 'Tiền mặt' : 'Thẻ/Bank'}
                               </span>
@@ -7230,8 +7229,8 @@ function Home() {
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                     <button
                       type="button"
-                      className="btn-action"
-                      style={{ backgroundColor: '#94a3b8', color: 'white', flex: 1, padding: '10px', borderRadius: '6px', fontWeight: '600' }}
+                      className="btn-action btn-cancel"
+                      style={{ flex: 1, padding: '10px', borderRadius: '6px', fontWeight: '600' }}
                       onClick={() => setSelectedInvoice(null)}
                     >
                       Đóng chi tiết
@@ -7355,8 +7354,8 @@ function Home() {
                   <div className="form-actions" style={{ marginTop: '24px', gap: '8px' }}>
                     <button
                       type="button"
-                      className="btn-action"
-                      style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+                      className="btn-action btn-cancel"
+                      style={{ padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
                       onClick={handleCustomerCancel}
                     >
                       Hủy bỏ
@@ -8049,7 +8048,7 @@ function Home() {
                     )}
 
                     <div className="form-actions" style={{ marginTop: '28px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                      <button type="button" className="btn-action" style={{ backgroundColor: '#94a3b8', color: 'white', marginRight: '6px' }} onClick={handleEmployeeCancel}>
+                      <button type="button" className="btn-action btn-cancel" style={{ marginRight: '6px' }} onClick={handleEmployeeCancel}>
                         Hủy bỏ
                       </button>
                       <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1 }}>
@@ -8353,14 +8352,14 @@ function Home() {
                     {accountFormMode === 'add' && (
                       <button
                         type="button"
-                        className="btn-action"
-                        style={{ backgroundColor: '#94a3b8', color: 'white', padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+                        className="btn-action btn-cancel"
+                        style={{ padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
                         onClick={handleAccountCancel}
                       >
                         Hủy bỏ
                       </button>
                     )}
-                    <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: 'pointer', backgroundColor: '#6366f1' }}>
+                    <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: 'pointer', backgroundColor: 'var(--primary-color)' }}>
                       {accountFormMode === 'add' ? 'Cấp tài khoản' : 'Lưu lại'}
                     </button>
                   </div>
@@ -8430,7 +8429,7 @@ function Home() {
           <div>
             <button
               className={`menu-btn-parent ${activeTab === 'overview' ? 'active' : ''}`}
-              style={activeTab === 'overview' ? { backgroundColor: 'var(--success-color)', color: '#ffffff' } : {}}
+              style={activeTab === 'overview' ? { backgroundColor: 'var(--primary-color)', color: '#ffffff' } : {}}
               onClick={() => {
                 setActiveTab('overview');
                 setExpandedMenus({
@@ -8784,8 +8783,8 @@ function Home() {
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   type="button"
-                  className="btn-action"
-                  style={{ backgroundColor: '#94a3b8', color: 'white', flex: 1, padding: '12px', borderRadius: '8px', fontWeight: '600' }}
+                  className="btn-action btn-cancel"
+                  style={{ flex: 1, padding: '12px', borderRadius: '6px', fontWeight: '600' }}
                   onClick={() => setShowPosCheckoutModal(false)}
                 >
                   Hủy bỏ
@@ -8796,7 +8795,7 @@ function Home() {
                   style={{
                     flex: 2,
                     padding: '12px',
-                    borderRadius: '8px',
+                    borderRadius: '6px',
                     fontWeight: '700',
                     backgroundColor: (Number(posCashGiven) || 0) < posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0) ? '#cbd5e1' : 'var(--success-color)',
                     color: 'white',
@@ -8909,8 +8908,8 @@ function Home() {
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px', fontFamily: 'Inter, sans-serif' }}>
               <button
                 type="button"
-                className="btn-action"
-                style={{ backgroundColor: '#94a3b8', color: 'white', flex: 1, padding: '10px', borderRadius: '6px', cursor: 'pointer' }}
+                className="btn-action btn-cancel"
+                style={{ flex: 1, padding: '10px', borderRadius: '6px', cursor: 'pointer' }}
                 onClick={() => setShowReceiptModal(false)}
               >
                 Đóng
