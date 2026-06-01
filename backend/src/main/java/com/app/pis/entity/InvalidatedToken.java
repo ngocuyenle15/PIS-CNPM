@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "authentication_invalidated_token")
+@Table(name = "jwt_invalidated_token")
 @Getter
 @Setter
 @NoArgsConstructor
