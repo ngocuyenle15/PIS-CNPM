@@ -7,7 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "authentication_customer")
+@Table(name = "customer")
 @Getter
 @Setter
 @NoArgsConstructor
