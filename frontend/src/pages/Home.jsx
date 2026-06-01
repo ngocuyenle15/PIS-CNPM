@@ -4687,7 +4687,6 @@ function Home() {
                               <th style={{ width: '140px', padding: '10px' }}>Ngày sản xuất</th>
                               <th style={{ width: '140px', padding: '10px' }}>Hạn sử dụng</th>
                               <th style={{ width: '90px', padding: '10px' }}>SL nhập</th>
-                              <th style={{ width: '90px', padding: '10px' }}>Quy đổi</th>
                               <th style={{ width: '120px', padding: '10px' }}>Giá nhập (đ)</th>
                               <th style={{ width: '70px', padding: '10px', textAlign: 'center' }}>Thao tác</th>
                             </tr>
@@ -4695,11 +4694,11 @@ function Home() {
                           <tbody>
                             {receiptForm.details.length === 0 ? (
                               <tr>
-                                <td colSpan="10" style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', padding: '24px' }}>Chưa có dòng thuốc nào được thêm.</td>
+                                <td colSpan="9" style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', padding: '24px' }}>Chưa có dòng thuốc nào được thêm.</td>
                               </tr>
                             ) : (
                               receiptForm.details.map((line, idx) => {
-                                const med = medicinesList.find(m => m.medicineID === line.medicineId);
+                                const med = (allMedicines.length > 0 ? allMedicines : medicinesList).find(m => m.medicineID === line.medicineId);
                                 const rowUnits = [];
                                 if (med) {
                                   if (med.baseUnit) {
@@ -4739,7 +4738,7 @@ function Home() {
                                     </td>
                                     <td style={{ padding: '8px' }}>
                                       <SearchableSelect
-                                        options={unitsList}
+                                        options={rowUnits}
                                         value={line.transactionUnitId}
                                         onChange={(val) => handleLineChange(idx, 'transactionUnitId', val)}
                                         idKey="unitID"
@@ -4794,17 +4793,6 @@ function Home() {
                                         type="number"
                                         className="input"
                                         style={{ padding: '6px', width: '100%' }}
-                                        value={line.conversionRate}
-                                        placeholder="Hộp = 10"
-                                        onChange={(e) => handleLineChange(idx, 'conversionRate', e.target.value)}
-                                        required
-                                      />
-                                    </td>
-                                    <td style={{ padding: '8px' }}>
-                                      <input
-                                        type="number"
-                                        className="input"
-                                        style={{ padding: '6px', width: '100%' }}
                                         value={line.importPrice}
                                         onChange={(e) => handleLineChange(idx, 'importPrice', e.target.value)}
                                         required
@@ -4851,7 +4839,7 @@ function Home() {
                                     <th>Ngày sản xuất</th>
                                     <th>Hạn sử dụng</th>
                                     <th>Số lượng</th>
-                                    <th>Quy đổi</th>
+                                    <th>Đơn vị nhập</th>
                                     <th style={{ textAlign: 'right' }}>Đơn giá nhập</th>
                                   </tr>
                                 </thead>
@@ -4864,7 +4852,7 @@ function Home() {
                                       <td>{d.manufacturedDate || '---'}</td>
                                       <td>{d.expiryDate || '---'}</td>
                                       <td>{d.quantity}</td>
-                                      <td>x{d.conversionRate}</td>
+                                      <td>{d.transactionUnitName || '---'}</td>
                                       <td style={{ textAlign: 'right', color: 'var(--success-hover)', fontWeight: '600' }}>{d.importPrice.toLocaleString()}đ</td>
                                     </tr>
                                   ))}
@@ -5409,7 +5397,6 @@ function Home() {
                               <th style={{ width: '350px', padding: '10px' }}>Chọn lô trong kho</th>
                               <th style={{ width: '120px', padding: '10px' }}>Đơn vị xuất</th>
                               <th style={{ width: '100px', padding: '10px' }}>SL xuất</th>
-                              <th style={{ width: '100px', padding: '10px' }}>Hệ số quy đổi</th>
                               <th style={{ width: '80px', padding: '10px', textAlign: 'center' }}>Thao tác</th>
                             </tr>
                           </thead>
@@ -5421,11 +5408,11 @@ function Home() {
                               }));
                               return issueForm.details.length === 0 ? (
                                 <tr>
-                                  <td colSpan="6" style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', padding: '24px' }}>Chưa có lô xuất nào được chọn.</td>
+                                  <td colSpan="5" style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', padding: '24px' }}>Chưa có lô xuất nào được chọn.</td>
                                 </tr>
                               ) : (
                                 issueForm.details.map((line, idx) => {
-                                  const inv = inventoriesList.find(v => v.id === line.inventoryId);
+                                  const inv = (allInventories.length > 0 ? allInventories : inventoriesList).find(v => v.id === line.inventoryId);
                                   const rowUnits = [];
                                   if (inv && inv.medicine) {
                                     const med = inv.medicine;
@@ -5485,16 +5472,6 @@ function Home() {
                                           required
                                         />
                                       </td>
-                                      <td style={{ padding: '8px' }}>
-                                        <input
-                                          type="number"
-                                          className="input"
-                                          style={{ padding: '6px', width: '100%' }}
-                                          value={line.conversionRate}
-                                          onChange={(e) => handleIssueLineChange(idx, 'conversionRate', e.target.value)}
-                                          required
-                                        />
-                                      </td>
                                       <td style={{ padding: '8px', textAlign: 'center' }}>
                                         <button type="button" className="btn-action btn-delete" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => handleRemoveIssueLine(idx)}>Xóa</button>
                                       </td>
@@ -5535,7 +5512,7 @@ function Home() {
                                     <th>Tên thuốc</th>
                                     <th>Mã lô</th>
                                     <th>Số lượng xuất</th>
-                                    <th>Quy đổi</th>
+                                    <th>Đơn vị xuất</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -5545,7 +5522,7 @@ function Home() {
                                       <td style={{ fontWeight: '600' }}>{d.medicineName}</td>
                                       <td>{d.batchId}</td>
                                       <td>{d.quantity}</td>
-                                      <td>x{d.conversionRate}</td>
+                                      <td>{d.transactionUnitName || '---'}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -5928,6 +5905,7 @@ function Home() {
                               <th style={{ width: '50px', padding: '10px', textAlign: 'center' }}>STT</th>
                               <th style={{ width: '350px', padding: '10px' }}>Tên thuốc & lô hàng</th>
                               <th style={{ width: '130px', padding: '10px', textAlign: 'center' }}>Số lượng sổ sách</th>
+                              <th style={{ width: '100px', padding: '10px', textAlign: 'center' }}>Đơn vị</th>
                               <th style={{ width: '170px', padding: '10px' }}>Tồn thực tế đếm</th>
                               <th style={{ width: '100px', padding: '10px', textAlign: 'right' }}>Chênh lệch</th>
                             </tr>
@@ -5941,6 +5919,7 @@ function Home() {
                                   <div style={{ fontSize: '11px', color: '#64748b' }}>Lô: {d.batchId} | Gốc: {d.inventoryId}</div>
                                 </td>
                                 <td style={{ textAlign: 'center', padding: '8px', fontWeight: '700' }}>{d.systemQuantity}</td>
+                                <td style={{ textAlign: 'center', padding: '8px' }}>{d.unitName || '---'}</td>
                                 <td style={{ padding: '8px' }}>
                                   <input
                                     type="number"
@@ -5992,6 +5971,7 @@ function Home() {
                                     <th>Tên thuốc</th>
                                     <th>Mã lô</th>
                                     <th style={{ textAlign: 'center' }}>Sổ sách</th>
+                                    <th style={{ textAlign: 'center' }}>Đơn vị</th>
                                     <th style={{ textAlign: 'center' }}>Thực đếm</th>
                                     <th style={{ textAlign: 'right' }}>Chênh lệch</th>
                                   </tr>
@@ -6003,6 +5983,7 @@ function Home() {
                                       <td style={{ fontWeight: '600' }}>{d.medicineName}</td>
                                       <td>{d.batchId}</td>
                                       <td style={{ textAlign: 'center' }}>{d.systemQuantity}</td>
+                                      <td style={{ textAlign: 'center' }}>{d.unitName || '---'}</td>
                                       <td style={{ textAlign: 'center' }}>{d.actualQuantity}</td>
                                       <td style={{ textAlign: 'right' }}>
                                         <strong style={{ color: d.discrepancy > 0 ? '#10b981' : d.discrepancy < 0 ? '#ef4444' : '#64748b' }}>
@@ -6815,7 +6796,7 @@ function Home() {
                                 disabled={item.stockQuantity <= 0 || isExpired}
                                 onClick={() => handleAddToPosCart(item)}
                               >
-                                {item.stockQuantity <= 0 ? 'Hết hàng' : isExpired ? 'Đã hết hạn' : '+ Chọn Bán'}
+                                {item.stockQuantity <= 0 ? 'Hết hàng' : isExpired ? 'Đã hết hạn' : 'Chọn Bán'}
                               </button>
                             </td>
                           </tr>
@@ -6884,7 +6865,7 @@ function Home() {
                   {posCart.length === 0 ? (
                     <div style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', padding: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '24px' }}></span>
-                      <span>Chưa chọn lô thuốc nào để bán.<br />Click [+ Chọn Bán] ở bên trái.</span>
+                      <span>Chưa chọn lô thuốc nào để bán.<br />Click [Chọn Bán] ở bên trái.</span>
                     </div>
                   ) : (
                     posCart.map((line, idx) => {

@@ -32,5 +32,6 @@ public class StockAuditResponse {
         private Integer actualQuantity;
         private Integer discrepancy;
         private String note;
+        private String unitName;
     }
 }

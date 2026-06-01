@@ -303,6 +303,7 @@ public class StockAuditService {
                         .actualQuantity(d.getActualQuantity())
                         .discrepancy(d.getDiscrepancy())
                         .note(d.getNote())
+                        .unitName(d.getInventory().getMedicine().getBaseUnit() != null ? d.getInventory().getMedicine().getBaseUnit().getUnitName() : null)
                         .build()
         ).collect(Collectors.toList());
 

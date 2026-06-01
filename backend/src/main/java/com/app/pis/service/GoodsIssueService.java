@@ -27,6 +27,7 @@ public class GoodsIssueService {
     private final InventoryRepository inventoryRepository;
     private final UnitRepository unitRepository;
     private final InventoryTransactionRepository inventoryTransactionRepository;
+    private final MedicineUnitRepository medicineUnitRepository;
 
     @Transactional(readOnly = true)
     public PagedResponse<GoodsIssueResponse> getAll(
@@ -176,7 +177,25 @@ public class GoodsIssueService {
                 detail.setInventory(inventory);
                 detail.setQuantity(reqDetail.getQuantity());
                 detail.setTransactionUnit(txUnit);
-                detail.setConversionRate(reqDetail.getConversionRate() != null ? reqDetail.getConversionRate() : 1);
+
+                // Auto-resolve conversion rate based on transaction unit and medicine
+                int resolvedRate = 1;
+                if (txUnit != null && inventory.getMedicine() != null) {
+                    Medicine medicine = inventory.getMedicine();
+                    if (txUnit.getUnitID().equals(medicine.getBaseUnit().getUnitID())) {
+                        resolvedRate = 1;
+                    } else {
+                        final Unit finalTxUnit = txUnit;
+                        final Medicine finalMedicine = medicine;
+                        resolvedRate = medicineUnitRepository.findByMedicineAndUnit(finalMedicine, finalTxUnit)
+                                .map(MedicineUnit::getConversionRate)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                        String.format("Đơn vị tính '%s' không hợp lệ hoặc chưa được cấu hình cho thuốc '%s'.", 
+                                                finalTxUnit.getUnitName(), finalMedicine.getMedicineName())
+                                ));
+                    }
+                }
+                detail.setConversionRate(resolvedRate);
 
                 details.add(detail);
             }
