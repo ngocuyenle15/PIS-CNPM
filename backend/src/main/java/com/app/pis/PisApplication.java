@@ -10,8 +10,6 @@ public class PisApplication {
 
     public static void main(String[] args) {
         ConfigurableApplicationContext ctx = SpringApplication.run(PisApplication.class, args);
-
-
     }
 
 }

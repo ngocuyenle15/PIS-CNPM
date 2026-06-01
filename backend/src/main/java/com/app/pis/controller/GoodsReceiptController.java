@@ -33,7 +33,7 @@ public class GoodsReceiptController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<GoodsReceiptResponse>>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam(required = false) String searchType,
             @RequestParam(required = false) String searchVal,
             @RequestParam(required = false) String startDate,
@@ -47,13 +47,13 @@ public class GoodsReceiptController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<GoodsReceiptResponse>> getById(@PathVariable String id) {
+    public ResponseEntity<?> getById(@PathVariable String id) {
         GoodsReceiptResponse response = goodsReceiptService.getById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy chi tiết phiếu nhập kho thành công"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<GoodsReceiptResponse>> createDraft(@Valid @RequestBody GoodsReceiptRequest request) {
+    public ResponseEntity<?> createDraft(@Valid @RequestBody GoodsReceiptRequest request) {
         Employee employee = getCurrentEmployee();
         GoodsReceiptResponse response = goodsReceiptService.createReceiptDraft(request, employee);
         return ResponseEntity.ok(ApiResponse.success(response, "Tạo nháp phiếu nhập kho thành công"));
@@ -61,14 +61,14 @@ public class GoodsReceiptController {
 
     @Transactional
     @PatchMapping("/{id}/confirm")
-    public ResponseEntity<ApiResponse<GoodsReceiptResponse>> confirm(@PathVariable String id) {
+    public ResponseEntity<?> confirm(@PathVariable String id) {
         GoodsReceiptResponse response = goodsReceiptService.confirmReceipt(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Xác nhận nhập kho và cập nhật tồn kho thành công"));
     }
 
     @Transactional
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<GoodsReceiptResponse>> cancel(@PathVariable String id) {
+    public ResponseEntity<?> cancel(@PathVariable String id) {
         GoodsReceiptResponse response = goodsReceiptService.cancelReceipt(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Hủy phiếu nhập kho thành công"));
     }

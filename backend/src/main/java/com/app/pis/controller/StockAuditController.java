@@ -32,7 +32,7 @@ public class StockAuditController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<StockAuditResponse>>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam(required = false) String searchType,
             @RequestParam(required = false) String searchVal,
             @RequestParam(required = false) String startDate,
@@ -46,26 +46,26 @@ public class StockAuditController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<StockAuditResponse>> getById(@PathVariable String id) {
+    public ResponseEntity<?> getById(@PathVariable String id) {
         StockAuditResponse response = stockAuditService.getById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy chi tiết phiếu kiểm kê kho thành công"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<StockAuditResponse>> createDraft(@Valid @RequestBody StockAuditRequest request) {
+    public ResponseEntity<?> createDraft(@Valid @RequestBody StockAuditRequest request) {
         Employee employee = getCurrentEmployee();
         StockAuditResponse response = stockAuditService.createAuditDraft(request, employee);
         return ResponseEntity.ok(ApiResponse.success(response, "Tạo nháp phiếu kiểm kê kho thành công"));
     }
 
     @PatchMapping("/{id}/start")
-    public ResponseEntity<ApiResponse<StockAuditResponse>> startCount(@PathVariable String id) {
+    public ResponseEntity<?> startCount(@PathVariable String id) {
         StockAuditResponse response = stockAuditService.startAuditCount(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Bắt đầu thực hiện kiểm kho thành công"));
     }
 
     @PutMapping("/{id}/items")
-    public ResponseEntity<ApiResponse<StockAuditResponse>> saveItemsDraft(
+    public ResponseEntity<?> saveItemsDraft(
             @PathVariable String id, 
             @Valid @RequestBody StockAuditRequest request) {
         
@@ -74,14 +74,14 @@ public class StockAuditController {
     }
 
     @PatchMapping("/{id}/confirm")
-    public ResponseEntity<ApiResponse<StockAuditResponse>> confirm(@PathVariable String id) {
+    public ResponseEntity<?> confirm(@PathVariable String id) {
         Employee employee = getCurrentEmployee();
         StockAuditResponse response = stockAuditService.confirmAudit(id, employee);
         return ResponseEntity.ok(ApiResponse.success(response, "Xác nhận đối soát hoàn thành kiểm kê và cập nhật tồn kho thành công"));
     }
 
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<StockAuditResponse>> cancel(@PathVariable String id) {
+    public ResponseEntity<?> cancel(@PathVariable String id) {
         StockAuditResponse response = stockAuditService.cancelAudit(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Hủy phiếu kiểm kê thành công"));
     }

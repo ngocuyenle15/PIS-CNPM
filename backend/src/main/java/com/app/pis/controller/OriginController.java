@@ -20,7 +20,7 @@ public class OriginController {
     private final OriginService originService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam(required = false) Integer page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search) {
@@ -33,25 +33,25 @@ public class OriginController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Origin>> getById(@PathVariable String id) {
+    public ResponseEntity<?> getById(@PathVariable String id) {
         Origin response = originService.getById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin xuất xứ thuốc thành công"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Origin>> create(@Valid @RequestBody OriginRequest request) {
+    public ResponseEntity<?> create(@Valid @RequestBody OriginRequest request) {
         Origin response = originService.create(request);
         return ResponseEntity.ok(ApiResponse.success(response, "Tạo xuất xứ thuốc thành công"));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<Origin>> patch(@PathVariable String id, @Valid @RequestBody OriginRequest request) {
+    public ResponseEntity<?> patch(@PathVariable String id, @Valid @RequestBody OriginRequest request) {
         Origin response = originService.patch(id, request);
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật xuất xứ thuốc thành công"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
+    public ResponseEntity<?> delete(@PathVariable String id) {
         originService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa xuất xứ thuốc thành công"));
     }

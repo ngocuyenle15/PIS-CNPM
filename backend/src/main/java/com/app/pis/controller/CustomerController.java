@@ -19,31 +19,31 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Customer>>> getAll() {
+    public ResponseEntity<?> getAll() {
         List<Customer> response = customerService.getAll();
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách khách hàng thành công"));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Customer>> getById(@PathVariable String id) {
+    public ResponseEntity<?> getById(@PathVariable String id) {
         Customer response = customerService.getById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin khách hàng thành công"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Customer>> create(@Valid @RequestBody CustomerRequest request) {
+    public ResponseEntity<?> create(@Valid @RequestBody CustomerRequest request) {
         Customer response = customerService.create(request);
         return ResponseEntity.ok(ApiResponse.success(response, "Tạo khách hàng thành công"));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<Customer>> patch(@PathVariable String id, @Valid @RequestBody CustomerRequest request) {
+    public ResponseEntity<?> patch(@PathVariable String id, @Valid @RequestBody CustomerRequest request) {
         Customer response = customerService.patch(id, request);
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật thông tin khách hàng thành công"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
+    public ResponseEntity<?> delete(@PathVariable String id) {
         customerService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa khách hàng thành công"));
     }

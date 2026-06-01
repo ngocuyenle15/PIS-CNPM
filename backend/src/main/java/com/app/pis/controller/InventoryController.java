@@ -19,7 +19,7 @@ public class InventoryController {
     private final InventoryService inventoryService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<InventoryResponse>>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String catalogId,
@@ -37,7 +37,7 @@ public class InventoryController {
     }
 
     @GetMapping("/transactions")
-    public ResponseEntity<ApiResponse<List<InventoryTransactionResponse>>> getTransactions(
+    public ResponseEntity<?> getTransactions(
             @RequestParam(required = false) String medicineId) {
         
         List<InventoryTransactionResponse> response = inventoryService.getTransactions(medicineId);

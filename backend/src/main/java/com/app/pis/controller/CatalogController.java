@@ -20,7 +20,7 @@ public class CatalogController {
     private final CatalogService catalogService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam(required = false) Integer page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search) {
@@ -33,25 +33,25 @@ public class CatalogController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Catalog>> getById(@PathVariable String id) {
+    public ResponseEntity<?> getById(@PathVariable String id) {
         Catalog response = catalogService.getById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin danh mục thuốc thành công"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Catalog>> create(@Valid @RequestBody CatalogRequest request) {
+    public ResponseEntity<?> create(@Valid @RequestBody CatalogRequest request) {
         Catalog response = catalogService.create(request);
         return ResponseEntity.ok(ApiResponse.success(response, "Tạo danh mục thuốc thành công"));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<Catalog>> patch(@PathVariable String id, @Valid @RequestBody CatalogRequest request) {
+    public ResponseEntity<?> patch(@PathVariable String id, @Valid @RequestBody CatalogRequest request) {
         Catalog response = catalogService.patch(id, request);
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật danh mục thuốc thành công"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
+    public ResponseEntity<?> delete(@PathVariable String id) {
         catalogService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa danh mục thuốc thành công"));
     }

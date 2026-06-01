@@ -20,7 +20,7 @@ public class UnitController {
     private final UnitService unitService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam(required = false) Integer page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search) {
@@ -33,25 +33,25 @@ public class UnitController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Unit>> getById(@PathVariable String id) {
+    public ResponseEntity<?> getById(@PathVariable String id) {
         Unit response = unitService.getById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin đơn vị tính thành công"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Unit>> create(@Valid @RequestBody UnitRequest request) {
+    public ResponseEntity<?> create(@Valid @RequestBody UnitRequest request) {
         Unit response = unitService.create(request);
         return ResponseEntity.ok(ApiResponse.success(response, "Tạo đơn vị tính thành công"));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<Unit>> patch(@PathVariable String id, @Valid @RequestBody UnitRequest request) {
+    public ResponseEntity<?> patch(@PathVariable String id, @Valid @RequestBody UnitRequest request) {
         Unit response = unitService.patch(id, request);
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật đơn vị tính thành công"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
+    public ResponseEntity<?> delete(@PathVariable String id) {
         unitService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa đơn vị tính thành công"));
     }

@@ -32,7 +32,7 @@ public class GoodsIssueController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<GoodsIssueResponse>>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam(required = false) String searchType,
             @RequestParam(required = false) String searchVal,
             @RequestParam(required = false) String startDate,
@@ -46,26 +46,26 @@ public class GoodsIssueController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<GoodsIssueResponse>> getById(@PathVariable String id) {
+    public ResponseEntity<?> getById(@PathVariable String id) {
         GoodsIssueResponse response = goodsIssueService.getById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy chi tiết phiếu xuất kho thành công"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<GoodsIssueResponse>> createDraft(@Valid @RequestBody GoodsIssueRequest request) {
+    public ResponseEntity<?> createDraft(@Valid @RequestBody GoodsIssueRequest request) {
         Employee employee = getCurrentEmployee();
         GoodsIssueResponse response = goodsIssueService.createIssueDraft(request, employee);
         return ResponseEntity.ok(ApiResponse.success(response, "Tạo nháp phiếu xuất kho thành công"));
     }
 
     @PatchMapping("/{id}/confirm")
-    public ResponseEntity<ApiResponse<GoodsIssueResponse>> confirm(@PathVariable String id) {
+    public ResponseEntity<?> confirm(@PathVariable String id) {
         GoodsIssueResponse response = goodsIssueService.confirmIssue(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Xác nhận xuất kho và cập nhật tồn kho thành công"));
     }
 
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<GoodsIssueResponse>> cancel(@PathVariable String id) {
+    public ResponseEntity<?> cancel(@PathVariable String id) {
         GoodsIssueResponse response = goodsIssueService.cancelIssue(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Hủy phiếu xuất kho thành công"));
     }

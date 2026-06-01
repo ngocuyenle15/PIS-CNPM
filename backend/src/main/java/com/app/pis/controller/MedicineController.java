@@ -20,7 +20,7 @@ public class MedicineController {
     private final MedicineService medicineService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<MedicineResponse>>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String searchField,
             @RequestParam(defaultValue = "0") int page,
@@ -30,25 +30,25 @@ public class MedicineController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<MedicineResponse>> getById(@PathVariable String id) {
+    public ResponseEntity<?> getById(@PathVariable String id) {
         MedicineResponse response = medicineService.getById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin thuốc thành công"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<MedicineResponse>> create(@Valid @RequestBody MedicineRequest request) {
+    public ResponseEntity<?> create(@Valid @RequestBody MedicineRequest request) {
         MedicineResponse response = medicineService.create(request);
         return ResponseEntity.ok(ApiResponse.success(response, "Tạo thông tin thuốc thành công"));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<MedicineResponse>> patch(@PathVariable String id, @Valid @RequestBody MedicineRequest request) {
+    public ResponseEntity<?> patch(@PathVariable String id, @Valid @RequestBody MedicineRequest request) {
         MedicineResponse response = medicineService.patch(id, request);
         return ResponseEntity.ok(ApiResponse.success(response, "Cập nhật thông tin thuốc thành công"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
+    public ResponseEntity<?> delete(@PathVariable String id) {
         medicineService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa thông tin thuốc thành công"));
     }

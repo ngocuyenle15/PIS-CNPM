@@ -18,7 +18,7 @@ public class InvoiceController {
     private final InvoiceService invoiceService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<InvoiceResponse>>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -28,13 +28,13 @@ public class InvoiceController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<InvoiceResponse>> getById(@PathVariable Integer id) {
+    public ResponseEntity<?> getById(@PathVariable Integer id) {
         InvoiceResponse response = invoiceService.getById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy chi tiết hóa đơn bán lẻ thành công"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<InvoiceResponse>> create(@Valid @RequestBody InvoiceRequest request) {
+    public ResponseEntity<?> create(@Valid @RequestBody InvoiceRequest request) {
         InvoiceResponse response = invoiceService.createInvoice(request);
         return ResponseEntity.ok(ApiResponse.success(response, "Tạo hóa đơn và trừ tồn kho lô thành công"));
     }

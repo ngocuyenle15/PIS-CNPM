@@ -6769,7 +6769,7 @@ function Home() {
                       <th>Tên Thuốc</th>
                       <th>Mã Lô</th>
                       <th>Hạn Sử Dụng</th>
-                      <th>Giá Gốc (/Viên)</th>
+                      <th>Giá Gốc</th>
                       <th>Số Lượng Tồn</th>
                       <th>Đơn Vị Gốc</th>
                       <th style={{ textAlign: 'center' }}>Thao Tác</th>
