@@ -19,7 +19,7 @@ flowchart TD
     PassCheck -- Không --> Error3[Báo lỗi: Mật khẩu không chính xác] --> Input
     PassCheck -- Có --> FirstLogin{Lần đầu đăng nhập isFirstLogin == true?}
     FirstLogin -- Có --> ForceChange[Chuyển hướng bắt buộc sang form Đổi mật khẩu] --> End([Kết thúc])
-    FirstLogin -- Không --> GenerateToken[Hệ thống sinh Access Token & Refresh Token]
+    FirstLogin -- Không --> GenerateToken[Hệ thống sinh Access Token và Refresh Token]
     GenerateToken --> SaveLocal[Lưu Token vào LocalStorage]
     SaveLocal --> Redirect[Chuyển hướng vào Dashboard tương ứng vai trò] --> End
 ```
@@ -41,13 +41,13 @@ flowchart TD
 flowchart TD
     Start([Bắt đầu]) --> APIFail[Gọi API nghiệp vụ nhận mã lỗi 401 Unauthorized]
     APIFail --> CheckRefresh[Lấy Refresh Token cũ ở LocalStorage]
-    CheckRefresh --> RefreshCheck{Refresh Token tồn tại & hợp lệ?}
-    RefreshCheck -- Không --> LogoutForce[Xóa sạch LocalStorage & Yêu cầu đăng nhập lại] --> End([Kết thúc])
+    CheckRefresh --> RefreshCheck{Refresh Token tồn tại và hợp lệ?}
+    RefreshCheck -- Không --> LogoutForce[Xóa sạch LocalStorage và Yêu cầu đăng nhập lại] --> End([Kết thúc])
     RefreshCheck -- Có --> DBVerify{Tồn tại trong DB và chưa hết hạn?}
     DBVerify -- Không --> LogoutForce
     DBVerify -- Có --> UserActive{Tài khoản người dùng isActive == true?}
     UserActive -- Không --> LogoutForce
-    UserActive -- Có --> RotateToken[Tạo Access Token mới & Xoay vòng Refresh Token mới]
+    UserActive -- Có --> RotateToken[Tạo Access Token mới và Xoay vòng Refresh Token mới]
     RotateToken --> UpdateDB[Cập nhật Refresh Token mới vào database]
     UpdateDB --> SaveLocal[Cập nhật tokens mới vào LocalStorage]
     SaveLocal --> RetryAPI[Gọi lại API nghiệp vụ ban đầu bằng Access Token mới]
@@ -60,8 +60,8 @@ flowchart TD
     Start([Bắt đầu]) --> LoadDashboard[Truy cập trang Dashboard / Home]
     LoadDashboard --> AutoRequest[Tự động gọi GET /api/auth/me]
     AutoRequest --> ContextCheck{Đọc Username từ Security Context thành công?}
-    ContextCheck -- Không --> Error[Báo lỗi 401 & Yêu cầu xác thực] --> End([Kết thúc])
-    ContextCheck -- Có --> SelectDB[Truy vấn Account & Employee liên kết từ MySQL]
+    ContextCheck -- Không --> Error[Báo lỗi 401 và Yêu cầu xác thực] --> End([Kết thúc])
+    ContextCheck -- Có --> SelectDB[Truy vấn Account và Employee liên kết từ MySQL]
     SelectDB --> BuildDTO[Đóng gói dữ liệu Username, Role, thông tin hồ sơ nhân sự]
     BuildDTO --> SendResponse[Trả về dữ liệu JSON 200 OK]
     SendResponse --> RenderUI[Hiển thị tên, chức vụ cá nhân hóa lên Header và Sidebar] --> End
@@ -108,24 +108,24 @@ flowchart TD
 ```mermaid
 flowchart TD
     Start([Bắt đầu]) --> ClickCatalog[Chọn menu Danh mục thuốc]
-    ClickCatalog --> SendAPI[Gửi GET /api/catalogs kèm page, size, search]
-    SendAPI --> QueryDB[SELECT * FROM catalog lọc theo từ khóa & LIMIT/OFFSET]
-    QueryDB --> CountDB[SELECT COUNT(*) FROM catalog]
-    CountDB --> PageResponse[Đóng gói dữ liệu danh sách và thông tin phân trang]
-    PageResponse --> RenderTable[Hiển thị danh sách danh mục thuốc lên bảng dữ liệu] --> End([Kết thúc])
+    ClickCatalog --> SendAPI["Gửi GET /api/catalogs kèm page, size, search"]
+    SendAPI --> QueryDB["SELECT * FROM catalog lọc theo từ khóa và LIMIT/OFFSET"]
+    QueryDB --> CountDB["SELECT COUNT(*) FROM catalog"]
+    CountDB --> PageResponse["Đóng gói dữ liệu danh sách và thông tin phân trang"]
+    PageResponse --> RenderTable["Hiển thị danh sách danh mục thuốc lên bảng dữ liệu"] --> End([Kết thúc])
 ```
 
 ### UC08: Thêm danh mục thuốc mới (Create Catalog)
 ```mermaid
 flowchart TD
     Start([Bắt đầu]) --> ClickAdd[Nhấn nút Thêm danh mục]
-    ClickAdd --> InputData[Nhập Mã danh mục & Tên danh mục]
+    ClickAdd --> InputData[Nhập Mã danh mục và Tên danh mục]
     InputData --> Validate{Thông tin trống?}
     Validate -- Có --> Error1[Báo lỗi: Vui lòng nhập đầy đủ thông tin] --> InputData
     Validate -- Không --> CodeCheck{Mã danh mục đã tồn tại trong DB?}
     CodeCheck -- Có --> Error2[Báo lỗi: Mã danh mục đã tồn tại] --> InputData
     CodeCheck -- Không --> InsertDB[INSERT INTO catalog catalog_code, name]
-    InsertDB --> Reload[Tải lại danh sách & Hiển thị thông báo thành công] --> End([Kết thúc])
+    InsertDB --> Reload[Tải lại danh sách và Hiển thị thông báo thành công] --> End([Kết thúc])
 ```
 
 ### UC09: Cập nhật danh mục thuốc (Update Catalog)
@@ -137,19 +137,19 @@ flowchart TD
     EditName --> Validate{Tên danh mục trống?}
     Validate -- Có --> Error[Báo lỗi: Không được để trống] --> EditName
     Validate -- Không --> UpdateDB[UPDATE catalog SET name = ? WHERE id = ?]
-    UpdateDB --> Reload[Tải lại danh sách & Hiển thị thông báo thành công] --> End([Kết thúc])
+    UpdateDB --> Reload[Tải lại danh sách và Hiển thị thông báo thành công] --> End([Kết thúc])
 ```
 
 ### UC10: Xóa danh mục thuốc (Delete Catalog)
 ```mermaid
 flowchart TD
     Start([Bắt đầu]) --> ClickDelete[Nhấn Xóa trên dòng danh mục]
-    ClickDelete --> ConfirmDialog{Xác nhận xóa?}
+    ClickDelete --> ConfirmDialog{"Xác nhận xóa?"}
     ConfirmDialog -- Không --> End([Kết thúc])
-    ConfirmDialog -- Có --> LinkCheck{SELECT COUNT(*) FROM medicine WHERE catalog_id = ?}
-    LinkCheck -- Có liên kết > 0 --> Error[Báo lỗi: Không thể xóa vì danh mục đang chứa thuốc] --> End
-    LinkCheck -- Không liên kết == 0 --> DeleteDB[DELETE FROM catalog WHERE id = ?]
-    DeleteDB --> Reload[Tải lại danh sách & Báo xóa thành công] --> End
+    ConfirmDialog -- Có --> LinkCheck{"SELECT COUNT(*) FROM medicine WHERE catalog_id = ?"}
+    LinkCheck -- "Có liên kết > 0" --> Error["Báo lỗi: Không thể xóa vì danh mục đang chứa thuốc"] --> End
+    LinkCheck -- "Không liên kết == 0" --> DeleteDB["DELETE FROM catalog WHERE id = ?"]
+    DeleteDB --> Reload["Tải lại danh sách và Báo xóa thành công"] --> End
 ```
 
 ### UC11: Quản lý nước sản xuất - Origin CRUD
@@ -158,7 +158,7 @@ flowchart TD
     Start([Bắt đầu]) --> SelectTab[Chọn tab Nước sản xuất]
     SelectTab --> ReadAction{Lựa chọn thao tác?}
     ReadAction -- Xem danh sách --> GET[GET /api/origins -> SELECT DB -> Hiển thị danh sách] --> End([Kết thúc])
-    ReadAction -- Thêm mới --> POST[Nhập mã & tên -> POST /api/origins -> Check trùng mã -> INSERT DB -> Báo thành công] --> End
+    ReadAction -- Thêm mới --> POST[Nhập mã và tên -> POST /api/origins -> Check trùng mã -> INSERT DB -> Báo thành công] --> End
     ReadAction -- Chỉnh sửa --> PATCH[Sửa tên -> PATCH /api/origins/id -> UPDATE DB -> Báo thành công] --> End
     ReadAction -- Xóa bỏ --> DELETE[Nhấn xóa -> Check ràng buộc khóa ngoại bảng medicine -> Có liên kết? -> Báo lỗi / Xóa DB -> Báo thành công] --> End
 ```
@@ -178,8 +178,8 @@ flowchart TD
 ```mermaid
 flowchart TD
     Start([Bắt đầu]) --> OpenMedicines[Vào trang Quản lý thuốc]
-    OpenMedicines --> InputSearch[Nhập từ khóa tìm kiếm & chọn bộ lọc danh mục/xuất xứ]
-    InputSearch --> SendGET[GET /api/medicines kèm tham số lọc & phân trang]
+    OpenMedicines --> InputSearch[Nhập từ khóa tìm kiếm và chọn bộ lọc danh mục/xuất xứ]
+    InputSearch --> SendGET[GET /api/medicines kèm tham số lọc và phân trang]
     SendGET --> QueryDB[SELECT m.*, c.name, o.name, u.name FROM medicine m JOIN catalog c... WHERE lọc phân trang]
     QueryDB --> RenderUI[Hiển thị danh sách thuốc đã lọc lên bảng kết quả] --> End([Kết thúc])
 ```
@@ -188,15 +188,15 @@ flowchart TD
 ```mermaid
 flowchart TD
     Start([Bắt đầu]) --> ClickAdd[Nhấn nút Thêm thuốc mới]
-    ClickAdd --> InputData[Nhập: Mã thuốc, Tên thuốc, giá bán, hoạt chất, danh mục, đơn vị cơ bản]
-    InputData --> Validate{Các trường bắt buộc đầy đủ?}
-    Validate -- Không --> Error1[Báo lỗi: Thiếu thông tin bắt buộc] --> InputData
-    Validate -- Có --> CodeCheck{SELECT COUNT(*) FROM medicine WHERE medicine_code = ?}
-    CodeCheck -- Trùng > 0 --> Error2[Báo lỗi: Mã thuốc đã tồn tại] --> InputData
-    CodeCheck -- Không trùng == 0 --> ForeignCheck{Kiểm tra Catalog, Unit, Origin tồn tại?}
-    ForeignCheck -- Không --> Error3[Báo lỗi: Liên kết dữ liệu nền không hợp lệ] --> InputData
-    ForeignCheck -- Có --> InsertDB[INSERT INTO medicine ...]
-    InsertDB --> Reload[Tải lại danh sách thuốc & Báo tạo thành công] --> End([Kết thúc])
+    ClickAdd --> InputData["Nhập: Mã thuốc, Tên thuốc, giá bán, hoạt chất, danh mục, đơn vị cơ bản"]
+    InputData --> Validate{"Các trường bắt buộc đầy đủ?"}
+    Validate -- Không --> Error1["Báo lỗi: Thiếu thông tin bắt buộc"] --> InputData
+    Validate -- Có --> CodeCheck{"SELECT COUNT(*) FROM medicine WHERE medicine_code = ?"}
+    CodeCheck -- "Trùng > 0" --> Error2["Báo lỗi: Mã thuốc đã tồn tại"] --> InputData
+    CodeCheck -- "Không trùng == 0" --> ForeignCheck{"Kiểm tra Catalog, Unit, Origin tồn tại?"}
+    ForeignCheck -- Không --> Error3["Báo lỗi: Liên kết dữ liệu nền không hợp lệ"] --> InputData
+    ForeignCheck -- Có --> InsertDB["INSERT INTO medicine ..."]
+    InsertDB --> Reload["Tải lại danh sách thuốc và Báo tạo thành công"] --> End([Kết thúc])
 ```
 
 ### UC15: Cập nhật thông tin thuốc (Update Medicine)
@@ -208,19 +208,19 @@ flowchart TD
     InputNew --> Validate{Dữ liệu trống?}
     Validate -- Có --> Error[Báo lỗi: Không được để trống] --> InputNew
     Validate -- Không --> UpdateDB[UPDATE medicine SET name, retail_price, active_ingredient... WHERE id = ?]
-    UpdateDB --> Reload[Tải lại danh sách thuốc & Báo thành công] --> End([Kết thúc])
+    UpdateDB --> Reload[Tải lại danh sách thuốc và Báo thành công] --> End([Kết thúc])
 ```
 
 ### UC16: Xóa thông tin thuốc (Delete Medicine)
 ```mermaid
 flowchart TD
     Start([Bắt đầu]) --> ClickDelete[Nhấn Xóa trên dòng thuốc]
-    ClickDelete --> ConfirmDialog{Xác nhận xóa thuốc?}
+    ClickDelete --> ConfirmDialog{"Xác nhận xóa thuốc?"}
     ConfirmDialog -- Không --> End([Kết thúc])
-    ConfirmDialog -- Có --> StockCheck{SELECT COUNT(*) FROM inventory WHERE medicine_id = ?}
-    StockCheck -- Đã có lô hàng > 0 --> Error[Báo lỗi: Không thể xóa vì đã phát sinh lô hàng/giao dịch kho] --> End
-    StockCheck -- Chưa có lô == 0 --> DeleteDB[DELETE FROM medicine WHERE id = ?]
-    DeleteDB --> Reload[Tải lại danh sách & Báo xóa thành công] --> End
+    ConfirmDialog -- Có --> StockCheck{"SELECT COUNT(*) FROM inventory WHERE medicine_id = ?"}
+    StockCheck -- "Đã có lô hàng > 0" --> Error["Báo lỗi: Không thể xóa vì đã phát sinh lô hàng/giao dịch kho"] --> End
+    StockCheck -- "Chưa có lô == 0" --> DeleteDB["DELETE FROM medicine WHERE id = ?"]
+    DeleteDB --> Reload["Tải lại danh sách và Báo xóa thành công"] --> End
 ```
 
 ---
@@ -306,8 +306,8 @@ flowchart TD
     AddItem --> MoreItem{Nhập thêm thuốc khác?}
     MoreItem -- Có --> SelectMedicine
     MoreItem -- Không --> ClickSaveDraft[Nhấn nút Lưu nháp]
-    ClickSaveDraft --> GenCode[Sinh mã phiếu REC-XXX & đặt trạng thái DRAFT]
-    GenCode --> InsertReceipt[INSERT INTO goods_receipt & goods_receipt_detail]
+    ClickSaveDraft --> GenCode[Sinh mã phiếu REC-XXX và đặt trạng thái DRAFT]
+    GenCode --> InsertReceipt[INSERT INTO goods_receipt và goods_receipt_detail]
     InsertReceipt --> ShowSuccess[Thông báo tạo nháp thành công, hiển thị lên danh sách] --> End([Kết thúc])
 ```
 
@@ -326,12 +326,12 @@ flowchart TD
     ExpCheck -- Hợp lệ --> ConvertUnit[Quy đổi số lượng thực nhập về đơn vị cơ bản]
     ConvertUnit --> QueryInventory{Lô hàng đã tồn tại trong bảng inventory?}
     QueryInventory -- Chưa --> CreateInv[INSERT INTO inventory Tạo lô hàng mới với SL quy đổi] --> WriteTrans
-    QueryInventory -- Rồi --> AddInv[UPDATE inventory Cộng dồn SL quy đổi & Cập nhật giá nhập] --> WriteTrans
+    QueryInventory -- Rồi --> AddInv[UPDATE inventory Cộng dồn SL quy đổi và Cập nhật giá nhập] --> WriteTrans
     WriteTrans[INSERT INTO inventory_transaction Ghi thẻ kho biến động IMPORT số lượng dương] --> LoopNext{Duyệt hết danh sách?}
     LoopNext -- Chưa --> LoopDetails
     LoopNext -- Rồi --> UpdateState[UPDATE goods_receipt SET status = 'CONFIRMED']
     UpdateState --> CommitTrans[Commit Transaction hoàn tất]
-    CommitTrans --> ShowSuccessUI[Thông báo thành công & Tự động gọi popup HTML in phiếu nhiệt] --> End
+    CommitTrans --> ShowSuccessUI[Thông báo thành công và Tự động gọi popup HTML in phiếu nhiệt] --> End
 ```
 
 ### UC24: Hủy phiếu nhập kho nháp (Cancel Goods Receipt)
@@ -344,22 +344,22 @@ flowchart TD
     ConfirmDialog -- Có --> StateCheck{Phiếu đang ở trạng thái DRAFT?}
     StateCheck -- Không --> Error[Báo lỗi: Chỉ được hủy phiếu nháp] --> End
     StateCheck -- Có --> UpdateState[UPDATE goods_receipt SET status = 'CANCELLED']
-    UpdateState --> ShowSuccess[Thông báo hủy phiếu thành công & tải lại giao diện] --> End
+    UpdateState --> ShowSuccess[Thông báo hủy phiếu thành công và tải lại giao diện] --> End
 ```
 
 ### UC25: Lập phiếu xuất kho nháp (Create Goods Issue Draft)
 ```mermaid
 flowchart TD
     Start([Bắt đầu]) --> OpenIssue[Vào trang Tạo phiếu xuất kho]
-    OpenIssue --> SelectReason[Chọn lý do xuất kho & ghi chú]
+    OpenIssue --> SelectReason[Chọn lý do xuất kho và ghi chú]
     SelectReason --> FindInv[Tìm chọn lô thuốc inventory còn tồn trong kho]
-    FindInv --> InputQty[Nhập số lượng xuất & đơn vị xuất]
+    FindInv --> InputQty[Nhập số lượng xuất và đơn vị xuất]
     InputQty --> AddItem[Bấm Thêm dòng kê]
     AddItem --> MoreItem{Xuất thêm thuốc khác?}
     MoreItem -- Có --> FindInv
     MoreItem -- Không --> ClickSaveDraft[Nhấn nút Lưu nháp]
-    ClickSaveDraft --> GenCode[Sinh mã phiếu GIN-XXX & đặt trạng thái DRAFT]
-    GenCode --> InsertIssue[INSERT INTO goods_issue & goods_issue_detail]
+    ClickSaveDraft --> GenCode[Sinh mã phiếu GIN-XXX và đặt trạng thái DRAFT]
+    GenCode --> InsertIssue[INSERT INTO goods_issue và goods_issue_detail]
     InsertIssue --> ShowSuccess[Thông báo tạo nháp thành công, hiển thị lên bảng kê] --> End([Kết thúc])
 ```
 
@@ -385,7 +385,7 @@ flowchart TD
     LoopNext -- Chưa --> LoopDetails
     LoopNext -- Rồi --> UpdateState[UPDATE goods_issue SET status = 'CONFIRMED']
     UpdateState --> CommitTrans[Commit Transaction hoàn tất]
-    CommitTrans --> ShowSuccessUI[Thông báo xuất kho thành công & hỗ trợ in phiếu] --> End
+    CommitTrans --> ShowSuccessUI[Thông báo xuất kho thành công và hỗ trợ in phiếu] --> End
 ```
 
 ### UC27: Hủy phiếu xuất kho nháp (Cancel Goods Issue)
@@ -398,7 +398,7 @@ flowchart TD
     ConfirmDialog -- Có --> StateCheck{Phiếu đang ở trạng thái DRAFT?}
     StateCheck -- Không --> Error[Báo lỗi: Chỉ được hủy phiếu nháp] --> End
     StateCheck -- Có --> UpdateState[UPDATE goods_issue SET status = 'CANCELLED']
-    UpdateState --> ShowSuccess[Thông báo hủy phiếu xuất thành công & tải lại giao diện] --> End
+    UpdateState --> ShowSuccess[Thông báo hủy phiếu xuất thành công và tải lại giao diện] --> End
 ```
 
 ### UC28: Lập phiếu kiểm kê kho nháp (Create Stock Audit Draft)
@@ -407,7 +407,7 @@ flowchart TD
     Start([Bắt đầu]) --> ClickCreate[Nhấn Tạo phiếu kiểm kê mới]
     ClickCreate --> StartTrans[Khởi chạy Transaction @Transactional]
     StartTrans --> LoadActive[SELECT * FROM inventory WHERE stock_quantity >= 0 AND status = 'ACTIVE']
-    LoadActive --> GenCode[Sinh mã phiếu AUD-XXX & Đặt trạng thái DRAFT]
+    LoadActive --> GenCode[Sinh mã phiếu AUD-XXX và Đặt trạng thái DRAFT]
     GenCode --> InsertAudit[INSERT INTO audit]
     InsertAudit --> LoopItems[Sao chụp tồn kho hệ thống của từng lô vào system_quantity]
     LoopItems --> InsertDetails[INSERT INTO audit_detail actual_quantity = system_quantity, discrepancy = 0]
@@ -423,7 +423,7 @@ flowchart TD
     Start([Bắt đầu]) --> ClickStart[Nhấn Bắt đầu thực hiện kiểm kho]
     ClickStart --> UpdateStatus[UPDATE audit SET status = 'IN_PROGRESS']
     UpdateStatus --> RenderInputs[Mở khóa các ô nhập Số lượng thực tế trên giao diện]
-    RenderInputs --> InputCounts[Kiểm đếm kho thực tế & điền Số lượng thực tế của từng lô]
+    RenderInputs --> InputCounts[Kiểm đếm kho thực tế và điền Số lượng thực tế của từng lô]
     InputCounts --> AutoCalc[Frontend tự động tính chênh lệch thừa/thiếu hiển thị trực quan]
     AutoCalc --> ClickSave[Nhấn nút Lưu tạm]
     ClickSave --> StartTrans[Khởi chạy Transaction]
@@ -465,16 +465,16 @@ flowchart TD
 flowchart TD
     Start([Bắt đầu]) --> OpenPOS[Vào màn hình Bán lẻ POS]
     OpenPOS --> SearchMed[Gõ tìm kiếm nhanh tên/hoạt chất/mã vạch thuốc còn hạn]
-    SearchMed --> SelectBatch[Chọn cụ thể lô hàng còn hàng & thêm vào giỏ]
-    SelectBatch --> InputQty[Nhập số lượng & chọn đơn vị bán lẻ vỉ/hộp/viên]
+    SearchMed --> SelectBatch[Chọn cụ thể lô hàng còn hàng và thêm vào giỏ]
+    SelectBatch --> InputQty[Nhập số lượng và chọn đơn vị bán lẻ vỉ/hộp/viên]
     InputQty --> CalcItem[Hệ thống nhân giá quy đổi tính thành tiền dòng]
     CalcItem --> MoreMed{Thêm thuốc khác?}
     MoreMed -- Có --> SearchMed
     MoreMed -- Không --> MemberSearch{Nhập SĐT khách hàng thành viên?}
-    MemberSearch -- Có --> GETCustomer[GET /api/customers/search -> Trả về thông tin khách & điểm tích lũy] --> PayInput
-    MemberSearch -- Không --> PayInput[Nhập số tiền mặt khách đưa & điểm muốn áp dụng]
+    MemberSearch -- Có --> GETCustomer[GET /api/customers/search -> Trả về thông tin khách và điểm tích lũy] --> PayInput
+    MemberSearch -- Không --> PayInput[Nhập số tiền mặt khách đưa và điểm muốn áp dụng]
     PayInput --> CalcChange[Hệ thống tự động tính Tiền thừa thối lại khách]
-    CalcChange --> ClickPay[Nhấn nút Thanh toán & Xuất hóa đơn]
+    CalcChange --> ClickPay[Nhấn nút Thanh toán và Xuất hóa đơn]
     ClickPay --> StartTrans[Khởi chạy Database Transaction @Transactional]
     StartTrans --> LockCust[Hồ sơ khách: SELECT FOR UPDATE Khóa dòng cộng/trừ điểm]
     LockCust --> LoopDetails[Duyệt từng dòng thuốc trong giỏ hàng]
@@ -489,10 +489,10 @@ flowchart TD
     ZeroCheck -- Không --> WriteTrans[INSERT INTO inventory_transaction Loại SALE, SL biến động âm]
     WriteTrans --> LoopNext{Duyệt hết giỏ hàng?}
     LoopNext -- Chưa --> LoopDetails
-    LoopNext -- Rồi --> CalcPoints[Tính điểm tích lũy mới & UPDATE điểm cho Customer]
-    CalcPoints --> InsertInvoice[INSERT INTO invoice & invoice_detail trạng thái PAID]
+    LoopNext -- Rồi --> CalcPoints[Tính điểm tích lũy mới và UPDATE điểm cho Customer]
+    CalcPoints --> InsertInvoice[INSERT INTO invoice và invoice_detail trạng thái PAID]
     InsertInvoice --> CommitTrans[Commit Transaction hoàn tất]
-    CommitTrans --> ShowSuccessUI[Thông báo thành công & Tự động mở popup in hóa đơn nhiệt khổ K80] --> End
+    CommitTrans --> ShowSuccessUI[Thông báo thành công và Tự động mở popup in hóa đơn nhiệt khổ K80] --> End
 ```
 
 ### UC32: Xem lịch sử thẻ kho của thuốc (View Stock Card)
@@ -500,17 +500,17 @@ flowchart TD
 flowchart TD
     Start([Bắt đầu]) --> OpenStockCard[Vào chức năng Lịch sử thẻ kho]
     OpenStockCard --> SelectMedicine[Tìm kiếm và chọn thuốc cụ thể]
-    SelectMedicine --> SelectDates[Chọn khoảng thời gian xem startDate & endDate]
-    SelectDates --> SendGET[GET /api/inventory/transactions kèm medicineId & dates]
-    SendGET --> QueryMed[SELECT * FROM medicine WHERE id = ?]
-    QueryMed --> CalcInitial[SELECT SUM(quantity_change) trước startDate -> Tính Số dư đầu kỳ]
-    CalcInitial --> QueryTrans[SELECT transactions JOIN inventory trong khoảng thời gian ORDER BY date ASC]
-    QueryTrans --> SendResponse[Trả về StockCardResponse gồm initial_balance & danh sách biến động]
-    SendResponse --> FEInit[Frontend gán running_balance = initial_balance]
-    FEInit --> LoopTrans[Frontend duyệt từng giao dịch biến động]
-    LoopTrans --> CalcRunning[running_balance = running_balance + quantity_change]
-    CalcRunning --> FormatRow[Định dạng loại SALE/IMPORT/EXPORT/AUDIT_ADJUST & gán running_balance vào dòng]
-    FormatRow --> LoopNext{Duyệt hết danh sách?}
+    SelectMedicine --> SelectDates["Chọn khoảng thời gian xem startDate và endDate"]
+    SelectDates --> SendGET["GET /api/inventory/transactions kèm medicineId và dates"]
+    SendGET --> QueryMed["SELECT * FROM medicine WHERE id = ?"]
+    QueryMed --> CalcInitial["SELECT SUM(quantity_change) trước startDate -> Tính Số dư đầu kỳ"]
+    CalcInitial --> QueryTrans["SELECT transactions JOIN inventory trong khoảng thời gian ORDER BY date ASC"]
+    QueryTrans --> SendResponse["Trả về StockCardResponse gồm initial_balance và danh sách biến động"]
+    SendResponse --> FEInit["Frontend gán running_balance = initial_balance"]
+    FEInit --> LoopTrans["Frontend duyệt từng giao dịch biến động"]
+    LoopTrans --> CalcRunning["running_balance = running_balance + quantity_change"]
+    CalcRunning --> FormatRow["Định dạng loại SALE/IMPORT/EXPORT/AUDIT_ADJUST và gán running_balance vào dòng"]
+    FormatRow --> LoopNext{"Duyệt hết danh sách?"}
     LoopNext -- Chưa --> LoopTrans
-    LoopNext -- Rồi --> RenderTable[Hiển thị bảng Thẻ kho lũy kế trực quan ra màn hình] --> End([Kết thúc])
+    LoopNext -- Rồi --> RenderTable["Hiển thị bảng Thẻ kho lũy kế trực quan ra màn hình"] --> End([Kết thúc])
 ```
