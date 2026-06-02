@@ -1,0 +1,1948 @@
+﻿# TÀI LIỆU ĐẶC TẢ YÊU CẦU PHẦN MỀM (SRS) - HỆ THỐNG QUẢN LÝ KHO THUỐC (PIS)
+
+Tài liệu này xác định chi tiết các **Yêu cầu Chức năng (Functional Requirements - FR)** và **Yêu cầu Phi chức năng (Non-Functional Requirements - NFR)** của hệ thống **PIS (Pharmacy Inventory Management System)**. Tài liệu được biên soạn dựa trên phân tích mã nguồn thực tế và luồng nghiệp vụ của dự án, tuân thủ theo tiêu chuẩn SRS (IEEE 830).
+
+---
+
+## 1. GIỚI THIỆU CHUNG
+* **Tên hệ thống**: PIS - Hệ thống Quản lý kho thuốc và Bán lẻ POS.
+* **Mục tiêu**: Hỗ trợ nhà thuốc quản lý danh mục thuốc, đối tác (khách hàng, nhà cung cấp), nhân sự; thực hiện các nghiệp vụ xuất/nhập/kiểm kê kho chặt chẽ, tối ưu hóa quy trình bán lẻ POS tại quầy và ghi nhận vết thẻ kho tự động.
+* **Tác nhân hệ thống (Roles)**:
+  * **Admin (Quản trị viên)**: Quyền cao nhất, quản lý nhân viên, tài khoản, cấu hình hệ thống và phê duyệt giao dịch.
+  * **Product_manager (Quản lý kho)**: Quản lý danh mục thuốc, thực hiện các giao dịch xuất kho, nhập kho, kiểm kê và xem báo cáo tồn kho.
+  * **Sales (Nhân viên bán hàng)**: Thực hiện bán lẻ tại quầy (POS), tạo hóa đơn và quản lý thông tin khách hàng.
+
+---
+
+## 2. YÊU CẦU CHỨC NĂNG (FUNCTIONAL REQUIREMENTS - FR)
+
+Các yêu cầu chức năng được phân loại theo từng phân hệ nghiệp vụ, gán mã định danh duy nhất (FR-ID) để tiện đối chiếu và kiểm thử.
+
+### Phân hệ 1: Xác thực & Tài khoản cá nhân (FR-AUTH)
+
+| FR-ID | Tên Yêu Cầu | Mô Tả Yêu Cầu | Vai Trò (Roles) | Độ Ưu Tiên |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR-AUTH-01** | Đăng nhập hệ thống | Cho phép người dùng đăng nhập bằng `username` và `password`. Kiểm tra trạng thái hoạt động tài khoản (`isActive`). | Tất cả | Cao |
+| **FR-AUTH-02** | Đổi mật khẩu lần đầu | Bắt buộc tài khoản có trạng thái `isFirstLogin = true` phải thực hiện đổi mật khẩu mới có thể truy cập hệ thống. | Tất cả | Cao |
+| **FR-AUTH-03** | Đăng xuất | Cho phép người dùng đăng xuất, hủy bỏ hiệu lực của Access Token bằng danh sách đen (`InvalidatedToken`) và xóa Refresh Token. | Tất cả | Cao |
+| **FR-AUTH-04** | Làm mới Token | Hệ thống tự động gọi API refresh để xoay vòng token khi Access Token hết hạn mà không ngắt quãng phiên làm việc. | Hệ thống | Cao |
+| **FR-AUTH-05** | Quên mật khẩu | Cho phép người dùng yêu cầu cấp lại mật khẩu tạm thời bằng Username và Email. Mật khẩu 8 ký tự được gửi tự động qua email. | Khách | Trung bình |
+| **FR-AUTH-06** | Đổi mật khẩu chủ động | Cho phép người dùng đăng nhập thay đổi mật khẩu của mình bất cứ lúc nào (yêu cầu mật khẩu cũ phải chính xác). | Tất cả | Cao |
+| **FR-AUTH-07** | Lấy thông tin cá nhân | API trả về thông tin cá nhân, chức vụ, phòng ban của tài khoản đang đăng nhập để hiển thị lên Header. | Tất cả | Cao |
+
+---
+
+### Phân hệ 2: Quản lý Dữ liệu nền & Thuốc (FR-MED)
+
+| FR-ID | Tên Yêu Cầu | Mô Tả Yêu Cầu | Vai Trò (Roles) | Độ Ưu Tiên |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR-MED-01** | Xem danh mục thuốc | Hiển thị danh sách danh mục (nhóm) thuốc, hỗ trợ phân trang và tìm kiếm theo tên/mã danh mục. | Tất cả | Cao |
+| **FR-MED-02** | Quản lý danh mục | Cho phép Thêm, Cập nhật, Xóa thông tin danh mục thuốc. Ngăn cản xóa danh mục đang chứa sản phẩm thuốc. | Admin, Product_manager | Cao |
+| **FR-MED-03** | Quản lý Nước sản xuất | Cho phép Xem, Thêm, Cập nhật, Xóa thông tin nước sản xuất (Origin). Kiểm tra ràng buộc liên kết trước khi xóa. | Admin, Product_manager | Cao |
+| **FR-MED-04** | Quản lý Đơn vị tính | Cho phép Xem, Thêm, Cập nhật, Xóa đơn vị tính (Unit) (ví dụ: viên, vỉ, hộp). Ngăn cản xóa đơn vị đang được sử dụng. | Admin, Product_manager | Cao |
+| **FR-MED-05** | Xem danh sách thuốc | Hiển thị danh sách thuốc trong hệ thống, lọc theo danh mục, xuất xứ hoặc tìm kiếm đa tiêu chí (tên thuốc, hoạt chất, hàm lượng). | Tất cả | Cao |
+| **FR-MED-06** | Thêm thông tin thuốc | Cho phép thêm một loại thuốc mới với các thông tin: Mã thuốc, tên thuốc, hoạt chất, hàm lượng, giá bán lẻ, đơn vị tính cơ bản. | Admin, Product_manager | Cao |
+| **FR-MED-07** | Cập nhật thông tin thuốc | Cho phép sửa đổi thông tin thuốc đã tồn tại (không cho sửa Mã thuốc). | Admin, Product_manager | Cao |
+| **FR-MED-08** | Xóa thông tin thuốc | Cho phép xóa loại thuốc ra khỏi hệ thống nếu thuốc đó chưa từng phát sinh giao dịch nhập, xuất, bán hoặc tồn kho. | Admin, Product_manager | Cao |
+
+---
+
+### Phân hệ 3: Quản lý Đối tác & Nhân sự (FR-PARTNER)
+
+| FR-ID | Tên Yêu Cầu | Mô Tả Yêu Cầu | Vai Trò (Roles) | Độ Ưu Tiên |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR-PARTNER-01** | Quản lý nhà cung cấp | Cho phép Xem, Thêm, Sửa, Xóa nhà cung cấp thuốc (mã NCC, tên NCC, SĐT, địa chỉ). | Admin, Product_manager | Cao |
+| **FR-PARTNER-02** | Quản lý khách hàng | Cho phép nhân viên bán hàng Thêm, Sửa thông tin khách hàng thành viên khi làm hóa đơn tại quầy. Admin được quyền Xóa khách hàng. | Admin (Xem/Thêm/Sửa/Xóa), Sales (Xem/Thêm/Sửa) | Cao |
+| **FR-PARTNER-03** | Quản lý nhân viên | Xem danh sách nhân viên, thêm mới thông tin nhân sự, cập nhật thông tin và xóa nhân viên (nếu chưa liên kết tài khoản). | Admin | Cao |
+| **FR-PARTNER-04** | Quản lý tài khoản nhân viên | Tạo tài khoản đăng nhập cho nhân viên (tự động sinh mật khẩu, gửi email). Cho phép đổi vai trò hoặc khóa tài khoản (`isActive=false`). | Admin | Cao |
+| **FR-PARTNER-05** | Reset password nhân viên | Cho phép quản trị viên đặt lại mật khẩu mới cho tài khoản nhân viên bị mất mật khẩu. | Admin | Cao |
+
+---
+
+### Phân hệ 4: Nghiệp vụ Kho thuốc (FR-WH)
+
+| FR-ID | Tên Yêu Cầu | Mô Tả Yêu Cầu | Vai Trò (Roles) | Độ Ưu Tiên |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR-WH-01** | Lập phiếu nhập kho nháp | Lập phiếu nhập kho ở trạng thái `DRAFT`. Nhập các chi tiết thuốc (lô, hạn dùng, số lượng, đơn vị tính quy đổi, giá nhập) để lưu nháp hệ thống. | Admin, Product_manager | Cao |
+| **FR-WH-02** | Xác nhận nhập kho | Thực hiện chốt phiếu nhập kho, cập nhật trạng thái phiếu thành `CONFIRMED`. Hệ thống tự động tính quy đổi đơn vị và cộng dồn số lượng vào tồn kho thực tế. | Admin, Product_manager | Cao |
+| **FR-WH-03** | Hủy phiếu nhập kho nháp | Cho phép hủy các phiếu nhập kho đang ở trạng thái `DRAFT` sang `CANCELLED`. Không làm ảnh hưởng đến tồn kho. | Admin, Product_manager | Cao |
+| **FR-WH-04** | Lập phiếu xuất kho nháp | Tạo phiếu xuất kho nháp (`DRAFT`) với lý do tương ứng (Xuất hủy hết hạn, xuất hỏng, xuất trả hàng). | Admin, Product_manager | Cao |
+| **FR-WH-05** | Xác nhận xuất kho | Thực hiện kiểm tra tồn kho của từng lô thuốc. Nếu đủ, trừ tồn kho thực tế, ghi thẻ kho xuất và chuyển trạng thái phiếu xuất thành `CONFIRMED`. | Admin, Product_manager | Cao |
+| **FR-WH-06** | Hủy phiếu xuất kho nháp | Cho phép hủy phiếu xuất kho đang ở trạng thái `DRAFT` sang `CANCELLED`. | Admin, Product_manager | Cao |
+| **FR-WH-07** | Xem danh sách phiếu kho | Cho phép xem và tìm kiếm, lọc danh sách phiếu nhập kho, phiếu xuất kho theo khoảng thời gian, mã phiếu, nhân viên lập hoặc nhà cung cấp. | Tất cả | Cao |
+| **FR-WH-08** | In phiếu nhập / xuất kho | Cho phép in ấn hóa đơn chứng từ phiếu nhập hoặc phiếu xuất kho ra khổ giấy chuẩn. | Tất cả | Trung bình |
+
+---
+
+### Phân hệ 5: Nghiệp vụ Kiểm kê kho (FR-AUDIT)
+
+| FR-ID | Tên Yêu Cầu | Mô Tả Yêu Cầu | Vai Trò (Roles) | Độ Ưu Tiên |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR-AUDIT-01** | Tạo phiếu kiểm kê nháp | Tự động chụp tồn kho hệ thống của tất cả các lô thuốc tại thời điểm tạo, thiết lập phiếu kiểm kê nháp `DRAFT`. | Admin, Product_manager | Cao |
+| **FR-AUDIT-02** | Bắt đầu kiểm kho | Chuyển trạng thái phiếu kiểm kê sang `IN_PROGRESS` để nhân viên thực hiện đếm số thực tế. | Admin, Product_manager | Cao |
+| **FR-AUDIT-03** | Lưu số đếm thực tế | Cho phép cập nhật số lượng đếm thực tế và ghi chú chênh lệch tạm thời, bấm Lưu nháp để bảo lưu số đếm. | Admin, Product_manager | Cao |
+| **FR-AUDIT-04** | Xác nhận đối soát kiểm kê | Đối chiếu số đếm thực tế và số sổ sách. Cập nhật tồn kho hệ thống về đúng số lượng đếm thực tế. Ghi nhận giao dịch điều chỉnh chênh lệch (`AUDIT_ADJUST`) và chuyển phiếu sang `CONFIRMED`. | Admin, Product_manager | Cao |
+| **FR-AUDIT-05** | Hủy phiếu kiểm kê | Cho phép hủy phiếu kiểm kê đang ở trạng thái `DRAFT` hoặc `IN_PROGRESS`. | Admin, Product_manager | Cao |
+
+---
+
+### Phân hệ 6: POS & Nghiệp vụ Bán hàng (FR-POS)
+
+| FR-ID | Tên Yêu Cầu | Mô Tả Yêu Cầu | Vai Trò (Roles) | Độ Ưu Tiên |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR-POS-01** | Tìm kiếm thuốc bán lẻ | Cho phép gõ tìm kiếm nhanh hoặc quét mã vạch để lấy danh sách lô thuốc còn hạn sử dụng và còn hàng tồn kho. | Admin, Sales | Cao |
+| **FR-POS-02** | Quản lý giỏ hàng bán lẻ | Cho phép thêm thuốc, chọn đơn vị tính bán lẻ (hộp/vỉ/viên), thay đổi số lượng mua, tự động kiểm tra số lượng và tính thành tiền. | Admin, Sales | Cao |
+| **FR-POS-03** | Áp dụng Khách hàng | Cho phép tìm kiếm khách hàng theo Số điện thoại và gắn vào hóa đơn để tích điểm/theo dõi lịch sử. | Admin, Sales | Cao |
+| **FR-POS-04** | Tính toán tiền thừa | Tự động tính toán số tiền cần trả lại khách dựa trên Tổng tiền hóa đơn và số tiền mặt khách đưa. | Admin, Sales | Cao |
+| **FR-POS-05** | Thanh toán và trừ kho | Khi bấm thanh toán, hệ thống kiểm tra tồn kho lô, trừ tồn kho lô thực tế, lưu hóa đơn ở trạng thái `Paid` và ghi nhận lịch sử thẻ kho `SALE`. | Admin, Sales | Cao |
+| **FR-POS-06** | In hóa đơn nhiệt | Tự động hiển thị và kích hoạt cửa sổ in hóa đơn nhiệt (Thermal Receipt) khổ K80 hoặc K57 cho khách hàng ngay sau khi thanh toán. | Admin, Sales | Cao |
+| **FR-POS-07** | Xem danh sách hóa đơn | Xem danh sách hóa đơn bán lẻ đã lập, tìm kiếm theo tên khách hàng, mã hóa đơn hoặc tên thuốc đã mua. Cho phép in lại hóa đơn. | Tất cả | Cao |
+
+---
+
+### Phân hệ 7: Tồn kho & Báo cáo thẻ kho (FR-INV)
+
+| FR-ID | Tên Yêu Cầu | Mô Tả Yêu Cầu | Vai Trò (Roles) | Độ Ưu Tiên |
+| :--- | :--- | :--- | :--- | :--- |
+| **FR-INV-01** | Xem tồn kho theo lô | Xem danh sách chi tiết số lượng tồn kho của từng lô thuốc (Mã lô, Giá nhập, Hạn sử dụng, Số lượng). | Tất cả | Cao |
+| **FR-INV-02** | Lọc tồn kho nâng cao | Hỗ trợ lọc nhanh: Lọc thuốc sắp hết hạn, đã hết hạn, tồn kho dưới ngưỡng tối thiểu (`LOW_STOCK`). Lọc nâng cao theo Danh mục và Nước sản xuất. | Tất cả | Cao |
+| **FR-INV-03** | Xem lịch sử thẻ kho | Cho phép chọn một loại thuốc và hiển thị tất cả các giao dịch phát sinh liên quan (Nhập/Xuất/Bán/Đối soát) theo thứ tự thời gian. | Tất cả | Cao |
+| **FR-INV-04** | Thống kê Dashboard | Hiển thị biểu đồ xu hướng giao dịch nhập xuất 7 ngày gần nhất, tỷ lệ thuốc theo danh mục, cảnh báo khẩn cấp (thuốc hết hạn, cạn kho). | Tất cả | Cao |
+
+---
+
+## 3. YÊU CẦU PHI CHỨC NĂNG (NON-FUNCTIONAL REQUIREMENTS - NFR)
+
+Yêu cầu phi chức năng quy định các tiêu chuẩn kỹ thuật, chất lượng vận hành và bảo mật của hệ thống.
+
+### 3.1. Hiệu năng & Khả năng tải (Performance - NFR-PERF)
+* **NFR-PERF-01 (Thời gian phản hồi)**: Các yêu cầu API đọc dữ liệu thông thường (danh sách thuốc, khách hàng, hóa đơn) phải phản hồi trong thời gian dưới **500ms** trong điều kiện mạng bình thường.
+* **NFR-PERF-02 (Thời gian xử lý giao dịch kho)**: API xác nhận nhập kho, xuất kho hoặc thanh toán hóa đơn POS (đòi hỏi xử lý trừ kho và ghi log giao dịch đồng thời) phải hoàn tất và phản hồi dưới **1000ms**.
+* **NFR-PERF-03 (Khả năng phân trang)**: Tất cả các API hiển thị danh sách lớn (thuốc, hóa đơn, phiếu nhập/xuất) bắt buộc phải thực hiện phân trang (Pagination) ở tầng cơ sở dữ liệu để tránh quá tải bộ nhớ RAM và băng thông truyền tải.
+* **NFR-PERF-04 (Tải trang Client)**: Ứng dụng frontend (Vite React) phải được tối ưu hóa Bundle, thời gian tải trang đầu tiên (First Contentful Paint) dưới **2 giây**.
+
+### 3.2. An toàn & Bảo mật (Security - NFR-SEC)
+* **NFR-SEC-01 (Mã hóa mật khẩu)**: Mật khẩu của tất cả nhân viên phải được mã hóa bằng thuật toán băm một chiều **BCrypt** mạnh mẽ trước khi lưu vào cơ sở dữ liệu. Không lưu mật khẩu dạng văn bản thuần (plain text).
+* **NFR-SEC-02 (Xác thực JWT)**: Sử dụng Token dạng **JWT (JSON Web Token)** để xác thực tất cả các API nghiệp vụ. Token có thời hạn ngắn (ví dụ: 15 phút) kết hợp với Refresh Token được lưu an toàn tại Client.
+* **NFR-SEC-03 (Phân quyền RBAC tại Backend)**: Thực hiện kiểm soát truy cập dựa trên vai trò (Role-based Access Control) tại tầng Security Config của Spring Boot. Chặn truy cập trái phép từ mức API:
+  * Quyền quản lý nhân sự và tài khoản (`/api/employees/**`, `/api/accounts/**`) chỉ dành cho quyền **Admin**.
+  * Quyền tạo/sửa phiếu kho, thuốc, nhà cung cấp chỉ dành cho **Admin** và **Product_manager**.
+  * Quyền lập hóa đơn bán lẻ chỉ dành cho **Admin** và **Sales**.
+* **NFR-SEC-04 (Vô hiệu hóa Token khi đăng xuất)**: Khi người dùng chọn Đăng xuất, hệ thống phải đưa Access Token hiện tại vào bảng blacklist (`InvalidatedToken`) để vô hiệu hóa ngay lập tức.
+* **NFR-SEC-05 (Ngăn chặn SQL Injection & XSS)**: Sử dụng Spring Data JPA (Hibernate) với các truy vấn tham số hóa (Parameterized Queries) để loại bỏ nguy cơ SQL Injection. Thực hiện lọc dữ liệu đầu vào chống Cross-Site Scripting (XSS).
+
+### 3.3. Độ tin cậy & Toàn vẹn dữ liệu (Reliability - NFR-REL)
+* **NFR-REL-01 (Toàn vẹn giao dịch - ACID)**: Các nghiệp vụ xuất kho, nhập kho, kiểm kê và lập hóa đơn POS phải chạy trong khối giao dịch Spring `@Transactional`. Đảm bảo nếu một bước bị lỗi (ví dụ: không đủ tồn kho lô), toàn bộ giao dịch phải được rollback (quay lui) về trạng thái ban đầu, tránh việc dữ liệu bị sai lệch.
+* **NFR-REL-02 (Ràng buộc khóa ngoại)**: Thiết lập các ràng buộc toàn vẹn cơ sở dữ liệu (Foreign Key constraints) giữa Thuốc - Đơn vị tính, Thuốc - Danh mục, Hóa đơn - Lô tồn kho để tránh dữ liệu mồ côi (orphan data).
+* **NFR-REL-03 (Tính bền vững)**: Cơ sở dữ liệu MySQL phải được chạy ở phân vùng dữ liệu bền vững (Docker volume persistence) để tránh mất mát dữ liệu khi container bị tắt hoặc khởi động lại.
+
+### 3.4. Tính khả dụng (Usability - NFR-USA)
+* **NFR-USA-01 (Giao diện đáp ứng)**: Giao diện web được tối ưu hiển thị tốt nhất trên màn hình máy tính (Desktop/Laptop) của nhân viên nhà thuốc (độ phân giải tối thiểu 1366x768).
+* **NFR-USA-02 (Tối ưu giao diện POS bán hàng)**: Màn hình POS phải được thiết kế tập trung, hỗ trợ tìm kiếm thuốc nhanh bằng phím bấm, hiển thị rõ ràng số tiền khách đưa và tiền thừa để nhân viên thao tác nhanh chóng không cần dùng nhiều chuột.
+* **NFR-USA-03 (Tính thẩm mỹ cao)**: Giao diện sử dụng hệ màu hiện đại, độ tương phản tốt, các thành phần cảnh báo hết hạn hoặc tồn kho thấp phải hiển thị màu đỏ/vàng rõ ràng để thu hút sự chú ý của thủ kho.
+
+### 3.5. Tính tương thích & Khả năng di chuyển (Compatibility - NFR-COMP)
+* **NFR-COMP-01 (Trình duyệt hỗ trợ)**: Ứng dụng Frontend phải tương thích tốt với các trình duyệt phổ biến hiện nay: Google Chrome, Microsoft Edge, Mozilla Firefox và Apple Safari phiên bản mới nhất.
+* **NFR-COMP-02 (Đóng gói Docker)**: Toàn bộ hệ thống (MySQL, Backend, Frontend) phải được đóng gói bằng Docker và khởi chạy dễ dàng thông qua file `docker-compose.yml`.
+
+### 3.6. Khả năng bảo trì & Phát triển (Maintainability - NFR-MNT)
+* **NFR-MNT-01 (Kiến trúc phân lớp)**: Backend phải tuân thủ kiến trúc phân lớp chuẩn: Controller -> Service -> Repository -> Entity/DTO. Giúp dễ dàng bảo trì và viết Unit Test cho từng tầng.
+* **NFR-MNT-02 (Ghi nhật ký hệ thống)**: Tích hợp thư viện Logback/Slf4j ghi nhận các sự kiện quan trọng (đăng nhập thất bại, xác nhận giao dịch kho thành công, ngoại lệ hệ thống) để phục vụ công tác giám sát và sửa lỗi.
+
+
+# BẢN VẼ CHI TIẾT TOÀN BỘ 32 SEQUENCE DIAGRAM - HỆ THỐNG QUẢN LÝ KHO THUỐC (PIS)
+
+Tài liệu này cung cấp **đầy đủ 32 bản vẽ Sequence Diagram (Sơ đồ tuần tự)** cho toàn bộ 32 Use Case của hệ thống **PIS**. Các sơ đồ được biểu diễn chi tiết bằng ngôn ngữ **Mermaid**, mô tả chính xác sự tương tác đa tầng giữa:
+1. **Người dùng / Thủ kho / Nhân viên bán hàng / Admin**
+2. **Frontend (Vite + React)**
+3. **Backend (Spring Boot Controller & Service)**
+4. **MySQL Database**
+5. **Các dịch vụ bổ trợ** (`JwtTokenProvider`, `MailService`)
+
+---
+
+# ĐẶC TẢ CHI TIẾT TOÀN BỘ 32 USE CASE - HỆ THỐNG QUẢN LÝ KHO THUỐC (PIS)
+
+Tài liệu này cung cấp đặc tả chi tiết của toàn bộ **32 Use Case (UC)** trong hệ thống **PIS (Pharmacy Inventory Management System)**. Các đặc tả này được đối chiếu trực tiếp với mã nguồn thực tế của dự án ở cả phía Backend (Java Spring Boot) và Frontend (Vite + React).
+
+Cấu trúc mỗi Use Case tuân thủ chính xác theo mẫu biểu bảng yêu cầu:
+- **Mã Use case / Tên Use case**
+- **Tác nhân** (Actors)
+- **Tiền điều kiện** (Preconditions)
+- **Luồng sự kiện chính (Thành công)**: Từng bước tương tác giữa Người dùng và Hệ thống.
+- **Luồng sự kiện thay thế**: Các nhánh lỗi, rẽ nhánh nghiệp vụ, kiểm tra ràng buộc.
+- **Hậu điều kiện** (Postconditions)
+
+---
+
+## DANH MỤC TOÀN BỘ 32 USE CASE
+
+### PHÂN HỆ 1: XÁC THỰC VÀ TÀI KHOẢN CÁ NHÂN
+- [UC01: Đăng nhập hệ thống (System Login)](#uc01-dang-nhap-he-thong)
+- [UC02: Đăng xuất hệ thống (System Logout)](#uc02-dang-xuat-he-thong)
+- [UC03: Làm mới Token tự động (Token Refresh)](#uc03-lam-moi-token-tu-dong)
+- [UC04: Xem thông tin tài khoản cá nhân (Get Me)](#uc04-xem-thong-tin-tai-khoan-ca-nhan)
+- [UC05: Đổi mật khẩu tài khoản (Change Password)](#uc05-doi-mat-khau-tai-khoan)
+- [UC06: Cấp lại mật khẩu tạm khi quên mật khẩu (Forgot Password)](#uc06-cap-lai-mat-khau-tam-khi-quen-mat-khau)
+
+### PHÂN HỆ 2: QUẢN LÝ DANH MỤC VÀ DỮ LIỆU THUỐC
+- [UC07: Xem danh sách danh mục thuốc (View Catalogs)](#uc07-xem-danh-sach-danh-muc-thuoc)
+- [UC08: Thêm danh mục thuốc mới (Create Catalog)](#uc08-them-danh-muc-thuoc-moi)
+- [UC09: Cập nhật danh mục thuốc (Update Catalog)](#uc09-cap-nhat-danh-muc-thuoc)
+- [UC10: Xóa danh mục thuốc (Delete Catalog)](#uc10-xoa-danh-muc-thuoc)
+- [UC11: Quản lý nước sản xuất - Origin CRUD](#uc11-quan-ly-nuoc-san-xuat---origin-crud)
+- [UC12: Quản lý đơn vị tính - Unit CRUD](#uc12-quan-ly-don-vi-tinh---unit-crud)
+- [UC13: Xem danh sách và tìm kiếm thuốc (Search Medicines)](#uc13-xem-danh-sach-va-tim-kiem-thuoc)
+- [UC14: Thêm thông tin thuốc mới (Create Medicine)](#uc14-them-thong-tin-thuoc-moi)
+- [UC15: Cập nhật thông tin thuốc (Update Medicine)](#uc15-cap-nhat-thong-tin-thuoc)
+- [UC16: Xóa thông tin thuốc (Delete Medicine)](#uc16-xoa-thong-tin-thuoc)
+
+### PHÂN HỆ 3: QUẢN LÝ ĐỐI TÁC VÀ NHÂN SỰ
+- [UC17: Quản lý nhà cung cấp - Supplier CRUD](#uc17-quan-ly-nha-cung-cap---supplier-crud)
+- [UC18: Quản lý thông tin khách hàng - Customer CRUD](#uc18-quan-ly-thong-tin-khach-hang---customer-crud)
+- [UC19: Quản lý thông tin nhân viên - Employee CRUD](#uc19-quan-ly-thong-tin-nhan-vien---employee-crud)
+- [UC20: Quản lý tài khoản người dùng - Account CRUD](#uc20-quan-ly-tai-khoan-nguoi-dung---account-crud)
+- [UC21: Đặt lại mật khẩu nhân viên - Admin Reset Password](#uc21-dat-lai-mat-khau-nhan-vien)
+
+### PHÂN HỆ 4: NGHIỆP VỤ KHO THUỐC
+- [UC22: Lập phiếu nhập kho nháp (Create Goods Receipt Draft)](#uc22-lap-phieu-nhap-kho-nhap)
+- [UC23: Xác nhận phiếu nhập kho (Confirm Goods Receipt)](#uc23-xac-nhan-phieu-nhap-kho)
+- [UC24: Hủy phiếu nhập kho nháp (Cancel Goods Receipt)](#uc24-huy-phieu-nhap-kho-nhap)
+- [UC25: Lập phiếu xuất kho nháp (Create Goods Issue Draft)](#uc25-lap-phieu-xuat-kho-nhap)
+- [UC26: Xác nhận phiếu xuất kho (Confirm Goods Issue)](#uc26-xac-nhan-phieu-xuat-kho)
+- [UC27: Hủy phiếu xuất kho nháp (Cancel Goods Issue)](#uc27-huy-phieu-xuat-kho-nhap)
+- [UC28: Lập phiếu kiểm kê kho nháp (Create Stock Audit Draft)](#uc28-lap-phieu-kiem-ke-kho-nhap)
+- [UC29: Nhập số đếm thực tế kiểm kho (Save Audit Quantities)](#uc29-nhap-so-dem-thuc-te-kiem-kho)
+- [UC30: Xác nhận đối soát hoàn thành kiểm kê (Confirm Stock Audit)](#uc30-xac-nhan-doi-soat-hoan-thanh-kiem-ke)
+
+### PHÂN HỆ 5: BÁN HÀNG VÀ BÁO CÁO TỒN KHO
+- [UC31: Lập hóa đơn bán lẻ thuốc tại quầy - POS (Create Invoice)](#uc31-lap-hoa-don-ban-le-thuoc-tai-quay---pos)
+- [UC32: Xem lịch sử thẻ kho của thuốc (View Stock Card)](#uc32-xem-lich-su-the-kho-cua-thuoc)
+
+---
+
+## PHẦN CHI TIẾT ĐẶC TẢ TỪNG USE CASE
+
+---
+
+### UC01: ĐĂNG NHẬP HỆ THỐNG
+
+| Mã Use case | UC01 | Tên Use case | Đăng nhập hệ thống |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Admin, Sales, Product_manager | | |
+| **Tiền điều kiện** | Người dùng đã có tài khoản được kích hoạt trên hệ thống (`isActive = true`). | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Truy cập vào trang đăng nhập của hệ thống PIS. |
+| | 2 | Hệ thống | Hiển thị giao diện đăng nhập yêu cầu nhập Tên đăng nhập và Mật khẩu. |
+| | 3 | Người dùng | Nhập Tên đăng nhập (username), Mật khẩu (password) và nhấn nút **Đăng nhập**. |
+| | 4 | Hệ thống | Kiểm tra sự tồn tại của tài khoản và xác thực mật khẩu dưới cơ sở dữ liệu. |
+| | 5 | Hệ thống | Xác nhận thông tin chính xác, kiểm tra trạng thái hoạt động (`isActive = true`) và trạng thái đăng nhập lần đầu (`isFirstLogin = false`). |
+| | 6 | Hệ thống | Tạo JWT Access Token & Refresh Token, lưu thông tin phiên đăng nhập. |
+| | 7 | Hệ thống | Chuyển hướng người dùng vào giao diện Trang chủ (Dashboard) và hiển thị các chức năng tương ứng với vai trò của tài khoản. Hiển thị thông báo "Đăng nhập thành công". |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Tên đăng nhập hoặc mật khẩu không chính xác**: Hệ thống hiển thị thông báo lỗi `"Tên đăng nhập hoặc mật khẩu không chính xác"` và giữ người dùng ở trang đăng nhập để nhập lại. |
+| | 5a | Hệ thống | **Tài khoản bị vô hiệu hóa**: Hệ thống phát hiện tài khoản có trường `isActive` có giá trị là `false`. Hiển thị thông báo lỗi `"Tài khoản của bạn đã bị vô hiệu hóa"`. |
+| | 5b | Hệ thống | **Yêu cầu đổi mật khẩu lần đầu**: Hệ thống phát hiện tài khoản có thuộc tính `isFirstLogin` là `true`. Hệ thống ném lỗi `"Yêu cầu đổi mật khẩu trong lần đăng nhập đầu tiên"`, chặn truy cập Dashboard và tự động chuyển hướng người dùng sang trang Đổi mật khẩu (`/change-password`). |
+| **Hậu điều kiện** | Người dùng đăng nhập thành công vào hệ thống và được cấp quyền truy cập các chức năng tương ứng với vai trò. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `username` | String (5 - 50 ký tự) | Bắt buộc nhập, phải chứa ký tự chữ hoặc số hợp lệ. Trạng thái `isActive` liên kết trong DB phải là `true`. |
+| `password` | String (8 - 100 ký tự) | Bắt buộc nhập. Hệ thống sử dụng `BCrypt.matches` để đối chiếu với mật khẩu đã mã hóa trong DB. |
+
+---
+
+### UC02: ĐĂNG XUẤT HỆ THỐNG
+
+| Mã Use case | UC02 | Tên Use case | Đăng xuất hệ thống |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Admin, Sales, Product_manager | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập thành công và có Access Token hợp lệ. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Nhấn vào biểu tượng tài khoản và chọn nút **Đăng xuất**. |
+| | 2 | Hệ thống | Gửi yêu cầu đăng xuất chứa Access Token lên API `/api/auth/logout/`. |
+| | 3 | Hệ thống | Backend xác thực Access Token, đưa Access Token vào danh sách đen (`invalidated_token`) và xóa Refresh Token của người dùng trong DB. |
+| | 4 | Hệ thống | Xóa bỏ Access Token và Refresh Token đang lưu tại LocalStorage ở trình duyệt. |
+| | 5 | Hệ thống | Chuyển hướng người dùng về giao diện trang đăng nhập và hiển thị thông báo `"Đăng xuất thành công"`. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 2a | Hệ thống | **Token không hợp lệ hoặc đã hết hạn**: Hệ thống vẫn thực hiện xóa LocalStorage trên Client và đưa người dùng về trang đăng nhập để đảm bảo an toàn. |
+| **Hậu điều kiện** | Phiên làm việc của người dùng bị hủy bỏ hoàn toàn, không thể dùng Access Token cũ để gọi API. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `Authorization` | Header (Bearer Token) | Access Token hợp lệ được đính kèm trên Header. Token này sau đó sẽ được lưu vào bảng `invalidated_token` (blacklist) trong DB để vô hiệu hóa hoàn toàn cho đến khi hết thời hạn sinh (TTL). |
+
+---
+
+### UC03: LÀM MỚI TOKEN TỰ ĐỘNG
+
+| Mã Use case | UC03 | Tên Use case | Làm mới Token tự động (Token Rotation) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Hệ thống (gọi tự động) | | |
+| **Tiền điều kiện** | Access Token hết hạn nhưng Refresh Token vẫn còn hạn và lưu tại LocalStorage. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Hệ thống | Nhận mã lỗi 401 (Unauthorized) từ Backend khi gọi một API bất kỳ. |
+| | 2 | Hệ thống | Client tự động gửi yêu cầu API đến `/api/auth/refresh/` kèm theo Refresh Token cũ. |
+| | 3 | Hệ thống | Backend xác minh tính hợp lệ và thời hạn của Refresh Token cũ. |
+| | 4 | Hệ thống | Backend tạo một Access Token mới và xoay vòng Refresh Token mới. |
+| | 5 | Hệ thống | Client cập nhật token mới vào LocalStorage và thực hiện lại yêu cầu API ban đầu bị lỗi 401. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 3a | Hệ thống | **Refresh Token hết hạn/không hợp lệ**: Backend phản hồi lỗi. Client lập tức xóa LocalStorage và chuyển hướng người dùng về trang Đăng nhập buộc đăng nhập lại. |
+| **Hậu điều kiện** | Phiên đăng nhập được gia hạn thành công mà không gây gián đoạn trải nghiệm của người dùng. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `refreshToken` | String (JWT / UUID) | Refresh Token cũ được gửi lên body của POST request. Hệ thống truy vấn DB kiểm tra sự tồn tại và thời hạn hiệu lực, tiến hành xóa token cũ và phát hành token xoay vòng mới. |
+
+---
+
+### UC04: XEM THÔNG TIN TÀI KHOẢN CÁ NHÂN
+
+| Mã Use case | UC04 | Tên Use case | Xem thông tin tài khoản cá nhân |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Admin, Sales, Product_manager | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập thành công vào hệ thống. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Hệ thống | Khi người dùng tải trang chủ, Frontend tự động gửi yêu cầu GET tới `/api/auth/me/`. |
+| | 2 | Hệ thống | Backend lấy Username từ Security Context và truy vấn thông tin tài khoản cùng thông tin nhân viên (`employee`) liên kết. |
+| | 3 | Hệ thống | Trả về thông tin chi tiết: Username, Vai trò, Họ tên nhân viên, Email, Số điện thoại và Ngày vào làm. |
+| | 4 | Hệ thống | Hiển thị tên nhân viên và vai trò trên góc phải thanh Header của giao diện. |
+| **Hậu điều kiện** | Người dùng thấy được đúng thông tin cá nhân của mình trên giao diện. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `username` | String (SecurityContext) | Được trích xuất trực tiếp từ Access Token trong luồng xử lý `SecurityContextHolder`. Không chấp nhận Client truyền tham số username trực tiếp để tránh giả mạo tài khoản. |
+
+---
+
+### UC05: ĐỔI MẬT KHẨU TÀI KHOẢN
+
+| Mã Use case | UC05 | Tên Use case | Đổi mật khẩu tài khoản |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Admin, Sales, Product_manager | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập thành công vào hệ thống. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Nhấp chọn mục **Đổi mật khẩu** từ menu tài khoản cá nhân. |
+| | 2 | Hệ thống | Hiển thị Form Đổi mật khẩu gồm: Mật khẩu cũ, Mật khẩu mới và Xác nhận mật khẩu mới. |
+| | 3 | Người dùng | Nhập đầy đủ thông tin vào Form đổi mật khẩu và nhấn nút **Đổi mật khẩu**. |
+| | 4 | Hệ thống | Kiểm tra tính chính xác của mật khẩu cũ và xác thực tính trùng khớp của hai trường mật khẩu mới. |
+| | 5 | Hệ thống | Mã hóa mật khẩu mới bằng BCrypt, cập nhật vào bảng `account`, đồng thời đặt thuộc tính `isFirstLogin` thành `false`. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Đổi mật khẩu thành công"`, đóng Form. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Mật khẩu mới không trùng khớp**: Hệ thống báo lỗi `"Mật khẩu mới và mật khẩu xác nhận không khớp"` và yêu cầu nhập lại. |
+| | 4b | Hệ thống | **Mật khẩu cũ không chính xác**: Hệ thống báo lỗi `"Mật khẩu cũ không chính xác"` ở chân trường nhập liệu. |
+| **Hậu điều kiện** | Mật khẩu tài khoản được cập nhật mới. Nếu là tài khoản mới đăng nhập lần đầu, tài khoản sẽ được phép truy cập đầy đủ tính năng ở các phiên sau. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `oldPassword` | String (8 - 100 ký tự) | Bắt buộc nhập. Phải khớp với mật khẩu hiện tại trong DB. |
+| `newPassword` | String (8 - 100 ký tự) | Bắt buộc nhập. Phải có độ dài tối thiểu 8 ký tự, bao gồm ít nhất 1 chữ hoa, 1 chữ thường và 1 chữ số để tăng tính bảo mật. Không được trùng mật khẩu cũ. |
+| `confirmNewPassword`| String (8 - 100 ký tự) | Bắt buộc nhập. Phải trùng khớp hoàn toàn với `newPassword`. |
+
+---
+
+### UC06: CẤP LẠI MẬT KHẨU TẠM KHI QUÊN MẬT KHẨU
+
+| Mã Use case | UC06 | Tên Use case | Quên mật khẩu và Cấp mật khẩu tạm thời |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Nhân viên quên mật khẩu (Khách truy cập) | | |
+| **Tiền điều kiện** | Nhân viên đã có tài khoản và email đã được khai báo chính xác trên hệ thống. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Nhấn vào nút **Quên mật khẩu?** tại màn hình đăng nhập. |
+| | 2 | Hệ thống | Hiển thị form yêu cầu nhập Tên đăng nhập và Email đăng ký. |
+| | 3 | Người dùng | Nhập chính xác Tên đăng nhập (username) và địa chỉ Email đã đăng ký, nhấn nút **Gửi mật khẩu tạm**. |
+| | 4 | Hệ thống | Đối chiếu thông tin nhập vào với dữ liệu tài khoản và email nhân viên trong cơ sở dữ liệu. |
+| | 5 | Hệ thống | Sinh mật khẩu tạm thời ngẫu nhiên gồm 8 ký tự. |
+| | 6 | Hệ thống | Mã hóa mật khẩu tạm thời và cập nhật vào bảng `account`. Thiết lập thuộc tính `isFirstLogin = true`. |
+| | 7 | Hệ thống | Gửi email chứa thông tin tài khoản và mật khẩu tạm thời mới đến địa chỉ email của nhân viên. |
+| | 8 | Hệ thống | Hiển thị thông báo `"Mật khẩu tạm thời đã được gửi thành công"`. Quay lại màn hình đăng nhập. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Thông tin không chính xác**: Hệ thống đối chiếu thấy tên đăng nhập không tồn tại hoặc email nhập vào không khớp. Hệ thống báo lỗi `"Tên đăng nhập hoặc email không chính xác"`. |
+| **Hậu điều kiện** | Mật khẩu tài khoản được cập nhật thành mật khẩu tạm. Trạng thái tài khoản chuyển sang yêu cầu đổi mật khẩu ở lần đăng nhập tiếp theo. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `username` | String (5 - 50 ký tự) | Bắt buộc nhập. Phải tồn tại trong hệ thống. |
+| `email` | String (Max 100 ký tự) | Bắt buộc nhập. Phải tuân thủ định dạng email chuẩn và trùng khớp với địa chỉ email của nhân viên (`Employee.email`) đang được liên kết với tài khoản này. |
+
+---
+
+### UC07: XEM DANH SÁCH DANH MỤC THUỐC
+
+| Mã Use case | UC07 | Tên Use case | Xem danh sách danh mục thuốc |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Danh mục thuốc** trong phần Cài đặt thuốc ở thanh menu điều hướng. |
+| | 2 | Hệ thống | Gọi API GET tới `/api/catalogs` để lấy danh sách danh mục. |
+| | 3 | Hệ thống | Tải dữ liệu từ bảng `catalog` trong cơ sở dữ liệu. |
+| | 4 | Hệ thống | Hiển thị danh sách danh mục thuốc lên bảng dữ liệu (gồm Mã danh mục, Tên danh mục và các hành động sửa/xóa). |
+| **Hậu điều kiện** | Danh sách danh mục thuốc được hiển thị đầy đủ và chính xác trên giao diện. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `page` | Integer | Mặc định = 0. Phải lớn hơn hoặc bằng 0. |
+| `size` | Integer | Mặc định = 10. Phải lớn hơn 0. |
+| `search` | String | Lọc tương đối (`LIKE`) theo Tên hoặc Mã danh mục. Có thể để trống. |
+
+---
+
+### UC08: THÊM DANH MỤC THUỐC MỚI
+
+| Mã Use case | UC08 | Tên Use case | Thêm danh mục thuốc mới |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại trang Danh mục thuốc, nhấn nút **Thêm danh mục**. |
+| | 2 | Hệ thống | Hiển thị Form Thêm danh mục yêu cầu nhập Mã danh mục và Tên danh mục. |
+| | 3 | Người dùng | Nhập đầy đủ thông tin và nhấn nút **Lưu**. |
+| | 4 | Hệ thống | Kiểm tra tính hợp lệ: các trường nhập liệu không được trống và Mã danh mục chưa tồn tại. |
+| | 5 | Hệ thống | Lưu danh mục thuốc mới vào bảng `catalog` trong cơ sở dữ liệu. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Tạo danh mục thuốc thành công"`, đóng Form nhập và tải lại danh sách danh mục. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Trùng mã danh mục**: Hệ thống hiển thị thông báo lỗi `"Mã danh mục đã tồn tại"` và giữ nguyên form nhập. |
+| **Hậu điều kiện** | Danh mục thuốc mới được lưu thành công vào cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `catalogCode` | String (3 - 20 ký tự) | Bắt buộc nhập, phải viết liền không dấu, không chứa ký tự đặc biệt, và là duy nhất (Unique) trong DB. |
+| `catalogName` | String (Max 100 ký tự) | Bắt buộc nhập, không được chứa toàn khoảng trắng. |
+
+---
+
+### UC09: CẬP NHẬT DANH MỤC THUỐC
+
+| Mã Use case | UC09 | Tên Use case | Cập nhật danh mục thuốc |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại dòng danh mục cần sửa, nhấn vào nút **Chỉnh sửa** (biểu tượng bút chì). |
+| | 2 | Hệ thống | Hiển thị Form Chỉnh sửa chứa thông tin hiện tại của danh mục đó (không cho sửa Mã danh mục). |
+| | 3 | Người dùng | Thay đổi Tên danh mục thuốc và nhấn nút **Cập nhật**. |
+| | 4 | Hệ thống | Kiểm tra dữ liệu nhập không được để trống. |
+| | 5 | Hệ thống | Lưu thay đổi vào bảng `catalog` trong cơ sở dữ liệu. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Cập nhật danh mục thuốc thành công"`, đóng Form và tải lại danh sách. |
+| **Hậu điều kiện** | Thông tin danh mục thuốc được cập nhật thay đổi thành công vào cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `id` | Integer / UUID | Khóa chính của danh mục cần cập nhật. Phải tồn tại trong DB. |
+| `catalogName` | String (Max 100 ký tự) | Bắt buộc nhập, không được để trống. |
+
+---
+
+### UC10: XÓA DANH MỤC THUỐC
+
+| Mã Use case | UC10 | Tên Use case | Xóa danh mục thuốc |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại dòng danh mục cần xóa, nhấn vào nút **Xóa** (biểu tượng thùng rác). |
+| | 2 | Hệ thống | Hiển thị hộp thoại cảnh báo: `"Bạn có chắc chắn muốn xóa danh mục này?"`. |
+| | 3 | Người dùng | Nhấn nút **Xác nhận xóa**. |
+| | 4 | Hệ thống | Kiểm tra xem danh mục này có đang liên kết với loại thuốc nào không. |
+| | 5 | Hệ thống | Thực hiện xóa bản ghi danh mục khỏi bảng `catalog` trong cơ sở dữ liệu. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Xóa danh mục thuốc thành công"` và tải lại danh sách. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Danh mục đang được sử dụng**: Hệ thống phát hiện có thuốc đang thuộc danh mục này. Hiển thị thông báo lỗi `"Không thể xóa danh mục vì đang có thuốc liên kết"` và hủy tác vụ xóa. |
+| **Hậu điều kiện** | Bản ghi danh mục thuốc được xóa khỏi cơ sở dữ liệu thành công. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `id` | Integer / UUID | Khóa chính của danh mục cần xóa. |
+| Ràng buộc ràng buộc ngoại | DB Constraints | Ngăn cản xóa (chặn ở tầng Service và Database) nếu có bất kỳ bản ghi thuốc nào (`medicine.catalog_id`) trỏ về khóa này. Trả về mã lỗi 400 Bad Request nếu vi phạm. |
+
+---
+
+### UC11: QUẢN LÝ NƯỚC SẢN XUẤT - ORIGIN CRUD
+
+| Mã Use case | UC11 | Tên Use case | Quản lý Nước sản xuất (Thêm/Sửa/Xóa/Xem) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Nước sản xuất** trên thanh menu điều hướng. |
+| | 2 | Hệ thống | Gọi API GET `/api/origins` hiển thị danh sách các nước sản xuất. |
+| | 3 | Người dùng | Nhấn nút **Thêm nước sản xuất**, nhập Mã nước sản xuất (ví dụ: VN, USA, GER) và Tên nước sản xuất. Nhấn nút **Lưu**. |
+| | 4 | Hệ thống | Kiểm tra tính hợp lệ của dữ liệu đầu vào và lưu bản ghi vào bảng `origin` trong cơ sở dữ liệu. |
+| | 5 | Hệ thống | Hiển thị thông báo `"Tạo nước sản xuất thành công"` và tải lại danh sách. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Trùng mã nước sản xuất**: Hệ thống báo lỗi `"Mã nước sản xuất đã tồn tại"` và giữ nguyên form. |
+| | 4b | Hệ thống | **Xóa nước sản xuất đang liên kết thuốc**: Khi người dùng nhấn xóa một nước sản xuất đang liên kết với thuốc, hệ thống chặn lại và báo lỗi `"Không thể xóa nước sản xuất vì đang có thuốc liên kết"`. |
+| **Hậu điều kiện** | Dữ liệu nước sản xuất được lưu trữ, chỉnh sửa hoặc xóa thành công trong DB. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `originCode` | String (2 - 10 ký tự) | Bắt buộc nhập, là duy nhất (Unique) trong DB, viết hoa không dấu (ví dụ: VN, FR, JP). |
+| `originName` | String (Max 100 ký tự) | Bắt buộc nhập. |
+| Ràng buộc ràng buộc ngoại | DB Constraints | Chặn tác vụ xóa nếu tồn tại thuốc (`medicine.origin_id`) thuộc quốc gia này. |
+
+---
+
+### UC12: QUẢN LÝ ĐƠN VỊ TÍNH - UNIT CRUD
+
+| Mã Use case | UC12 | Tên Use case | Quản lý Đơn vị tính (Thêm/Sửa/Xóa/Xem) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Đơn vị tính** trên thanh menu điều hướng. |
+| | 2 | Hệ thống | Gọi API GET `/api/units` hiển thị danh sách các đơn vị tính. |
+| | 3 | Người dùng | Nhấn nút **Thêm đơn vị tính**, nhập Mã đơn vị tính và Tên đơn vị tính (ví dụ: Viên, Vỉ, Hộp). Nhấn nút **Lưu**. |
+| | 4 | Hệ thống | Kiểm tra tính hợp lệ của dữ liệu đầu vào và lưu bản ghi vào bảng `unit` trong cơ sở dữ liệu. |
+| | 5 | Hệ thống | Hiển thị thông báo `"Tạo đơn vị tính thành công"` và tải lại danh sách. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Trùng mã đơn vị tính**: Hệ thống báo lỗi `"Mã đơn vị tính đã tồn tại"` và giữ nguyên form. |
+| | 4b | Hệ thống | **Xóa đơn vị tính đang được sử dụng**: Khi người dùng nhấn xóa đơn vị tính đang được sử dụng làm đơn vị cơ bản hoặc đơn vị quy đổi của thuốc, hệ thống chặn lại và báo lỗi `"Không thể xóa đơn vị tính vì đang được sử dụng"`. |
+| **Hậu điều kiện** | Đơn vị tính được quản lý thành công trong cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `unitCode` | String (2 - 20 ký tự) | Bắt buộc nhập, duy nhất, viết thường hoặc viết hoa liền kề (ví dụ: VIEN, HOP, VI). |
+| `unitName` | String (Max 50 ký tự) | Bắt buộc nhập. |
+| Ràng buộc liên kết | DB Constraints | Không được xóa nếu đơn vị này đang được sử dụng làm đơn vị gốc trong bảng `medicine` hoặc đơn vị nhập/xuất/bán trong các phiếu chi tiết. |
+
+---
+
+### UC13: XEM DANH SÁCH VÀ TÌM KIẾM THUỐC
+
+| Mã Use case | UC13 | Tên Use case | Xem danh sách và tìm kiếm thuốc |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin, Sales | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống thành công. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Danh sách thuốc** trên thanh menu điều hướng. |
+| | 2 | Hệ thống | Gọi API GET `/api/medicines` với tham số phân trang (`page`, `size`). |
+| | 3 | Hệ thống | Hiển thị danh sách thuốc dạng bảng kèm bộ lọc tìm kiếm. |
+| | 4 | Người dùng | Nhập từ khóa tìm kiếm (tên thuốc, hoạt chất...) vào ô tìm kiếm và chọn trường tìm kiếm tương ứng. Nhấn nút Tìm kiếm. |
+| | 5 | Hệ thống | Tìm lọc các bản ghi khớp trong cơ sở dữ liệu và hiển thị danh sách kết quả đã phân trang. |
+| **Hậu điều kiện** | Danh sách thuốc khớp với điều kiện tìm kiếm được hiển thị chính xác lên giao diện. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `page` | Integer | Phải lớn hơn hoặc bằng 0. |
+| `size` | Integer | Phải lớn hơn 0 (ví dụ: 10, 20, 50). |
+| `search` | String | Từ khóa lọc tương đối. Có thể để trống. Lọc theo mã thuốc, tên thuốc hoặc hoạt chất. |
+
+---
+
+### UC14: THÊM THÔNG TIN THUỐC MỚI
+
+| Mã Use case | UC14 | Tên Use case | Thêm thông tin thuốc mới |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại trang Danh sách thuốc, nhấn nút **Thêm thuốc mới**. |
+| | 2 | Hệ thống | Hiển thị Form Thêm thuốc mới yêu cầu nhập đầy đủ thông tin thuốc. |
+| | 3 | Người dùng | Nhập đầy đủ thông tin (Mã thuốc, Tên thuốc, Hoạt chất, Giá bán lẻ, Danh mục, Đơn vị cơ bản...) và nhấn nút **Lưu**. |
+| | 4 | Hệ thống | Kiểm tra tính hợp lệ dữ liệu nhập (Mã thuốc chưa tồn tại, giá trị số không được âm). |
+| | 5 | Hệ thống | Lưu bản ghi vào bảng `medicine` trong cơ sở dữ liệu. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Tạo thông tin thuốc thành công"`, đóng Form và tải lại danh sách. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Mã thuốc trùng lặp**: Hệ thống báo lỗi `"Mã thuốc đã tồn tại"`, giữ lại form để chỉnh sửa. |
+| **Hậu điều kiện** | Thuốc mới được thêm thành công vào cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `medicineCode` | String (3 - 30 ký tự) | Viết hoa liền không dấu, duy nhất. Bắt buộc nhập. |
+| `medicineName` | String (Max 150 ký tự) | Bắt buộc nhập, không chứa ký tự đặc biệt nguy hiểm. |
+| `retailPrice` | Double / Decimal | Phải lớn hơn hoặc bằng 0. |
+| `baseUnitId` | Integer / UUID | Phải là ID của một đơn vị tính (`unit`) đã tồn tại trong DB. |
+| `catalogId` | Integer / UUID | Phải là ID của một danh mục (`catalog`) đã tồn tại. |
+| `originId` | Integer / UUID | Phải là ID của nước sản xuất (`origin`) đã tồn tại. |
+
+---
+
+### UC15: CẬP NHẬT THÔNG TIN THUỐC
+
+| Mã Use case | UC15 | Tên Use case | Cập nhật thông tin thuốc |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại dòng thuốc cần chỉnh sửa, nhấn nút **Chỉnh sửa** (biểu tượng bút chì). |
+| | 2 | Hệ thống | Hiển thị Form Chỉnh sửa với thông tin hiện có của thuốc đó (không cho phép sửa Mã thuốc). |
+| | 3 | Người dùng | Thay đổi thông tin cần chỉnh sửa (ví dụ: Giá bán lẻ, quy cách đóng gói, hoạt chất) và nhấn nút **Cập nhật**. |
+| | 4 | Hệ thống | Kiểm tra tính hợp lệ dữ liệu nhập vào. |
+| | 5 | Hệ thống | Cập nhật các trường thông tin thay đổi vào bảng `medicine` trong cơ sở dữ liệu. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Cập nhật thông tin thuốc thành công"`, đóng Form và tải lại danh sách. |
+| **Hậu điều kiện** | Thông tin thuốc được thay đổi và cập nhật thành công vào cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `id` | Integer / UUID | Khóa chính của thuốc cần cập nhật. Bắt buộc tồn tại. |
+| `retailPrice` | Double / Decimal | Phải lớn hơn hoặc bằng 0. |
+| `baseUnitId`, `catalogId`, `originId` | Integer / UUID | Phải tồn tại liên kết hợp lệ trong DB. |
+
+---
+
+### UC16: XÓA THÔNG TIN THUỐC
+
+| Mã Use case | UC16 | Tên Use case | Xóa thông tin thuốc |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại dòng thuốc cần xóa, nhấn nút **Xóa** (biểu tượng thùng rác). |
+| | 2 | Hệ thống | Hiển thị hộp thoại cảnh báo yêu cầu xác nhận xóa thuốc. |
+| | 3 | Người dùng | Nhấn nút **Xác nhận xóa**. |
+| | 4 | Hệ thống | Kiểm tra xem loại thuốc này đã phát sinh giao dịch kho hay tồn kho trong bảng `inventory` chưa. |
+| | 5 | Hệ thống | Xóa bản ghi thuốc khỏi bảng `medicine` trong cơ sở dữ liệu. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Xóa thông tin thuốc thành công"` và tải lại danh sách. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Thuốc đã phát sinh tồn kho/giao dịch**: Hệ thống phát hiện loại thuốc này đã có lô nhập hoặc giao dịch tồn kho liên quan. Đưa ra cảnh báo `"Không thể xóa thông tin thuốc vì đang có dữ liệu tồn kho liên kết"` và giữ nguyên bản ghi thuốc. |
+| **Hậu điều kiện** | Bản ghi thông tin thuốc được xóa thành công khỏi cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `id` | Integer / UUID | Khóa chính của thuốc cần xóa. |
+| Ràng buộc toàn vẹn | DB Constraints | Chặn tác vụ xóa nếu đã phát sinh bất kỳ bản ghi lô tồn kho nào trong bảng `inventory`, hoặc có dòng chi tiết hóa đơn `invoice_detail`, chi tiết xuất/nhập liên quan đến thuốc này. |
+
+---
+
+### UC17: QUẢN LÝ NHÀ CUNG CẤP - SUPPLIER CRUD
+
+| Mã Use case | UC17 | Tên Use case | Quản lý Nhà cung cấp (Thêm/Sửa/Xóa/Xem) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống với vai trò Admin hoặc Product_manager. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Nhà cung cấp** ở thanh menu điều hướng. |
+| | 2 | Hệ thống | Gọi API GET `/api/suppliers` hiển thị danh sách các nhà cung cấp. |
+| | 3 | Người dùng | Chọn **Thêm nhà cung cấp**, điền Mã nhà cung cấp, Tên nhà cung cấp, Số điện thoại và Địa chỉ. Nhấn nút **Lưu**. |
+| | 4 | Hệ thống | Kiểm tra tính hợp lệ của dữ liệu đầu vào và lưu bản ghi vào bảng `supplier` trong cơ sở dữ liệu. |
+| | 5 | Hệ thống | Hiển thị thông báo `"Tạo nhà cung cấp thành công"` và tải lại danh sách nhà cung cấp. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Trùng mã nhà cung cấp**: Hệ thống báo lỗi `"Mã nhà cung cấp đã tồn tại"` và giữ nguyên form. |
+| | 4b | Hệ thống | **Xóa nhà cung cấp đã có phiếu nhập**: Hệ thống kiểm tra thấy nhà cung cấp đã được sử dụng trong phiếu nhập kho. Báo lỗi `"Không thể xóa nhà cung cấp vì đang có phiếu nhập liên kết"` và giữ lại dữ liệu. |
+| **Hậu điều kiện** | Thông tin nhà cung cấp được quản lý thành công trong cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `supplierCode` | String (3 - 30 ký tự) | Viết liền viết hoa không dấu, duy nhất. Bắt buộc nhập. |
+| `supplierName` | String (Max 150 ký tự) | Bắt buộc nhập. |
+| `phone` | String (10 - 11 ký tự) | Phải tuân thủ định dạng số điện thoại Việt Nam (bắt đầu bằng 03, 05, 07, 08, 09). |
+| Ràng buộc ngoại | DB Constraints | Chặn xóa nếu nhà cung cấp đã được liên kết với bất kỳ phiếu nhập kho nào (`goods_receipt`). |
+
+---
+
+### UC18: QUẢN LÝ THÔNG TIN KHÁCH HÀNG - CUSTOMER CRUD
+
+| Mã Use case | UC18 | Tên Use case | Quản lý Khách hàng (Thêm/Sửa/Xóa/Xem) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Sales, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống thành công. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Khách hàng** trên thanh menu điều hướng. |
+| | 2 | Hệ thống | Gọi API GET `/api/customers` hiển thị danh sách khách hàng thành viên. |
+| | 3 | Người dùng | Chọn **Thêm khách hàng**, điền Mã khách hàng, Tên khách hàng, Số điện thoại, Giới tính. Nhấn nút **Lưu**. |
+| | 4 | Hệ thống | Kiểm tra tính hợp lệ của dữ liệu đầu vào và lưu bản ghi vào bảng `customer` trong cơ sở dữ liệu. |
+| | 5 | Hệ thống | Hiển thị thông báo `"Tạo khách hàng thành công"` và tải lại danh sách. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Trùng mã khách hàng/SĐT**: Hệ thống báo lỗi `"Mã khách hàng đã tồn tại"` hoặc lỗi trùng lặp số điện thoại. |
+| **Hậu điều kiện** | Thông tin khách hàng thành viên được cập nhật và quản lý thành công trong cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `customerCode` | String (3 - 30 ký tự) | Mã duy nhất của khách hàng. Bắt buộc nhập. |
+| `phone` | String (10 - 11 ký tự) | Duy nhất. Định dạng số điện thoại Việt Nam hợp lệ. Bắt buộc nhập. |
+| `accumulatedPoints` | Integer | Mặc định khởi tạo = 0. Tự động tích lũy khi khách hàng phát sinh hóa đơn POS thành công (1% giá trị hóa đơn). |
+
+---
+
+### UC19: QUẢN LÝ THÔNG TIN NHÂN VIÊN - EMPLOYEE CRUD
+
+| Mã Use case | UC19 | Tên Use case | Quản lý Nhân viên (Thêm/Sửa/Xóa/Xem) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập với vai trò Admin. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Nhân viên** trên thanh menu điều hướng. |
+| | 2 | Hệ thống | Gọi API GET `/api/employees` hiển thị danh sách nhân sự của nhà thuốc. |
+| | 3 | Người dùng | Chọn **Thêm nhân viên**, nhập Mã nhân viên, Họ tên, Số điện thoại, Email, Giới tính, Năm sinh, Ngày vào làm. Nhấn nút **Lưu**. |
+| | 4 | Hệ thống | Kiểm tra tính hợp lệ của dữ liệu (email đúng cấu trúc, sđt không trùng, nhân viên chưa tồn tại). |
+| | 5 | Hệ thống | Lưu bản ghi nhân viên vào bảng `employee` trong cơ sở dữ liệu. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Tạo nhân viên thành công"` và cập nhật lại giao diện. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Trùng mã nhân viên hoặc Email**: Hệ thống hiển thị thông báo lỗi tương ứng và giữ lại form nhập liệu. |
+| | 4b | Hệ thống | **Xóa nhân viên có tài khoản liên kết**: Khi xóa nhân viên đang có tài khoản đăng nhập hoặc đã ký tên duyệt phiếu nhập/xuất/kiểm kê, hệ thống chặn lại và báo lỗi `"Không thể xóa nhân viên vì đang có liên kết dữ liệu"`. |
+| **Hậu điều kiện** | Thông tin nhân viên được lưu trữ và cập nhật thành công trong cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `employeeCode` | String (3 - 30 ký tự) | Duy nhất, bắt buộc nhập. |
+| `email` | String (Max 100 ký tự) | Duy nhất, đúng cấu trúc email quốc tế. Bắt buộc nhập. |
+| `phone` | String (10 - 11 ký tự) | Duy nhất, bắt buộc nhập. |
+| `birthYear` | Integer | Phải nằm trong khoảng từ 1950 đến (Năm hiện tại - 18). |
+
+---
+
+### UC20: QUẢN LÝ TÀI KHOẢN NGƯỜI DÙNG - ACCOUNT CRUD
+
+| Mã Use case | UC20 | Tên Use case | Quản lý Tài khoản người dùng (Tạo/Xem/Cập nhật/Xóa) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập với vai trò Admin. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Tài khoản nhân viên** trong phần quản trị hệ thống. |
+| | 2 | Hệ thống | Gọi API GET `/api/accounts` hiển thị danh sách tài khoản. |
+| | 3 | Người dùng | Chọn **Tạo tài khoản mới**, nhập tên đăng nhập, chọn nhân viên liên kết, phân vai trò (Admin/Sales/Product_manager) và nhấn **Lưu**. |
+| | 4 | Hệ thống | Kiểm tra tính hợp lệ (username chưa dùng, nhân viên chưa có tài khoản). |
+| | 5 | Hệ thống | Tự động sinh mật khẩu ngẫu nhiên an toàn 10 ký tự, mã hóa mật khẩu bằng BCrypt và lưu tài khoản mới vào bảng `account` ở trạng thái `isFirstLogin = true`. |
+| | 6 | Hệ thống | Gửi email chứa thông tin tài khoản đến địa chỉ email của nhân viên. |
+| | 7 | Hệ thống | Hiển thị thông báo tạo thành công kèm chuỗi mật khẩu tự sinh lên màn hình để Admin lưu trữ. Tải lại danh sách. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Tên đăng nhập đã dùng**: Hệ thống hiển thị lỗi `"Tên đăng nhập '[Tên]' đã được sử dụng"`. |
+| | 4b | Hệ thống | **Nhân viên đã có tài khoản**: Hệ thống hiển thị lỗi `"Nhân viên '[Tên]' đã được liên kết với một tài khoản khác"`. |
+| **Hậu điều kiện** | Tài khoản đăng nhập của nhân viên được quản lý thành công trong cơ sở dữ liệu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `username` | String (5 - 50 ký tự) | Viết liền viết thường không dấu, duy nhất. Bắt buộc nhập. |
+| `employeeId` | Integer / UUID | ID của nhân viên liên kết. Nhân viên này bắt buộc chưa có bất kỳ tài khoản nào khác trong hệ thống. |
+| `role` | Enum / String | Phải thuộc danh sách quyền hợp lệ: `ADMIN`, `PRODUCT_MANAGER`, `SALES`. |
+
+---
+
+### UC21: ĐẶT LẠI MẬT KHẨU NHÂN VIÊN
+
+| Mã Use case | UC21 | Tên Use case | Đặt lại mật khẩu tài khoản nhân viên |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập với vai trò Admin. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại danh sách Tài khoản, chọn tài khoản cần đặt lại mật khẩu và nhấn nút **Đặt lại mật khẩu**. |
+| | 2 | Hệ thống | Hiển thị Form Đặt lại mật khẩu chứa tên tài khoản và ô nhập mật khẩu mới. |
+| | 3 | Người dùng | Nhập mật khẩu mới cho tài khoản và nhấn **Lưu**. |
+| | 4 | Hệ thống | Kiểm tra sự tồn tại của tài khoản, mã hóa mật khẩu mới bằng BCrypt và cập nhật cột `password` trong cơ sở dữ liệu. |
+| | 5 | Hệ thống | Hiển thị thông báo `"Đặt lại mật khẩu thành công"`. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Không tìm thấy tài khoản**: Hệ thống hiển thị lỗi `"Không tìm thấy tài khoản cần đặt lại mật khẩu"`. |
+| **Hậu điều kiện** | Mật khẩu mới được cập nhật vào cơ sở dữ liệu cho tài khoản nhân viên. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `username` | String (5 - 50 ký tự) | Bắt buộc nhập, tài khoản phải tồn tại trong hệ thống. |
+| `newPassword` | String (8 - 100 ký tự) | Bắt buộc nhập. Mật khẩu mới sau đó được băm bằng `BCrypt` trước khi lưu vào DB. |
+
+---
+
+### UC22: LẬP PHIẾU NHẬP KHO NHÁP
+
+| Mã Use case | UC22 | Tên Use case | Lập phiếu nhập kho ở trạng thái Nháp (DRAFT) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập vào hệ thống với vai trò Product_manager hoặc Admin. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Tạo phiếu nhập mới** trong module Nhập kho. |
+| | 2 | Hệ thống | Hiển thị Form lập phiếu nhập kho gồm: chọn Nhà cung cấp, thông tin chứng từ và khu vực nhập chi tiết thuốc. |
+| | 3 | Người dùng | Chọn Nhà cung cấp, nhập Ghi chú. Chọn các thuốc cần nhập, nhập Số lượng nhập, Đơn vị tính, Số lô, Hạn sử dụng, Đơn giá nhập và nhấn **Thêm vào danh sách**. |
+| | 4 | Hệ thống | Hiển thị danh sách các mặt hàng chuẩn bị nhập kho, tính toán Tổng giá trị phiếu nhập nháp. |
+| | 5 | Người dùng | Nhấn nút **Lưu nháp**. |
+| | 6 | Hệ thống | Kiểm tra tính hợp lệ dữ liệu. Tự động sinh mã phiếu nhập kho dạng `GRN-[8 ký tự ngẫu nhiên]`. |
+| | 7 | Hệ thống | Lưu phiếu nhập vào DB với trạng thái `DRAFT` và lưu các dòng chi tiết tương ứng vào bảng `goods_receipt_detail`. |
+| | 8 | Hệ thống | Hiển thị thông báo `"Lưu nháp phiếu nhập kho thành công"`. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 6a | Hệ thống | **Dữ liệu không hợp lệ**: Nếu Nhà cung cấp, thuốc hoặc đơn vị tính không tồn tại, báo lỗi tương ứng và chặn lưu nháp. |
+| **Hậu điều kiện** | Phiếu nhập kho được lưu thành công ở trạng thái DRAFT. Chưa thay đổi tồn kho thực tế của thuốc. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `supplierId` | Integer / UUID | Bắt buộc nhập, phải tồn tại trong bảng `supplier`. |
+| `medicineId` | Integer / UUID | Bắt buộc nhập, phải tồn tại trong bảng `medicine`. |
+| `unitId` | Integer / UUID | Bắt buộc nhập, phải thuộc đơn vị tính hợp lệ liên kết của thuốc. |
+| `batchCode` | String (3 - 30 ký tự) | Số lô sản xuất. Bắt buộc nhập. |
+| `expiryDate` | Date | Hạn sử dụng. Bắt buộc nhập, định dạng YYYY-MM-DD. Phải lớn hơn ngày hiện tại ít nhất 3 tháng. |
+| `quantity` | Double / Decimal | Số lượng nhập. Phải lớn hơn 0. |
+| `importPrice` | Double / Decimal | Đơn giá nhập. Phải lớn hơn hoặc bằng 0. |
+
+---
+
+### UC23: XÁC NHẬN PHIẾU NHẬP KHO
+
+| Mã Use case | UC23 | Tên Use case | Xác nhận phiếu nhập kho thuốc |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Phiếu nhập kho đang ở trạng thái nháp `DRAFT`. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Mở chi tiết phiếu nhập kho nháp và nhấn nút **Xác nhận nhập kho**. |
+| | 2 | Hệ thống | Kiểm tra trạng thái hiện tại của phiếu nhập phải là `DRAFT`. |
+| | 3 | Hệ thống | Duyệt qua từng dòng thuốc thực nhập trong phiếu nhập chi tiết. |
+| | 4 | Hệ thống | Quy đổi số lượng thực nhập về đơn vị cơ bản (Số lượng quy đổi = Số lượng thực nhập * Tỷ lệ quy đổi của đơn vị). |
+| | 5 | Hệ thống | Tìm kiếm lô thuốc trong bảng `inventory` theo cặp `(medicineId, batchCode)`. |
+| | 6 | Hệ thống | Nếu lô chưa tồn tại, tạo mới dòng trong `inventory` với số lượng tồn ban đầu. Nếu lô đã tồn tại, cộng dồn số quy đổi vào cột `stock_quantity`. |
+| | 7 | Hệ thống | Ghi nhận biến động kho vào bảng `inventory_transaction` với loại giao dịch `IMPORT` (ghi nhận lượng tăng dương). |
+| | 8 | Hệ thống | Chuyển trạng thái phiếu nhập kho thành `CONFIRMED` và ghi nhận thời gian nhập kho thực tế. |
+| | 9 | Hệ thống | Hiển thị thông báo `"Xác nhận nhập kho và cập nhật tồn kho thành công"`. Tự động gọi popup HTML và kích hoạt lệnh in phiếu nhập kho. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 2a | Hệ thống | **Phiếu không ở trạng thái DRAFT**: Hệ thống báo lỗi `"Chỉ có thể xác nhận phiếu nhập ở trạng thái NHÁP (DRAFT). Trạng thái hiện tại: [Trạng thái]"` và chặn hành động. |
+| **Hậu điều kiện** | Phiếu nhập chuyển sang CONFIRMED, số lượng tồn kho thực tế của các lô thuốc được tăng lên, lịch sử thẻ kho được ghi nhận. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `receiptId` | Integer / UUID | Bắt buộc nhập. ID của phiếu nhập kho cần xác nhận. Trạng thái trong DB phải là `DRAFT`. Xử lý dưới `@Transactional` đảm bảo tính toàn vẹn và rollback khi có lỗi xảy ra. |
+| `stock_quantity` | Double / Decimal | Số lượng tồn kho thực tế được cộng dồn sau khi nhân với tỷ lệ quy đổi của đơn vị tương ứng. |
+
+### UC24: HỦY PHIẾU NHẬP KHO NHÁP
+
+| Mã Use case | UC24 | Tên Use case | Hủy phiếu nhập kho nháp |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Phiếu nhập kho đang tồn tại ở trạng thái nháp `DRAFT`. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại trang chi tiết phiếu nhập kho nháp, nhấn nút **Hủy phiếu**. |
+| | 2 | Hệ thống | Hiển thị hộp thoại cảnh báo: `"Bạn có chắc chắn muốn hủy phiếu nhập kho này?"`. |
+| | 3 | Người dùng | Nhấn nút **Xác nhận hủy**. |
+| | 4 | Hệ thống | Kiểm tra trạng thái phiếu phải là `DRAFT`. |
+| | 5 | Hệ thống | Cập nhật trạng thái phiếu nhập kho thành `CANCELLED` trong cơ sở dữ liệu. Giữ nguyên số lượng tồn kho. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Hủy phiếu nhập kho thành công"`. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 4a | Hệ thống | **Phiếu đã xác nhận/đã hủy trước đó**: Hệ thống báo lỗi `"Chỉ có thể hủy phiếu nhập ở trạng thái NHÁP (DRAFT)"` và hủy tác vụ. |
+| **Hậu điều kiện** | Phiếu nhập kho chuyển sang trạng thái CANCELLED, dữ liệu kho không bị ảnh hưởng. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `receiptId` | Integer / UUID | Bắt buộc nhập, ID của phiếu nhập kho cần hủy. Trạng thái trong DB phải là `DRAFT`. |
+
+---
+
+### UC25: LẬP PHIẾU XUẤT KHO NHÁP
+
+| Mã Use case | UC25 | Tên Use case | Lập phiếu xuất kho ở trạng thái Nháp (DRAFT) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống. Các lô thuốc cần xuất đang có trong kho. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Nhấn vào chức năng **Tạo phiếu xuất mới** trong module Xuất kho. |
+| | 2 | Hệ thống | Hiển thị Form lập phiếu xuất kho. |
+| | 3 | Người dùng | Chọn Lý do xuất (hết hạn, hỏng hóc, trả hàng...), điền Ghi chú. |
+| | 4 | Người dùng | Tìm kiếm và chọn các lô thuốc cần xuất, nhập Số lượng xuất và Đơn vị xuất. Nhấn **Thêm**. |
+| | 5 | Hệ thống | Quy đổi số lượng xuất về đơn vị tính cơ bản và hiển thị chi tiết lên bảng kê. |
+| | 6 | Người dùng | Nhấn nút **Lưu nháp**. |
+| | 7 | Hệ thống | Lưu phiếu xuất vào cơ sở dữ liệu với trạng thái `DRAFT`. Tự động sinh mã phiếu dạng `GIN-[8 ký tự ngẫu nhiên]`. Hiển thị thông báo `"Tạo nháp phiếu xuất kho thành công"`. |
+| **Hậu điều kiện** | Phiếu xuất kho được lưu ở trạng thái DRAFT. Số lượng tồn kho thực tế chưa bị trừ. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `reason` | Enum / String | Lý do xuất. Bắt buộc nhập (ví dụ: `EXPIRED`, `DAMAGED`, `RETURN`). |
+| `details` | Array | Danh sách chi tiết các lô thuốc xuất. Không được để trống. |
+| `inventoryId` | Integer / UUID | Bắt buộc nhập. ID của lô thuốc được chọn xuất kho. |
+| `quantity` | Double / Decimal | Số lượng xuất. Phải lớn hơn 0 và nhỏ hơn hoặc bằng tồn kho thực tế của lô đó trong DB. |
+
+---
+
+### UC26: XÁC NHẬN PHIẾU XUẤT KHO
+
+| Mã Use case | UC26 | Tên Use case | Xác nhận xuất kho thuốc |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Phiếu xuất kho đang ở trạng thái nháp `DRAFT`. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Mở chi tiết phiếu xuất kho nháp và nhấn nút **Xác nhận xuất kho**. |
+| | 2 | Hệ thống | Kiểm tra trạng thái hiện tại của phiếu xuất phải là `DRAFT`. |
+| | 3 | Hệ thống | Duyệt qua từng dòng thuốc xuất, tính toán số lượng xuất quy đổi và kiểm tra số lượng tồn kho thực tế của lô trong bảng `inventory`. |
+| | 4 | Hệ thống | Trừ số lượng tồn kho thực tế của các lô thuốc tương ứng trong bảng `inventory`. Cập nhật trạng thái lô thành `SOLD_OUT` hoặc `DISPOSED` nếu tồn kho về 0. |
+| | 5 | Hệ thống | Ghi nhận nhật ký biến động kho vào bảng `inventory_transaction` với loại giao dịch `EXPORT` (ghi lượng xuất âm). |
+| | 6 | Hệ thống | Chuyển trạng thái phiếu xuất thành `CONFIRMED` và lưu thời gian xuất thực tế. |
+| | 7 | Hệ thống | Hiển thị thông báo `"Xác nhận xuất kho và cập nhật tồn kho thành công"`. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 3a | Hệ thống | **Không đủ tồn kho để xuất**: Hệ thống phát hiện số lượng tồn kho thực tế của một lô nhỏ hơn số lượng yêu cầu xuất. Báo lỗi `"Không đủ tồn kho để xuất! Thuốc: [Tên], Lô: [Mã lô]..."`, thực hiện hủy bỏ toàn bộ giao dịch trừ kho (rollback) và giữ nguyên trạng thái DRAFT của phiếu xuất. |
+| **Hậu điều kiện** | Phiếu xuất chuyển sang CONFIRMED, số lượng tồn kho thực tế bị trừ đi, lịch sử thẻ kho được ghi nhận. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `issueId` | Integer / UUID | Bắt buộc nhập. ID của phiếu xuất kho cần xác nhận. Trạng thái phiếu trong DB phải là `DRAFT`. |
+| `inventoryId` | Integer / UUID | Khóa ngoại xác định lô thuốc được xuất kho. Hệ thống thực hiện `SELECT FOR UPDATE` trên các lô này để đảm bảo trừ kho chính xác, chống bán quá mức (over-selling). |
+
+---
+
+### UC27: HỦY PHIẾU XUẤT KHO NHÁP
+
+| Mã Use case | UC27 | Tên Use case | Hủy phiếu xuất kho nháp |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Phiếu xuất kho đang ở trạng thái nháp `DRAFT`. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại trang chi tiết phiếu xuất nháp, nhấn nút **Hủy phiếu**. |
+| | 2 | Hệ thống | Hiển thị hộp thoại xác nhận hủy phiếu xuất kho. |
+| | 3 | Người dùng | Nhấn nút **Xác nhận hủy**. |
+| | 4 | Hệ thống | Kiểm tra trạng thái phiếu phải là `DRAFT`. |
+| | 5 | Hệ thống | Chuyển trạng thái phiếu xuất thành `CANCELLED` trong cơ sở dữ liệu. Giữ nguyên số tồn kho. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Hủy phiếu xuất kho thành công"`. |
+| **Hậu điều kiện** | Phiếu xuất kho được hủy bỏ thành công, trạng thái chuyển thành CANCELLED. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `issueId` | Integer / UUID | Bắt buộc nhập, ID của phiếu xuất kho cần hủy. Trạng thái trong DB phải là `DRAFT`. |
+
+---
+
+### UC28: LẬP PHIẾU KIỂM KÊ KHO NHÁP
+
+| Mã Use case | UC28 | Tên Use case | Lập phiếu kiểm kê kho ở trạng thái Nháp (DRAFT) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Kiểm kê kho** và nhấn nút **Tạo phiếu kiểm kê mới**. |
+| | 2 | Hệ thống | Tải toàn bộ danh sách các lô thuốc đang có tồn kho khác không từ bảng `inventory`. |
+| | 3 | Hệ thống | Tạo phiếu kiểm kê ở trạng thái `DRAFT` với mã tự sinh `AUD-[8 ký tự ngẫu nhiên]`. |
+| | 4 | Hệ thống | Sao chụp số lượng tồn kho sổ sách của tất cả các lô thuốc này vào cột `systemQuantity` và mặc định `actualQuantity` bằng `systemQuantity`. |
+| | 5 | Hệ thống | Hiển thị thông báo tạo nháp thành công và hiển thị giao diện chi tiết phiếu kiểm kê. |
+| **Hậu điều kiện** | Phiếu kiểm kê nháp được tạo thành công, ghi nhận dữ liệu sổ sách hệ thống tại thời điểm lập phiếu. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `auditCode` | String (12 ký tự) | Tự động sinh dạng `AUD-[8 ký tự ngẫu nhiên]`, duy nhất. |
+| `systemQuantity` | Double / Decimal | Số lượng tồn kho sổ sách tại thời điểm lập phiếu nháp, sao chép trực tiếp từ bảng `inventory`. |
+
+---
+
+### UC29: NHẬP SỐ ĐẾM THỰC TẾ KIỂM KHO
+
+| Mã Use case | UC29 | Tên Use case | Nhập số lượng đếm thực tế kiểm kho và lưu nháp |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Phiếu kiểm kê đang ở trạng thái `DRAFT` hoặc `IN_PROGRESS`. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại trang chi tiết phiếu kiểm kê, nhấn **Bắt đầu thực hiện kiểm kho**. |
+| | 2 | Hệ thống | Chuyển trạng thái phiếu từ `DRAFT` sang `IN_PROGRESS` (nếu đang là DRAFT). |
+| | 3 | Người dùng | Kiểm đếm kho thực tế và điền số lượng đếm được vào ô **Số lượng thực tế** của từng lô thuốc tương ứng. Nhập thêm ghi chú giải trình (nếu cần). |
+| | 4 | Hệ thống | Tự động tính chênh lệch `actualQuantity - systemQuantity` hiển thị trực quan lên giao diện. |
+| | 5 | Người dùng | Nhấn nút **Lưu tạm**. |
+| | 6 | Hệ thống | Lưu lại số lượng thực tế đếm tạm thời và các ghi chú vào bảng `stock_audit_detail`. Hiển thị thông báo `"Lưu số thực tế đếm tạm thời thành công"`. |
+| **Hậu điều kiện** | Số lượng thực tế kiểm đếm được ghi nhận tạm thời vào phiếu kiểm kê. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `auditId` | Integer / UUID | ID của phiếu kiểm kê kho đang đếm. |
+| `actualQuantity` | Double / Decimal | Số lượng thực tế kiểm đếm được, phải lớn hơn hoặc bằng 0. |
+
+---
+
+### UC30: XÁC NHẬN ĐỐI SOÁT HOÀN THÀNH KIỂM KÊ
+
+| Mã Use case | UC30 | Tên Use case | Xác nhận đối soát hoàn thành kiểm kê và điều chỉnh kho |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Phiếu kiểm kê đang ở trạng thái `IN_PROGRESS` hoặc `DRAFT`. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Tại giao diện phiếu kiểm kê, nhấn nút **Xác nhận đối soát hoàn thành kiểm kê**. |
+| | 2 | Hệ thống | Kiểm tra xem người dùng đã nhập đầy đủ số lượng thực tế cho tất cả các lô thuốc chưa. |
+| | 3 | Hệ thống | Cập nhật số lượng tồn kho của tất cả các lô thuốc trong bảng `inventory` về khớp với số thực tế đếm được (`actualQuantity`). |
+| | 4 | Hệ thống | Với các lô có chênh lệch (`discrepancy != 0`), hệ thống tạo một bản ghi điều chỉnh kiểm kho trong bảng `inventory_transaction` với loại giao dịch `AUDIT_ADJUST` và ghi nhận lượng chênh lệch (âm hoặc dương). |
+| | 5 | Hệ thống | Cập nhật trạng thái phiếu kiểm kê thành `CONFIRMED`, ghi nhận thông tin nhân viên phê duyệt. |
+| | 6 | Hệ thống | Hiển thị thông báo `"Xác nhận đối soát hoàn thành kiểm kê và cập nhật tồn kho thành công"`. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 2a | Hệ thống | **Chưa nhập đủ số lượng thực tế**: Hệ thống phát hiện có dòng chi tiết chưa có số đếm. Báo lỗi `"Vui lòng nhập đầy đủ Số lượng thực tế cho tất cả các lô thuốc trước khi hoàn thành đối soát!"` và chặn xác nhận. |
+| **Hậu điều kiện** | Tồn kho hệ thống được đồng bộ khớp với thực tế kiểm đếm, ghi nhận lịch sử điều chỉnh kiểm kê, phiếu kiểm kê chuyển thành CONFIRMED. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `auditId` | Integer / UUID | ID của phiếu kiểm kê kho. |
+| `discrepancy` | Double / Decimal | Chênh lệch `actualQuantity - systemQuantity`, dùng để ghi vào thẻ kho điều chỉnh `AUDIT_ADJUST`. |
+
+---
+
+### UC31: LẬP HÓA ĐƠN BÁN LẺ THUỐC TẠI QUẦY - POS
+
+| Mã Use case | UC31 | Tên Use case | Lập hóa đơn bán lẻ thuốc tại quầy (POS) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Sales, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập vào hệ thống. Các lô thuốc trong kho còn số lượng tồn kho và còn hạn sử dụng. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Bán lẻ (POS)** trên thanh menu chính. |
+| | 2 | Hệ thống | Hiển thị giao diện POS gồm thanh tìm kiếm thuốc nhanh, giỏ hàng và phần thanh toán. |
+| | 3 | Người dùng | Nhập từ khóa tìm kiếm thuốc và chọn lô thuốc còn hạn sử dụng để thêm vào giỏ hàng. Nhập Số lượng bán và chọn đơn vị tính bán (viên/vỉ/hộp). |
+| | 4 | Hệ thống | Kiểm tra tồn kho của lô, nhân số lượng với đơn giá bán lẻ quy đổi tương ứng. Thêm dòng thuốc vào giỏ hàng và cập nhật Tổng tiền hóa đơn. |
+| | 5 | Người dùng | Nhập SĐT khách hàng thành viên (nếu có), chọn Phương thức thanh toán (Tiền mặt / Thẻ) và nhập Số tiền khách đưa (nếu là Tiền mặt). |
+| | 6 | Hệ thống | Tính tiền thừa trả lại khách (`Tiền thừa = Tiền khách đưa - Tổng tiền hóa đơn`). |
+| | 7 | Người dùng | Nhấn nút **Thanh toán & Xuất hóa đơn**. |
+| | 8 | Hệ thống | Kiểm tra lại tồn kho thực tế của các lô thuốc trong giỏ hàng. Trừ trực tiếp số lượng bán (quy đổi) trong bảng `inventory`. Cập nhật trạng thái lô thành `SOLD_OUT` nếu hết hàng. |
+| | 9 | Hệ thống | Tạo hóa đơn mới trạng thái `Paid` trong bảng `invoice` và `invoice_detail`. Ghi nhận giao dịch bán lẻ trong bảng `inventory_transaction` với loại giao dịch `SALE` (ghi lượng xuất bán âm). |
+| | 10 | Hệ thống | Hiển thị thông báo `"Tạo hóa đơn và trừ tồn kho lô thành công"`. Hiển thị giao diện hóa đơn nhiệt mô phỏng và kích hoạt lệnh in hóa đơn bán hàng cho khách. |
+| **Luồng sự kiện thay thế** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 8a | Hệ thống | **Không đủ tồn kho lô**: Hệ thống kiểm tra phát hiện số lượng tồn kho của một lô tại thời điểm thanh toán nhỏ hơn số lượng yêu cầu mua. Hệ thống dừng giao dịch, báo lỗi `"Không đủ tồn kho! Hoạt chất: [Tên], Lô: [Mã lô]..."` để nhân viên điều chỉnh giỏ hàng. |
+| **Hậu điều kiện** | Hóa đơn bán lẻ được tạo thành công với trạng thái Paid. Tồn kho của các lô thuốc bán ra bị trừ đi. Nhật ký biến động kho được ghi nhận. Hóa đơn nhiệt được in. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `customerId` | Integer / UUID | Khóa ngoại liên kết khách hàng mua. Có thể null (nếu khách lẻ không thành viên). |
+| `pointsUsed` | Integer | Số điểm tích lũy thành viên mà khách hàng muốn dùng trừ tiền. Phải nhỏ hơn hoặc bằng số điểm hiện có của khách hàng (`Customer.accumulatedPoints`). |
+| `receivedCash` | Double / Decimal | Số tiền khách đưa. Bắt buộc lớn hơn hoặc bằng tổng tiền hóa đơn sau chiết khấu. |
+| `inventoryId` | Integer / UUID | Khóa ngoại xác định lô thuốc được chọn bán lẻ. Hệ thống thực hiện `SELECT FOR UPDATE` trên các lô này để đảm bảo trừ kho chính xác, chống bán quá mức (over-selling). |
+| `quantity` | Double / Decimal | Số lượng bán ra của thuốc. Phải lớn hơn 0. |
+
+---
+
+### UC32: XEM LỊCH SỬ THẺ KHO CỦA THUỐC
+
+| Mã Use case | UC32 | Tên Use case | Xem lịch sử thẻ kho của thuốc (Inventory Transactions) |
+| :--- | :--- | :--- | :--- |
+| **Tác nhân** | Product_manager, Admin | | |
+| **Tiền điều kiện** | Người dùng đã đăng nhập hệ thống. | | |
+| **Luồng sự kiện chính (Thành công)** | **STT** | **Thực hiện bởi** | **Hành động** |
+| | 1 | Người dùng | Chọn mục **Thẻ kho / Lịch sử thẻ kho** trong module Quản lý kho. |
+| | 2 | Hệ thống | Hiển thị giao diện chọn thuốc và bảng dữ liệu lịch sử thẻ kho. |
+| | 3 | Người dùng | Tìm kiếm và chọn một thuốc cụ thể từ danh sách chọn nhanh. |
+| | 4 | Hệ thống | Gọi API GET `/api/inventory/transactions` truyền tham số `medicineId` vừa chọn. |
+| | 5 | Hệ thống | Lấy toàn bộ danh sách giao dịch biến động liên quan đến các lô của thuốc đó từ bảng `inventory_transaction` sắp xếp theo thời gian tăng dần. |
+| | 6 | Hệ thống | Hiển thị chi tiết biến động dạng thẻ kho bao gồm: Thời gian giao dịch, Mã chứng từ tham chiếu (Mã phiếu nhập, phiếu xuất, hóa đơn...), Loại biến động (Nhập kho/Xuất kho/Bán lẻ/Đối soát kiểm kê), Số lượng thay đổi (+/-) và Số dư cuối kỳ sau giao dịch. |
+| **Hậu điều kiện** | Lịch sử thẻ kho của thuốc được hiển thị chính xác và chi tiết, giúp theo dõi đường đi của thuốc. | | |
+
+**Bảng ràng buộc dữ liệu:**
+| Trường dữ liệu | Kiểu dữ liệu & Độ dài | Ràng buộc & Quy tắc kiểm tra |
+| :--- | :--- | :--- |
+| `medicineId` | Integer / UUID | Bắt buộc nhập. Phải trỏ đến bản ghi thuốc hợp lệ trong DB. |
+| `startDate` | Date | Lọc mốc thời gian bắt đầu. Định dạng: YYYY-MM-DD. Có thể để trống. |
+| `endDate` | Date | Lọc mốc thời gian kết thúc. Định dạng: YYYY-MM-DD. Có thể để trống. |
+
+
+## PHÂN HỆ 1: XÁC THỰC VÀ TÀI KHOẢN CÁ NHÂN (UC01 - UC06)
+
+### UC01: Đăng nhập hệ thống (System Login)
+```mermaid
+sequenceDiagram
+    actor ND as Người dùng
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    participant JWT as JwtTokenProvider
+    
+    ND->>FE: Nhập username + password
+    activate FE
+    FE->>BE: POST /api/auth/login/
+    activate BE
+    BE->>DB: Tìm Account theo username
+    activate DB
+    DB-->>BE: Trả về Account (đã băm mật khẩu, role, trạng thái)
+    deactivate DB
+    BE->>BE: Kiểm tra password (BCrypt.matches)
+    BE->>BE: Kiểm tra isActive, isFirstLogin
+    BE->>JWT: Tạo Access Token + Refresh Token
+    activate JWT
+    JWT-->>BE: Trả tokens
+    deactivate JWT
+    BE-->>FE: 200 OK {accessToken, refreshToken, role, username}
+    deactivate BE
+    FE->>FE: Lưu tokens vào localStorage
+    FE-->>ND: Chuyển hướng trang Home (Dashboard)
+    deactivate FE
+```
+
+### UC02: Đăng xuất hệ thống (System Logout)
+```mermaid
+sequenceDiagram
+    actor ND as Người dùng
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    ND->>FE: Click nút "Đăng xuất"
+    activate FE
+    FE->>BE: POST /api/auth/logout/ (Header: Bearer Token)
+    activate BE
+    BE->>BE: Xác thực Access Token hợp lệ
+    BE->>DB: Xóa Refresh Token của user trong database
+    BE->>DB: Lưu Access Token vào bảng invalidated_token (blacklist)
+    BE-->>FE: 200 OK (Đăng xuất thành công)
+    deactivate BE
+    FE->>FE: Xóa tokens trong localStorage
+    FE-->>ND: Chuyển hướng về trang Đăng nhập
+    deactivate FE
+```
+
+### UC03: Làm mới Token tự động (Token Refresh)
+```mermaid
+sequenceDiagram
+    actor ND as Người dùng
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    participant JWT as JwtTokenProvider
+    
+    ND->>FE: Thực hiện thao tác nghiệp vụ bất kỳ
+    activate FE
+    FE->>BE: Gọi API nghiệp vụ kèm Access Token cũ (đã hết hạn)
+    activate BE
+    BE-->>FE: 401 Unauthorized (Token hết hạn)
+    deactivate BE
+    FE->>BE: POST /api/auth/refresh/ (Gửi Refresh Token cũ)
+    activate BE
+    BE->>DB: Tìm Refresh Token trong database
+    activate DB
+    DB-->>BE: Trả về Refresh Token entity
+    deactivate DB
+    BE->>BE: Kiểm tra thời hạn của Refresh Token
+    BE->>JWT: Tạo Access Token mới & xoay vòng Refresh Token mới
+    BE->>DB: Lưu Refresh Token mới, xóa cái cũ
+    BE-->>FE: 200 OK {accessToken, refreshToken}
+    deactivate BE
+    FE->>FE: Cập nhật tokens mới vào localStorage
+    FE->>BE: Gọi lại API nghiệp vụ ban đầu (kèm Access Token mới)
+    activate BE
+    BE-->>FE: Phản hồi kết quả API thành công (200 OK)
+    deactivate BE
+    FE-->>ND: Hiển thị kết quả công việc bình thường
+    deactivate FE
+```
+
+### UC04: Xem thông tin tài khoản cá nhân (Get Me)
+```mermaid
+sequenceDiagram
+    actor ND as Người dùng
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    ND->>FE: Truy cập trang chủ (Home)
+    activate FE
+    FE->>BE: GET /api/auth/me/ (Header: Bearer Token)
+    activate BE
+    BE->>BE: Đọc thông tin username từ Security Context
+    BE->>DB: Tìm Account & Employee tương ứng trong DB
+    activate DB
+    DB-->>BE: Trả về thông tin tài khoản và nhân viên
+    deactivate DB
+    BE-->>FE: 200 OK {username, role, employeeInfo}
+    deactivate BE
+    FE->>FE: Cập nhật thông tin lên Header và Sidebar
+    FE-->>ND: Hiển thị giao diện cá nhân hóa
+    deactivate FE
+```
+
+### UC05: Đổi mật khẩu tài khoản (Change Password)
+```mermaid
+sequenceDiagram
+    actor ND as Người dùng
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    ND->>FE: Nhập oldPassword, newPassword, confirmNewPassword
+    activate FE
+    FE->>BE: POST /api/auth/change-password/ (Authorization: Bearer Token)
+    activate BE
+    BE->>BE: Kiểm tra newPassword === confirmNewPassword
+    BE->>DB: Tìm Account theo username hiện tại
+    activate DB
+    DB-->>BE: Trả về Account
+    deactivate DB
+    BE->>BE: Kiểm tra oldPassword khớp với DB (matches)
+    BE->>BE: Mã hóa newPassword bằng BCrypt
+    BE->>DB: Cập nhật Account (password, isFirstLogin = false)
+    activate DB
+    DB-->>BE: Lưu thành công
+    deactivate DB
+    BE-->>FE: 200 OK (Đổi mật khẩu thành công)
+    deactivate BE
+    FE-->>ND: Thông báo thành công và đóng form đổi mật khẩu
+    deactivate FE
+```
+
+### UC06: Cấp lại mật khẩu tạm khi quên mật khẩu (Forgot Password)
+```mermaid
+sequenceDiagram
+    actor ND as Nhân viên (Khách truy cập)
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    participant Mail as MailService
+    
+    ND->>FE: Nhấn "Quên mật khẩu", nhập username + email
+    activate FE
+    FE->>BE: POST /api/auth/forgot-password/
+    activate BE
+    BE->>DB: Tìm Account theo username
+    activate DB
+    DB-->>BE: Trả về Account (chứa Employee)
+    deactivate DB
+    BE->>BE: Kiểm tra email nhập vào khớp với email nhân sự trong DB
+    BE->>BE: Sinh mật khẩu ngẫu nhiên 8 ký tự (tempPassword)
+    BE->>BE: Mã hóa tempPassword bằng BCrypt
+    BE->>DB: Cập nhật Account (mật khẩu mới, isFirstLogin = true)
+    BE->>Mail: Gửi mail chứa username & tempPassword (gọi async)
+    activate Mail
+    Mail-->>BE: Gửi mail thành công
+    deactivate Mail
+    BE-->>FE: 200 OK (Mật khẩu tạm thời đã gửi thành công)
+    deactivate BE
+    FE-->>ND: Hiển thị thông báo hướng dẫn check email và chuyển về Login
+    deactivate FE
+```
+
+---
+
+## PHÂN HỆ 2: QUẢN LÝ DANH MỤC VÀ DỮ LIỆU THUỐC (UC07 - UC16)
+
+### UC07: Xem danh sách danh mục thuốc (View Catalogs)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Chọn mục "Danh mục thuốc"
+    activate FE
+    FE->>BE: GET /api/catalogs (kèm page, size, search)
+    activate BE
+    BE->>DB: Truy vấn bảng catalog (lọc theo từ khóa tìm kiếm)
+    activate DB
+    DB-->>BE: Danh sách Catalog (hoặc phân trang)
+    deactivate DB
+    BE-->>FE: 200 OK (Trả về danh sách danh mục)
+    deactivate BE
+    FE-->>TK: Hiển thị danh sách danh mục lên bảng dữ liệu
+    deactivate FE
+```
+
+### UC08: Thêm danh mục thuốc mới (Create Catalog)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Nhập Mã danh mục, Tên danh mục, nhấn "Lưu"
+    activate FE
+    FE->>BE: POST /api/catalogs (Body: CatalogRequest)
+    activate BE
+    BE->>DB: Kiểm tra trùng lặp Mã danh mục
+    BE->>DB: Lưu Catalog mới
+    BE-->>FE: 200 OK (Tạo danh mục thành công)
+    deactivate BE
+    FE->>FE: Tải lại danh sách danh mục
+    FE-->>TK: Thông báo tạo thành công & cập nhật bảng hiển thị
+    deactivate FE
+```
+
+### UC09: Cập nhật danh mục thuốc (Update Catalog)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Sửa Tên danh mục, nhấn "Cập nhật"
+    activate FE
+    FE->>BE: PATCH /api/catalogs/{id} (Body: CatalogRequest)
+    activate BE
+    BE->>DB: Tìm Catalog theo ID
+    BE->>DB: Cập nhật thông tin thay đổi vào Catalog
+    BE-->>FE: 200 OK (Cập nhật thành công)
+    deactivate BE
+    FE->>FE: Tải lại danh sách danh mục
+    FE-->>TK: Thông báo thành công và đóng form chỉnh sửa
+    deactivate FE
+```
+
+### UC10: Xóa danh mục thuốc (Delete Catalog)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Nhấn "Xóa" danh mục thuốc
+    activate FE
+    FE->>BE: DELETE /api/catalogs/{id}
+    activate BE
+    BE->>DB: Kiểm tra xem có thuốc nào đang liên kết với danh mục này không
+    activate DB
+    DB-->>BE: Số lượng thuốc liên kết (0 hoặc >0)
+    deactivate DB
+    alt Không có thuốc liên kết
+        BE->>DB: Xóa bản ghi Catalog
+        BE-->>FE: 200 OK (Xóa thành công)
+    else Có thuốc liên kết
+        BE-->>FE: 400 Bad Request (Lỗi: Không thể xóa vì danh mục đang được sử dụng)
+    end
+    deactivate BE
+    FE->>FE: Tải lại danh sách danh mục
+    FE-->>TK: Hiển thị thông báo kết quả tương ứng
+    deactivate FE
+```
+
+### UC11: Quản lý nước sản xuất - Origin CRUD (Xem/Thêm/Sửa/Xóa)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    Note over TK,DB: Quy trình Xem, Thêm, Sửa, Xóa Nước sản xuất (Origin)
+    TK->>FE: Truy cập tab "Nước sản xuất"
+    activate FE
+    FE->>BE: GET /api/origins
+    BE->>DB: Lấy dữ liệu bảng origin
+    BE-->>FE: Trả về danh sách Origin
+    FE-->>TK: Hiển thị danh sách nước sản xuất
+    
+    TK->>FE: Thêm mới nước sản xuất (Mã, Tên nước)
+    FE->>BE: POST /api/origins (Body: OriginRequest)
+    BE->>DB: Kiểm tra trùng mã & Lưu Origin
+    BE-->>FE: 200 OK (Tạo nước sản xuất thành công)
+    
+    TK->>FE: Chỉnh sửa hoặc Xóa nước sản xuất
+    FE->>BE: DELETE /api/origins/{id}
+    BE->>DB: Kiểm tra ràng buộc khóa ngoại (bảng medicine)
+    alt Không liên kết với thuốc
+        BE->>DB: Xóa Origin trong DB
+        BE-->>FE: 200 OK (Xóa thành công)
+    else Có liên kết
+        BE-->>FE: 400 Bad Request (Không cho xóa)
+    end
+    deactivate BE
+    FE-->>TK: Cập nhật giao diện nước sản xuất
+    deactivate FE
+```
+
+### UC12: Quản lý đơn vị tính - Unit CRUD (Xem/Thêm/Sửa/Xóa)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    Note over TK,DB: Quy trình Quản lý Đơn vị tính (Unit)
+    TK->>FE: Truy cập tab "Đơn vị tính"
+    activate FE
+    FE->>BE: GET /api/units
+    BE->>DB: Lấy dữ liệu bảng unit
+    BE-->>FE: Trả về danh sách Đơn vị tính
+    FE-->>TK: Hiển thị danh sách đơn vị tính (Viên, Vỉ, Hộp...)
+    
+    TK->>FE: Nhập đơn vị tính mới & Lưu
+    FE->>BE: POST /api/units (Body: UnitRequest)
+    BE->>DB: Kiểm tra trùng lặp & Lưu Unit
+    BE-->>FE: 200 OK (Tạo thành công)
+    
+    TK->>FE: Nhấn Xóa đơn vị tính
+    FE->>BE: DELETE /api/units/{id}
+    BE->>DB: Kiểm tra Unit có làm đơn vị cơ bản hoặc quy đổi của thuốc không
+    alt Không có liên kết
+        BE->>DB: Xóa Unit khỏi database
+        BE-->>FE: 200 OK (Xóa thành công)
+    else Có liên kết hoạt động
+        BE-->>FE: 400 Bad Request (Ngăn chặn xóa)
+    end
+    deactivate BE
+    FE-->>TK: Hiển thị thông báo kết quả & cập nhật lại bảng
+    deactivate FE
+```
+
+### UC13: Xem danh sách và tìm kiếm thuốc (Search Medicines)
+```mermaid
+sequenceDiagram
+    actor TK as Người dùng (Thủ kho/Bán hàng)
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Nhập từ khóa tìm kiếm thuốc, chọn bộ lọc danh mục/xuất xứ
+    activate FE
+    FE->>BE: GET /api/medicines (kèm search, searchField, page, size)
+    activate BE
+    BE->>DB: Truy vấn dữ liệu bảng medicine (LIKE tên/hoạt chất/mã)
+    activate DB
+    DB-->>BE: Kết quả phân trang (items, totalItems, totalPages)
+    deactivate DB
+    BE-->>FE: 200 OK (Mảng thông tin thuốc)
+    deactivate BE
+    FE-->>TK: Hiển thị danh sách thuốc đã lọc lên bảng
+    deactivate FE
+```
+
+### UC14: Thêm thông tin thuốc mới (Create Medicine)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Nhập Mã thuốc, Tên thuốc, giá bán, danh mục, đơn vị cơ bản
+    activate FE
+    FE->>BE: POST /api/medicines (Body: MedicineRequest)
+    activate BE
+    BE->>DB: Kiểm tra trùng mã thuốc trong DB
+    BE->>DB: Kiểm tra tính tồn tại của Catalog, Origin, Unit liên kết
+    BE->>DB: Lưu thông tin thuốc mới vào bảng medicine
+    BE-->>FE: 200 OK (Tạo thuốc mới thành công)
+    deactivate BE
+    FE->>FE: Tải lại danh sách thuốc
+    FE-->>TK: Thông báo thành công và hiển thị thuốc mới trên bảng
+    deactivate FE
+```
+
+### UC15: Cập nhật thông tin thuốc (Update Medicine)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Sửa thông tin thuốc (Hoạt chất, hàm lượng, giá bán...), nhấn "Cập nhật"
+    activate FE
+    FE->>BE: PATCH /api/medicines/{id} (Body: MedicineRequest)
+    activate BE
+    BE->>DB: Tìm thuốc theo ID trong DB
+    BE->>DB: Cập nhật các trường thông tin thay đổi
+    BE-->>FE: 200 OK (Cập nhật thuốc thành công)
+    deactivate BE
+    FE->>FE: Tải lại danh sách thuốc
+    FE-->>TK: Hiển thị thông báo thành công và đóng form sửa
+    deactivate FE
+```
+
+### UC16: Xóa thông tin thuốc (Delete Medicine)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Nhấn "Xóa" loại thuốc
+    activate FE
+    FE->>BE: DELETE /api/medicines/{id}
+    activate BE
+    BE->>DB: Kiểm tra thuốc đã phát sinh lô hàng trong kho (inventory) hay chưa
+    activate DB
+    DB-->>BE: Số lượng bản ghi liên quan (0 hoặc >0)
+    deactivate DB
+    alt Chưa có lô hàng nào
+        BE->>DB: Xóa bản ghi thuốc khỏi bảng medicine
+        BE-->>FE: 200 OK (Xóa thuốc thành công)
+    else Đã có lô hàng/giao dịch liên quan
+        BE-->>FE: 400 Bad Request (Lỗi: Không thể xóa vì đã phát sinh dữ liệu kho)
+    end
+    deactivate BE
+    FE->>FE: Tải lại danh sách thuốc
+    FE-->>TK: Hiển thị cảnh báo kết quả tương ứng trên màn hình
+    deactivate FE
+```
+
+---
+
+## PHÂN HỆ 3: QUẢN LÝ ĐỐI TÁC VÀ NHÂN SỰ (UC17 - UC21)
+
+### UC17: Quản lý nhà cung cấp - Supplier CRUD (Xem/Thêm/Sửa/Xóa)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    Note over TK,DB: Quản lý đối tác Nhà cung cấp (Supplier)
+    TK->>FE: Truy cập tab "Nhà cung cấp"
+    activate FE
+    FE->>BE: GET /api/suppliers
+    BE->>DB: Lấy dữ liệu bảng supplier
+    BE-->>FE: Danh sách nhà cung cấp
+    FE-->>TK: Hiển thị lên bảng
+    
+    TK->>FE: Thêm NCC mới (Mã, Tên, SĐT, Địa chỉ)
+    FE->>BE: POST /api/suppliers (Body: SupplierRequest)
+    BE->>DB: Kiểm tra trùng mã NCC & Lưu
+    BE-->>FE: 200 OK (Tạo NCC thành công)
+    
+    TK->>FE: Sửa hoặc Xóa nhà cung cấp
+    FE->>BE: DELETE /api/suppliers/{id}
+    BE->>DB: Kiểm tra NCC đã có phiếu nhập kho nào chưa
+    alt Chưa có phiếu nhập
+        BE->>DB: Xóa NCC khỏi DB
+        BE-->>FE: 200 OK (Xóa thành công)
+    else Đã có phiếu nhập
+        BE-->>FE: 400 Bad Request (Chặn không cho xóa)
+    end
+    deactivate BE
+    FE-->>TK: Cập nhật lại danh sách hiển thị
+    deactivate FE
+```
+
+### UC18: Quản lý thông tin khách hàng - Customer CRUD (Xem/Thêm/Sửa/Xóa)
+```mermaid
+sequenceDiagram
+    actor NV as Nhân viên bán hàng (Sales) / Admin
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    Note over NV,DB: Quản lý Khách hàng thành viên (Customer)
+    NV->>FE: Truy cập tab "Khách hàng"
+    activate FE
+    FE->>BE: GET /api/customers
+    BE->>DB: Truy vấn dữ liệu bảng customer
+    BE-->>FE: Danh sách khách hàng
+    FE-->>NV: Hiển thị danh sách khách hàng
+    
+    NV->>FE: Thêm khách hàng (Mã, Tên, SĐT, Giới tính)
+    FE->>BE: POST /api/customers (Body: CustomerRequest)
+    BE->>DB: Lưu Khách hàng mới vào cơ sở dữ liệu
+    BE-->>FE: 200 OK (Tạo thành công)
+    
+    NV->>FE: Admin nhấn "Xóa" khách hàng
+    FE->>BE: DELETE /api/customers/{id} (Chỉ Admin được gọi)
+    BE->>DB: Xóa bản ghi khách hàng
+    BE-->>FE: 200 OK (Xóa thành công)
+    deactivate FE
+```
+
+### UC19: Quản lý thông tin nhân viên - Employee CRUD (Xem/Thêm/Sửa/Xóa)
+```mermaid
+sequenceDiagram
+    actor AD as Quản trị viên (Admin)
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    AD->>FE: Chọn mục "Quản lý nhân viên"
+    activate FE
+    FE->>BE: GET /api/employees (Header: Bearer Admin-Token)
+    activate BE
+    BE->>DB: Lấy toàn bộ danh sách nhân sự từ bảng employee
+    activate DB
+    DB-->>BE: Danh sách nhân viên
+    deactivate DB
+    BE-->>FE: 200 OK (Mảng nhân viên)
+    deactivate BE
+    FE-->>AD: Hiển thị bảng danh sách nhân viên
+    
+    AD->>FE: Thêm nhân viên mới (Họ tên, SĐT, Email, Giới tính...) & Lưu
+    FE->>BE: POST /api/employees (Body: EmployeeRequest)
+    activate BE
+    BE->>DB: Kiểm tra trùng Mã nhân viên / SĐT / Email
+    BE->>DB: Lưu thông tin Employee mới
+    BE-->>FE: 200 OK (Tạo nhân viên thành công)
+    deactivate BE
+    FE->>FE: Tải lại danh sách
+    FE-->>AD: Thông báo thành công và hiển thị thêm nhân viên mới
+    deactivate FE
+```
+
+### UC20: Quản lý tài khoản người dùng - Account CRUD
+```mermaid
+sequenceDiagram
+    actor AD as Quản trị viên (Admin)
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    participant Mail as MailService
+    
+    AD->>FE: Chọn mục "Quản lý tài khoản"
+    activate FE
+    FE->>BE: GET /api/accounts
+    BE->>DB: Lấy danh sách tài khoản liên kết nhân viên
+    BE-->>FE: Danh sách AccountResponse
+    FE-->>AD: Hiển thị bảng danh sách tài khoản
+    
+    AD->>FE: Tạo tài khoản: nhập username, chọn nhân viên liên kết, chọn role
+    FE->>BE: POST /api/accounts (Body: AccountRequest)
+    activate BE
+    BE->>DB: Kiểm tra username trùng, kiểm tra nhân viên đã có tài khoản chưa
+    BE->>BE: Tự sinh mật khẩu ngẫu nhiên 10 ký tự
+    BE->>BE: Mã hóa mật khẩu ngẫu nhiên bằng BCrypt
+    BE->>DB: Lưu Account mới (mật khẩu mã hóa, isFirstLogin = true)
+    BE->>Mail: Gửi Email mật khẩu tạm thời cho nhân viên
+    BE-->>FE: 200 OK (Tạo tài khoản thành công + mật khẩu tạm thời chưa mã hóa)
+    deactivate BE
+    FE-->>AD: Thông báo thành công và hiển thị mật khẩu tạm thời để Admin copy
+    deactivate FE
+```
+
+### UC21: Đặt lại mật khẩu nhân viên (Admin Reset Password)
+```mermaid
+sequenceDiagram
+    actor AD as Quản trị viên (Admin)
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    AD->>FE: Tại dòng tài khoản cần reset, nhấn "Reset Password", nhập mật khẩu mới
+    activate FE
+    FE->>BE: POST /api/auth/admin/reset-password/ (Body: ResetPasswordRequest)
+    activate BE
+    BE->>DB: Tìm Account theo username
+    activate DB
+    DB-->>BE: Đối tượng Account
+    deactivate DB
+    BE->>BE: BCrypt mã hóa mật khẩu mới do Admin nhập
+    BE->>DB: Cập nhật mật khẩu băm mới của tài khoản vào database
+    activate DB
+    DB-->>BE: Lưu thành công
+    deactivate DB
+    BE-->>FE: 200 OK (Đặt lại mật khẩu thành công)
+    deactivate BE
+    FE-->>AD: Hiển thị thông báo đổi mật khẩu thành công cho nhân viên
+    deactivate FE
+```
+
+---
+
+## PHÂN HỆ 4: NGHIỆP VỤ KHO THUỐC (UC22 - UC30)
+
+### UC22: Lập phiếu nhập kho nháp (Create Goods Receipt Draft)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Chọn NCC, điền thông tin phiếu nhập, chọn thuốc, lô, HSD, SL, giá nhập
+    activate FE
+    TK->>FE: Nhấn nút "Lưu nháp"
+    FE->>BE: POST /api/goods-receipts (Body: GoodsReceiptRequest)
+    activate BE
+    BE->>DB: Kiểm tra Supplier, các Medicine và Unit giao dịch có tồn tại không
+    BE->>BE: Sinh mã phiếu GRN-[Random] & Đặt trạng thái DRAFT
+    BE->>DB: Lưu GoodsReceipt & các GoodsReceiptDetail vào DB
+    BE-->>FE: 200 OK (Trả về thông tin phiếu nhập nháp)
+    deactivate BE
+    FE-->>TK: Hiển thị thông tin phiếu nhập dạng nháp lên giao diện
+    deactivate FE
+```
+
+### UC23: Xác nhận phiếu nhập kho (Confirm Goods Receipt)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Tại chi tiết phiếu nháp, nhấn nút "Xác nhận nhập kho"
+    activate FE
+    FE->>BE: PATCH /api/goods-receipts/{id}/confirm
+    activate BE
+    BE->>DB: Tìm phiếu nhập kho theo Receipt ID
+    activate DB
+    DB-->>BE: Đối tượng GoodsReceipt
+    deactivate DB
+    BE->>BE: Kiểm tra trạng thái phiếu phải là DRAFT
+    loop Duyệt qua từng chi tiết thuốc nhập (GoodsReceiptDetail)
+        BE->>BE: Quy đổi số lượng thực nhập về đơn vị cơ bản (Qty * Rate)
+        BE->>DB: Tìm lô tồn kho (inventoryId = medicineId-batchId)
+        alt Lô chưa tồn tại trong kho
+            BE->>DB: Tạo mới lô tồn kho (SL quy đổi, giá nhập mới nhất, HSD, trạng thái ACTIVE)
+        else Lô đã tồn tại trong kho
+            BE->>DB: Cộng dồn số lượng tồn kho mới, cập nhật giá nhập mới, HSD
+        end
+        BE->>DB: Lưu InventoryTransaction (loại IMPORT, SL thay đổi dương, cập nhật số dư cuối)
+    end
+    BE->>DB: Cập nhật trạng thái phiếu nhập kho = CONFIRMED
+    BE-->>FE: 200 OK (Xác nhận nhập kho thành công)
+    deactivate BE
+    FE->>FE: Gọi hàm printContent() tạo popup HTML in phiếu
+    FE-->>TK: Thông báo thành công và hiển thị cửa sổ in phiếu nhập kho
+    deactivate FE
+```
+
+### UC24: Hủy phiếu nhập kho nháp (Cancel Goods Receipt)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Tại chi tiết phiếu nháp, nhấn nút "Hủy phiếu"
+    activate FE
+    FE->>BE: PATCH /api/goods-receipts/{id}/cancel
+    activate BE
+    BE->>DB: Tìm phiếu nhập kho theo ID
+    activate DB
+    DB-->>BE: Đối tượng GoodsReceipt
+    deactivate DB
+    BE->>BE: Kiểm tra trạng thái phiếu phải là DRAFT
+    BE->>DB: Cập nhật trạng thái phiếu = CANCELLED trong DB
+    BE-->>FE: 200 OK (Hủy phiếu nhập kho thành công)
+    deactivate BE
+    FE-->>TK: Cập nhật trạng thái phiếu hiển thị thành "CANCELLED"
+    deactivate FE
+```
+
+### UC25: Lập phiếu xuất kho nháp (Create Goods Issue Draft)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Chọn lý do xuất kho, ghi chú, tìm chọn lô hàng trong kho, nhập SL xuất
+    activate FE
+    TK->>FE: Nhấn nút "Lưu nháp"
+    FE->>BE: POST /api/goods-issues (Body: GoodsIssueRequest)
+    activate BE
+    BE->>DB: Kiểm tra các lô thuốc tồn tại trong kho (inventory)
+    BE->>BE: Sinh mã phiếu xuất GIN-[Random] & Đặt trạng thái DRAFT
+    BE->>DB: Lưu GoodsIssue & các GoodsIssueDetail vào DB
+    BE-->>FE: 200 OK (Trả về thông tin phiếu xuất nháp)
+    deactivate BE
+    FE-->>TK: Hiển thị phiếu xuất dạng nháp lên giao diện bảng kê
+    deactivate FE
+```
+
+### UC26: Xác nhận phiếu xuất kho (Confirm Goods Issue)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Xem lại phiếu nháp & nhấn "Xác nhận xuất kho"
+    activate FE
+    FE->>BE: PATCH /api/goods-issues/{id}/confirm
+    activate BE
+    BE->>DB: Tìm phiếu xuất kho theo ID
+    activate DB
+    DB-->>BE: Đối tượng GoodsIssue
+    deactivate DB
+    BE->>BE: Kiểm tra trạng thái phiếu xuất phải là DRAFT
+    loop Duyệt qua từng chi tiết thuốc xuất
+        BE->>DB: Tìm lô tồn kho tương ứng theo Inventory ID
+        activate DB
+        DB-->>BE: Đối tượng Inventory (chứa tồn kho thực tế)
+        deactivate DB
+        BE->>BE: Quy đổi số lượng xuất về đơn vị tính cơ bản
+        BE->>BE: So sánh tồn kho thực tế với số lượng yêu cầu xuất
+        alt Đủ tồn kho để xuất
+            BE->>BE: Trừ số lượng tồn kho (stockQuantity = stockQuantity - SL quy đổi)
+            BE->>DB: Cập nhật Inventory mới (SOLD_OUT hoặc DISPOSED nếu SL=0)
+            BE->>DB: Lưu InventoryTransaction (loại EXPORT, ghi nhận SL xuất âm, cập nhật kết dư)
+        else Không đủ tồn kho để xuất
+            BE-->>FE: 400 Bad Request (Lỗi: Không đủ tồn kho để xuất!)
+            Note over BE,FE: Rollback toàn bộ các giao dịch đã thực hiện trong khối Transaction
+        end
+    end
+    BE->>DB: Cập nhật trạng thái phiếu xuất kho = CONFIRMED
+    BE-->>FE: 200 OK (Xác nhận xuất kho thành công)
+    deactivate BE
+    FE-->>TK: Thông báo thành công và hỗ trợ in phiếu xuất kho
+    deactivate FE
+```
+
+### UC27: Hủy phiếu xuất kho nháp (Cancel Goods Issue)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Tại chi tiết phiếu nháp, nhấn nút "Hủy phiếu"
+    activate FE
+    FE->>BE: PATCH /api/goods-issues/{id}/cancel
+    activate BE
+    BE->>DB: Tìm phiếu xuất kho theo ID
+    activate DB
+    DB-->>BE: Đối tượng GoodsIssue
+    deactivate DB
+    BE->>BE: Kiểm tra trạng thái phiếu phải là DRAFT
+    BE->>DB: Cập nhật trạng thái phiếu = CANCELLED trong DB
+    BE-->>FE: 200 OK (Hủy phiếu xuất kho thành công)
+    deactivate BE
+    FE-->>TK: Cập nhật trạng thái hiển thị thành "CANCELLED"
+    deactivate FE
+```
+
+### UC28: Lập phiếu kiểm kê kho nháp (Create Stock Audit Draft)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Nhấn nút "Tạo phiếu kiểm kê mới"
+    activate FE
+    FE->>BE: POST /api/stock-audits (Body: StockAuditRequest)
+    activate BE
+    BE->>DB: Lấy danh sách toàn bộ các lô thuốc có tồn kho >= 0
+    activate DB
+    DB-->>BE: Danh sách Inventory
+    deactivate DB
+    BE->>BE: Sinh mã phiếu AUD-[Random] & Đặt trạng thái DRAFT
+    BE->>BE: Chụp tồn kho hệ thống (systemQuantity = stockQuantity hiện tại)
+    BE->>BE: Mặc định actualQuantity = systemQuantity & chênh lệch = 0
+    BE->>DB: Lưu StockAudit & các StockAuditDetail vào DB
+    BE-->>FE: 200 OK (Trả về thông tin phiếu kiểm kê nháp)
+    deactivate BE
+    FE-->>TK: Hiển thị danh sách các lô cần kiểm kê với SL sổ sách
+    deactivate FE
+```
+
+### UC29: Nhập số đếm thực tế kiểm kho (Save Audit Quantities)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Nhấn "Bắt đầu thực hiện kiểm kho"
+    activate FE
+    FE->>BE: PATCH /api/stock-audits/{id}/start
+    BE->>DB: Cập nhật trạng thái phiếu = IN_PROGRESS
+    BE-->>FE: 200 OK (Chuyển đổi trạng thái thành công)
+    
+    TK->>FE: Kiểm đếm thực tế & nhập số lượng đếm được, nhấn "Lưu tạm"
+    FE->>BE: PUT /api/stock-audits/{id}/items (Body: danh sách actualQuantity)
+    activate BE
+    BE->>BE: Tính chênh lệch từng lô (discrepancy = actualQuantity - systemQuantity)
+    BE->>DB: Lưu số thực tế đếm tạm thời và chênh lệch vào StockAuditDetail
+    BE-->>FE: 200 OK (Lưu nháp số đếm thành công)
+    deactivate BE
+    FE-->>TK: Hiển thị số lượng chênh lệch thừa (+) hoặc thiếu (-) lên màn hình
+    deactivate FE
+```
+
+### UC30: Xác nhận đối soát hoàn thành kiểm kê (Confirm Stock Audit)
+```mermaid
+sequenceDiagram
+    actor TK as Thủ kho / Quản lý
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    TK->>FE: Kiểm tra đầy đủ số đếm & Nhấn "Xác nhận đối soát hoàn thành kiểm kê"
+    activate FE
+    FE->>BE: PATCH /api/stock-audits/{id}/confirm
+    activate BE
+    BE->>DB: Tìm phiếu kiểm kê theo ID
+    BE->>BE: Kiểm tra trạng thái và đảm bảo mọi lô đều đã được điền số đếm thực tế
+    loop Duyệt qua từng chi tiết kiểm kê
+        BE->>DB: Tìm lô tồn kho tương ứng theo Inventory ID
+        BE->>BE: Đồng bộ tồn kho sổ sách về số đếm thực tế (stockQuantity = actualQuantity)
+        BE->>DB: Lưu Inventory mới (Cập nhật trạng thái ADJUSTED nếu số đếm bằng 0)
+        alt Có xảy ra chênh lệch (discrepancy != 0)
+            BE->>DB: Lưu InventoryTransaction (loại AUDIT_ADJUST, ghi lượng chênh lệch âm/dương, kết dư)
+        end
+    end
+    BE->>DB: Cập nhật trạng thái phiếu kiểm kê = CONFIRMED, lưu người phê duyệt
+    BE-->>FE: 200 OK (Đối soát thành công, tồn kho đã đồng bộ)
+    deactivate BE
+    FE-->>TK: Thông báo đối soát thành công và kết thúc quy trình kiểm kê
+    deactivate FE
+```
+
+---
+
+## PHÂN HỆ 5: BÁN HÀNG VÀ BÁO CÁO TỒN KHO (UC31 - UC32)
+
+### UC31: Lập hóa đơn bán lẻ thuốc tại quầy - POS (Create Invoice)
+```mermaid
+sequenceDiagram
+    actor NV as Nhân viên bán hàng (Sales)
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    NV->>FE: Tìm thuốc, chọn lô thuốc, nhập số lượng, chọn đơn vị tính
+    activate FE
+    FE->>FE: Tự động tính thành tiền dòng sản phẩm và tổng tiền giỏ hàng
+    NV->>FE: Nhập SĐT tìm khách hàng thành viên, nhập số tiền mặt khách đưa
+    FE->>FE: Tính số tiền thừa trả lại khách hàng (Tiền thừa = Khách đưa - Tổng tiền)
+    NV->>FE: Nhấp nút "Thanh toán & Xuất hóa đơn"
+    
+    FE->>BE: POST /api/invoices (Gửi InvoiceRequest chứa chi tiết giỏ hàng)
+    activate BE
+    BE->>DB: Truy vấn thông tin Khách hàng (nếu có customerId)
+    
+    loop Duyệt qua từng chi tiết mua hàng trong giỏ
+        BE->>DB: Tìm lô thuốc tồn kho theo Inventory ID
+        activate DB
+        DB-->>BE: Trả về đối tượng Inventory (tồn kho hiện tại)
+        deactivate DB
+        BE->>BE: Quy đổi số lượng bán ra về đơn vị cơ bản (SL bán * Tỷ lệ)
+        BE->>BE: Kiểm tra số lượng tồn kho của lô thuốc
+        alt Đủ tồn kho
+            BE->>BE: Trừ tồn kho lô (stockQuantity = stockQuantity - số lượng bán quy đổi)
+            BE->>DB: Cập nhật Inventory (đặt trạng thái SOLD_OUT nếu số lượng giảm về 0)
+            BE->>DB: Lưu tạm InventoryTransaction (loại SALE, ghi số lượng thay đổi âm, cập nhật kết dư)
+        else Không đủ tồn kho
+            BE-->>FE: 400 Bad Request (Lỗi: Không đủ tồn kho lô thuốc!)
+            Note over BE,FE: Rollback toàn bộ giao dịch cơ sở dữ liệu
+        end
+    end
+    
+    BE->>DB: Lưu Invoice & các InvoiceDetail (trạng thái Paid) vào DB
+    BE->>DB: Cập nhật mã hóa đơn chính thức (INV-XXXX) vào referenceId của các giao dịch kho tương ứng
+    BE-->>FE: 200 OK (Trả về thông tin hóa đơn bán lẻ thành công)
+    deactivate BE
+    
+    FE->>FE: Hiển thị popup mô phỏng hóa đơn nhiệt khổ K80
+    FE->>FE: Kích hoạt hội thoại window.print() tự động in nhiệt
+    FE-->>NV: Hoàn thành giao dịch bán lẻ thuốc
+    deactivate FE
+```
+
+### UC32: Xem lịch sử thẻ kho của thuốc (View Stock Card)
+```mermaid
+sequenceDiagram
+    actor ND as Quản lý / Thủ kho
+    participant FE as Frontend (React)
+    participant BE as Backend (Spring Boot)
+    participant DB as MySQL
+    
+    ND->>FE: Chọn mục "Thẻ kho" -> Tìm kiếm và chọn thuốc cụ thể
+    activate FE
+    FE->>BE: GET /api/inventory/transactions?medicineId={id}
+    activate BE
+    BE->>DB: Truy vấn tất cả giao dịch kho của thuốc đó (sắp xếp tăng dần theo thời gian)
+    activate DB
+    DB-->>BE: Danh sách InventoryTransaction (chứa loại: IMPORT, EXPORT, SALE, AUDIT_ADJUST)
+    deactivate DB
+    BE-->>FE: 200 OK (Trả về mảng danh sách lịch sử thẻ kho)
+    deactivate BE
+    FE->>FE: Định dạng dữ liệu và tính toán hiển thị số dư lũy kế
+    FE-->>ND: Hiển thị bảng Thẻ kho chi tiết (Thời gian, Chứng từ, Loại biến động, Thay đổi, Số dư)
+    deactivate FE
+```
