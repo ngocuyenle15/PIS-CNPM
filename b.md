@@ -40,68 +40,66 @@ flowchart LR
     Admin -->|Kế thừa quyền| PM
     Admin -->|Kế thừa quyền| Sales
 
-    %% 2. Hệ thống PIS và các Phân hệ (System Boundary)
-    subgraph PIS ["HỆ THỐNG QUẢN LÝ KHO THUỐC VÀ BÁN LẺ POS - PIS"]
-        
-        %% Phân hệ 1: Xác thực
-        subgraph Mod1 ["Phân hệ 1: Xác thực & Tài khoản cá nhân"]
-            UC01(["UC01: Đăng nhập"])
-            UC02(["UC02: Đăng xuất"])
-            UC03(["UC03: Tự động làm mới Token"])
-            UC04(["UC04: Xem thông tin tài khoản"])
-            UC05(["UC05: Đổi mật khẩu"])
-            UC06(["UC06: Quên mật khẩu"])
-        end
-        
-        %% Phân hệ 2: Dữ liệu nền & Thuốc
-        subgraph Mod2 ["Phân hệ 2: Quản lý Dữ liệu nền & Thuốc"]
-            UC07(["UC07: Xem danh mục thuốc"])
-            UC08(["UC08: Thêm danh mục mới"])
-            UC09(["UC09: Cập nhật danh mục"])
-            UC10(["UC10: Xóa danh mục"])
-            UC11(["UC11: Quản lý nước sản xuất"])
-            UC12(["UC12: Quản lý đơn vị tính"])
-            UC13(["UC13: Xem & Tìm kiếm thuốc"])
-            UC14(["UC14: Thêm thuốc mới"])
-            UC15(["UC15: Cập nhật thông tin thuốc"])
-            UC16(["UC16: Xóa thông tin thuốc"])
-        end
-        
-        %% Phân hệ 3: Đối tác & Nhân sự
-        subgraph Mod3 ["Phân hệ 3: Quản lý Đối tác & Nhân sự"]
-            UC17(["UC17: Quản lý nhà cung cấp"])
-            UC18(["UC18: Quản lý khách hàng"])
-            UC19(["UC19: Quản lý nhân viên"])
-            UC20(["UC20: Quản lý tài khoản"])
-            UC21(["UC21: Reset mật khẩu nhân viên"])
-        end
-        
-        %% Phân hệ 4: Nghiệp vụ Kho
-        subgraph Mod4 ["Phân hệ 4: Nghiệp vụ Kho thuốc"]
-            UC22(["UC22: Tạo phiếu nhập nháp"])
-            UC23(["UC23: Xác nhận nhập kho"])
-            UC24(["UC24: Hủy phiếu nhập nháp"])
-            UC25(["UC25: Tạo phiếu xuất nháp"])
-            UC26(["UC26: Xác nhận xuất kho"])
-            UC27(["UC27: Hủy phiếu xuất nháp"])
-        end
-        
-        %% Phân hệ 5: Kiểm kê kho
-        subgraph Mod5 ["Phân hệ 5: Nghiệp vụ Kiểm kê kho"]
-            UC28(["UC28: Tạo phiếu kiểm kê nháp"])
-            UC29(["UC29: Nhập số đếm thực tế"])
-            UC30(["UC30: Xác nhận đối soát hoàn thành"])
-        end
-        
-        %% Phân hệ 6: POS Bán hàng
-        subgraph Mod6 ["Phân hệ 6: POS & Nghiệp vụ Bán hàng"]
-            UC31(["UC31: Tạo hóa đơn bán lẻ POS"])
-        end
-        
-        %% Phân hệ 7: Báo cáo
-        subgraph Mod7 ["Phân hệ 7: Tồn kho & Báo cáo thẻ kho"]
-            UC32(["UC32: Xem lịch sử thẻ kho"])
-        end
+    %% 2. Các Phân hệ Chức năng Hệ thống (System Boundaries)
+    
+    %% Phân hệ 1: Xác thực
+    subgraph Mod1 ["Phân hệ 1: Xác thực & Tài khoản cá nhân"]
+        UC01(["UC01: Đăng nhập"])
+        UC02(["UC02: Đăng xuất"])
+        UC03(["UC03: Tự động làm mới Token"])
+        UC04(["UC04: Xem thông tin tài khoản"])
+        UC05(["UC05: Đổi mật khẩu"])
+        UC06(["UC06: Quên mật khẩu"])
+    end
+    
+    %% Phân hệ 2: Dữ liệu nền & Thuốc
+    subgraph Mod2 ["Phân hệ 2: Quản lý Dữ liệu nền & Thuốc"]
+        UC07(["UC07: Xem danh mục thuốc"])
+        UC08(["UC08: Thêm danh mục mới"])
+        UC09(["UC09: Cập nhật danh mục"])
+        UC10(["UC10: Xóa danh mục"])
+        UC11(["UC11: Quản lý nước sản xuất"])
+        UC12(["UC12: Quản lý đơn vị tính"])
+        UC13(["UC13: Xem & Tìm kiếm thuốc"])
+        UC14(["UC14: Thêm thuốc mới"])
+        UC15(["UC15: Cập nhật thông tin thuốc"])
+        UC16(["UC16: Xóa thông tin thuốc"])
+    end
+    
+    %% Phân hệ 3: Đối tác & Nhân sự
+    subgraph Mod3 ["Phân hệ 3: Quản lý Đối tác & Nhân sự"]
+        UC17(["UC17: Quản lý nhà cung cấp"])
+        UC18(["UC18: Quản lý khách hàng"])
+        UC19(["UC19: Quản lý nhân viên"])
+        UC20(["UC20: Quản lý tài khoản"])
+        UC21(["UC21: Reset mật khẩu nhân viên"])
+    end
+    
+    %% Phân hệ 4: Nghiệp vụ Kho
+    subgraph Mod4 ["Phân hệ 4: Nghiệp vụ Kho thuốc"]
+        UC22(["UC22: Tạo phiếu nhập nháp"])
+        UC23(["UC23: Xác nhận nhập kho"])
+        UC24(["UC24: Hủy phiếu nhập nháp"])
+        UC25(["UC25: Tạo phiếu xuất nháp"])
+        UC26(["UC26: Xác nhận xuất kho"])
+        UC27(["UC27: Hủy phiếu xuất nháp"])
+    end
+    
+    %% Phân hệ 5: Kiểm kê kho
+    subgraph Mod5 ["Phân hệ 5: Nghiệp vụ Kiểm kê kho"]
+        UC28(["UC28: Tạo phiếu kiểm kê nháp"])
+        UC29(["UC29: Nhập số đếm thực tế"])
+        UC30(["UC30: Xác nhận đối soát hoàn thành"])
+    end
+    
+    %% Phân hệ 6: POS Bán hàng
+    subgraph Mod6 ["Phân hệ 6: POS & Nghiệp vụ Bán hàng"]
+        UC31(["UC31: Tạo hóa đơn bán lẻ POS"])
+    end
+    
+    %% Phân hệ 7: Báo cáo
+    subgraph Mod7 ["Phân hệ 7: Tồn kho & Báo cáo thẻ kho"]
+        UC32(["UC32: Xem lịch sử thẻ kho"])
     end
 
     %% 3. Thiết lập các liên kết tác nhân và Use Case (Associations)
