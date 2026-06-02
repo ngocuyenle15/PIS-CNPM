@@ -277,6 +277,7 @@ sequenceDiagram
         end
     end
     deactivate FE
+```
 
 ---
 
@@ -654,6 +655,7 @@ sequenceDiagram
         FE-->>TK: Hiển thị thông báo xóa thành công và cập nhật bảng
     end
     deactivate FE
+```
 
 ---
 
@@ -1065,6 +1067,7 @@ sequenceDiagram
         FE-->>TK: Thông báo thành công và hiển thị cửa sổ in phiếu nhập kho
     end
     deactivate FE
+```
 
 ### UC24: Hủy phiếu nhập kho nháp (Cancel Goods Receipt)
 ```mermaid
@@ -1232,6 +1235,7 @@ sequenceDiagram
         FE-->>TK: Cập nhật trạng thái hiển thị thành "CANCELLED"
     end
     deactivate FE
+```
 
 ### UC28: Lập phiếu kiểm kê kho nháp (Create Stock Audit Draft)
 ```mermaid
@@ -1374,6 +1378,7 @@ sequenceDiagram
         FE-->>TK: Thông báo đối soát thành công và kết thúc quy trình kiểm kê
     end
     deactivate FE
+```
 
 ---
 
