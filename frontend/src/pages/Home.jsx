@@ -8621,7 +8621,7 @@ function Home() {
                 <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Khách hàng thành viên:</label>
                 {(() => {
                   const mappedCustomers = [
-                    { customerID: '', displayName: '-- Khách lẻ vãng lai (Không tích điểm) --' },
+                    { customerID: '', displayName: 'Khách lẻ vãng lai' },
                     ...customersList.map(c => ({
                       ...c,
                       displayName: `${c.fullName} (${c.phoneNumber})`
@@ -8650,7 +8650,7 @@ function Home() {
 
               {/* Nhập Địa chỉ */}
               <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Địa chỉ người mua (nếu giao nhận):</label>
+                <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Địa chỉ người mua:</label>
                 <input
                   type="text"
                   className="input"
@@ -8675,7 +8675,7 @@ function Home() {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  Tiền mặt (Cash)
+                  Tiền mặt
                 </div>
               </div>
 
