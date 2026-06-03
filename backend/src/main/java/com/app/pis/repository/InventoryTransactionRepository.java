@@ -10,4 +10,6 @@ import java.util.List;
 public interface InventoryTransactionRepository extends JpaRepository<InventoryTransaction, Long> {
     List<InventoryTransaction> findByInventoryIdOrderByTransactionTimeAsc(String inventoryId);
     List<InventoryTransaction> findByInventoryMedicineMedicineIDOrderByTransactionTimeAsc(String medicineId);
+    List<InventoryTransaction> findByInventoryMedicineMedicineIDOrderByTransactionTimeDesc(String medicineId);
+    List<InventoryTransaction> findAllByOrderByTransactionTimeDesc();
 }

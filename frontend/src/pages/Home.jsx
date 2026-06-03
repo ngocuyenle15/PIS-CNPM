@@ -5666,14 +5666,16 @@ function Home() {
       }
 
       case 'warehouse_audit': {
-        const handleStartAudit = async (id) => {
-          try {
-            await api.patch(`/stock-audits/${id}/start`);
-            alert('Bắt đầu thực hiện đếm kho thực tế!');
-            fetchAudits(1);
-          } catch (error) {
-            console.error('Lỗi chuyển trạng thái:', error);
-            alert('Thao tác thất bại: ' + (error.response?.data?.message || error.message));
+        const handleCancelAudit = async (id) => {
+          if (window.confirm(`Bạn có chắc muốn HỦY PHIẾU kiểm kê ${id}?`)) {
+            try {
+              await api.patch(`/stock-audits/${id}/cancel`);
+              alert('Đã hủy phiếu kiểm kê thành công.');
+              fetchAudits(1);
+            } catch (error) {
+              console.error('Lỗi hủy phiếu:', error);
+              alert('Hủy phiếu thất bại: ' + (error.response?.data?.message || error.message));
+            }
           }
         };
 
@@ -5715,7 +5717,7 @@ function Home() {
           if (window.confirm('Tạo phiếu kiểm kê mới? Hệ thống sẽ chụp lại số lượng tồn kho sổ sách hiện tại của tất cả các thuốc.')) {
             try {
               const res = await api.post('/stock-audits', { note: 'Kiểm kê định kỳ quầy thuốc' });
-              alert('Khởi tạo phiếu kiểm kê nháp thành công!');
+              alert('Khởi tạo phiếu kiểm kê thành công!');
               fetchAudits(1);
               setSelectedAudit(res.data?.data);
               setAuditForm({ note: res.data?.data.note || '', details: res.data?.data.details || [] });
@@ -5861,16 +5863,6 @@ function Home() {
                 </button>
                 <button
                   type="button"
-                  className={`filter-chip ${filterAuditStatus === 'DRAFT' ? 'active-low-stock' : ''}`}
-                  onClick={() => {
-                    setFilterAuditStatus('DRAFT');
-                    fetchAudits(1, auditSearchType, auditSearchVal, filterAuditStart, filterAuditEnd, 'DRAFT');
-                  }}
-                >
-                  Nháp
-                </button>
-                <button
-                  type="button"
                   className={`filter-chip ${filterAuditStatus === 'IN_PROGRESS' ? 'active-low-stock' : ''}`}
                   onClick={() => {
                     setFilterAuditStatus('IN_PROGRESS');
@@ -5889,7 +5881,7 @@ function Home() {
                     fetchAudits(1, auditSearchType, auditSearchVal, filterAuditStart, filterAuditEnd, 'CONFIRMED');
                   }}
                 >
-                  Đã đối soát
+                  Đã hoàn thành
                 </button>
                 <button
                   type="button"
@@ -5971,29 +5963,29 @@ function Home() {
                                   >
                                     {(item.status === 'IN_PROGRESS' && (role === 'Admin' || role === 'Product_manager')) ? 'Đếm kho' : 'Xem chi tiết'}
                                   </button>
-                                  {item.status === 'DRAFT' && (role === 'Admin' || role === 'Product_manager') && (
-                                    <button
-                                      type="button"
-                                      className="action-dropdown-item text-warning"
-                                      onClick={() => {
-                                        handleStartAudit(item.auditId);
-                                        setActiveDropdown(null);
-                                      }}
-                                    >
-                                      Bắt đầu đếm
-                                    </button>
-                                  )}
                                   {item.status === 'IN_PROGRESS' && (role === 'Admin' || role === 'Product_manager') && (
-                                    <button
-                                      type="button"
-                                      className="action-dropdown-item text-success"
-                                      onClick={() => {
-                                        handleConfirmAudit(item.auditId);
-                                        setActiveDropdown(null);
-                                      }}
-                                    >
-                                      Hoàn thành
-                                    </button>
+                                    <>
+                                      <button
+                                        type="button"
+                                        className="action-dropdown-item text-error"
+                                        onClick={() => {
+                                          handleCancelAudit(item.auditId);
+                                          setActiveDropdown(null);
+                                        }}
+                                      >
+                                        Hủy phiếu
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="action-dropdown-item text-success"
+                                        onClick={() => {
+                                          handleConfirmAudit(item.auditId);
+                                          setActiveDropdown(null);
+                                        }}
+                                      >
+                                        Hoàn thành
+                                      </button>
+                                    </>
                                   )}
                                 </div>
                               )}

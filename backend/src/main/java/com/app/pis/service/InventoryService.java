@@ -150,9 +150,9 @@ public class InventoryService {
     public List<InventoryTransactionResponse> getTransactions(String searchMedicineId) {
         List<InventoryTransaction> transactions;
         if (StringUtils.hasText(searchMedicineId)) {
-            transactions = inventoryTransactionRepository.findByInventoryMedicineMedicineIDOrderByTransactionTimeAsc(searchMedicineId.trim());
+            transactions = inventoryTransactionRepository.findByInventoryMedicineMedicineIDOrderByTransactionTimeDesc(searchMedicineId.trim());
         } else {
-            transactions = inventoryTransactionRepository.findAll();
+            transactions = inventoryTransactionRepository.findAllByOrderByTransactionTimeDesc();
         }
 
         return transactions.stream().map(tx -> InventoryTransactionResponse.builder()

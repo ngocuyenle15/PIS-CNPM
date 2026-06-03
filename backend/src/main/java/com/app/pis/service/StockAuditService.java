@@ -149,7 +149,7 @@ public class StockAuditService {
         audit.setAuditId(auditId);
         audit.setCreatedBy(currentEmployee);
         audit.setNote(request.getNote());
-        audit.setStatus(StockAudit.AuditStatus.DRAFT);
+        audit.setStatus(StockAudit.AuditStatus.IN_PROGRESS);
 
         // Tự động chụp tồn kho hệ thống (systemQuantity) cho toàn bộ lô đang có trong kho
         List<Inventory> allInventory = inventoryRepository.findAll();
