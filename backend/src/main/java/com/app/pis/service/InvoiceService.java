@@ -99,6 +99,10 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceResponse createInvoice(InvoiceRequest request) {
+        if (request.getDetails() == null || request.getDetails().isEmpty()) {
+            throw new IllegalArgumentException("Giỏ hàng không được để trống!");
+        }
+
         Customer customer = null;
         if (StringUtils.hasText(request.getCustomerId())) {
             customer = customerRepository.findById(request.getCustomerId())
