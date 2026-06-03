@@ -1,11 +1,14 @@
 package com.app.pis.repository;
 
 import com.app.pis.entity.RefreshToken;
-import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Component
+/**
+ * @deprecated Đã thay thế bằng {@link DatabaseRefreshTokenStore}.
+ * File này được giữ lại để tham khảo. Không được sử dụng trong production.
+ */
+// @Component — Đã loại bỏ, thay thế bằng DatabaseRefreshTokenStore
 public class InMemoryRefreshTokenStore implements RefreshTokenStore {
 
     private final ConcurrentHashMap<String, RefreshToken> tokenMap = new ConcurrentHashMap<>();
@@ -13,7 +16,6 @@ public class InMemoryRefreshTokenStore implements RefreshTokenStore {
 
     @Override
     public void save(RefreshToken refreshToken) {
-        // If a refresh token already exists for the user, delete the old one
         if (refreshToken.getUsername() != null) {
             deleteByUsername(refreshToken.getUsername());
         }
