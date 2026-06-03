@@ -23,6 +23,7 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final AccountRepository accountRepository;
     private final AccountService accountService;
+    private final RefreshTokenService refreshTokenService;
 
     public List<Employee> getAll() {
         return employeeRepository.findAll();
@@ -133,9 +134,10 @@ public class EmployeeService {
     public void delete(String id) {
         Employee employee = getById(id);
 
-        if (accountRepository.existsByEmployee(employee)) {
-            throw new IllegalArgumentException("Không thể xóa nhân viên '" + employee.getFullName() + "' vì đang có tài khoản liên kết");
-        }
+        // Thu hồi refresh token của tài khoản liên kết nếu có
+        accountRepository.findByEmployee(employee).ifPresent(account -> {
+            refreshTokenService.deleteByUsername(account.getUsername());
+        });
 
         try {
             employeeRepository.delete(employee);

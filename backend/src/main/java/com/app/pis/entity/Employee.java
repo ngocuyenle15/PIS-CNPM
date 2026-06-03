@@ -3,6 +3,7 @@ package com.app.pis.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
 
 @Entity
@@ -11,7 +12,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
+@ToString(exclude = {"account"})
 public class Employee {
 
     @Id
@@ -39,6 +40,10 @@ public class Employee {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @OneToOne(mappedBy = "employee", cascade = CascadeType.REMOVE)
+    @JsonIgnore
+    private Account account;
 
     public enum Gender {
         Male, Female

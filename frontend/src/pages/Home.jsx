@@ -2101,7 +2101,7 @@ function Home() {
   const handleOpenCheckoutModal = (e) => {
     e.preventDefault();
     if (posCart.length === 0) {
-      alert("Giỏ hàng của bạn đang trống!");
+      alert("Giỏ hàng không được để trống!");
       return;
     }
 
@@ -2114,6 +2114,10 @@ function Home() {
         alert(`Thuốc ${c.medicineName} (Lô: ${c.batchId}) không đủ tồn kho! Số lượng yêu cầu: ${c.quantity * c.conversionRate}, Tồn kho hiện tại: ${c.stockQuantity}`);
         return;
       }
+      if (!c.note || !c.note.trim()) {
+        alert(`Vui lòng nhập ghi chú hướng dẫn sử dụng cho thuốc ${c.medicineName}!`);
+        return;
+      }
     }
 
     setPosCashGiven('');
@@ -2122,10 +2126,20 @@ function Home() {
 
   const handlePosCheckout = async (e) => {
     e?.preventDefault();
+    if (posCart.length === 0) {
+      alert("Giỏ hàng không được để trống!");
+      return;
+    }
+    for (const c of posCart) {
+      if (!c.note || !c.note.trim()) {
+        alert(`Vui lòng nhập ghi chú hướng dẫn sử dụng cho thuốc ${c.medicineName}!`);
+        return;
+      }
+    }
     try {
       const payload = {
         customerId: posSelectedCustomer?.customerID || null,
-        address: 'Tại quầy',
+        address: posAddress || '',
         paymentMethod: 'Cash', // Cố định thanh toán tiền mặt
         details: posCart.map(c => ({
           inventoryId: c.inventoryId,
@@ -7388,84 +7402,315 @@ function Home() {
             </div>
 
             {/* CỘT PHẢI: CHI TIẾT HÓA ĐƠN ĐÃ CHỌN */}
-            <div className="split-right content-card" style={{ width: '520px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: '800', textTransform: 'uppercase', marginBottom: '15px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', color: '#0f172a' }}>
-                Chi Tiết Hóa Đơn
-              </h2>
+            <div className="split-right content-card" style={{ width: '540px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '24px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '800', textTransform: 'uppercase', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary-color)' }}>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  Chi Tiết Hóa Đơn
+                </h2>
+                {selectedInvoice && (
+                  <span style={{
+                    backgroundColor: '#dcfce7',
+                    color: '#15803d',
+                    padding: '4px 10px',
+                    borderRadius: '9999px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    Đã thanh toán
+                  </span>
+                )}
+              </div>
 
               {selectedInvoice ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <div><span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Số hóa đơn:</span><strong style={{ fontSize: '14px', color: '#0f172a' }}>HĐ-{selectedInvoice.invoiceID}</strong></div>
-                    <div><span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Ngày lập:</span><span style={{ fontSize: '13px', fontWeight: '500' }}>{selectedInvoice.invoiceTime ? new Date(selectedInvoice.invoiceTime).toLocaleString('vi-VN') : ''}</span></div>
-                    <div><span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Khách hàng:</span><span style={{ fontSize: '13px', fontWeight: '600' }}>{selectedInvoice.customerName || 'Khách vãng lai'}</span></div>
-                    <div><span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Hình thức thanh toán:</span><span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--success-hover)' }}> {selectedInvoice.paymentMethod === 'Cash' ? 'Tiền mặt' : 'Thẻ / Bank'}</span></div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flexGrow: 1 }}>
+                  {/* Grid thông tin chung */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <div>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px', fontWeight: '500' }}>
+                        Số hóa đơn
+                      </span>
+                      <strong style={{ fontSize: '14px', color: '#0f172a' }}>HĐ-{selectedInvoice.invoiceID}</strong>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px', fontWeight: '500' }}>
+                        Thời gian lập
+                      </span>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                        {selectedInvoice.invoiceTime ? new Date(selectedInvoice.invoiceTime).toLocaleString('vi-VN') : ''}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px', fontWeight: '500' }}>
+                        Khách hàng
+                      </span>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a8a' }}>
+                        {selectedInvoice.customerName || 'Khách vãng lai'}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px', fontWeight: '500' }}>
+                        Hình thức thanh toán
+                      </span>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        color: selectedInvoice.paymentMethod === 'Cash' ? '#16a34a' : 'var(--primary-color)'
+                      }}>
+                        {selectedInvoice.paymentMethod === 'Cash' ? '💵 Tiền mặt' : '💳 Thẻ / Bank'}
+                      </span>
+                    </div>
                   </div>
 
                   {selectedInvoice.address && (
-                    <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
-                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block', fontWeight: '600' }}>Địa chỉ giao nhận hàng:</span>
-                      <span style={{ color: '#334155' }}>{selectedInvoice.address}</span>
+                    <div style={{ background: '#f0f9ff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #bae6fd', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '11px', color: '#0369a1', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        📍 Địa chỉ giao nhận hàng:
+                      </span>
+                      <span style={{ color: '#0c4a6e', fontWeight: '500' }}>{selectedInvoice.address}</span>
                     </div>
                   )}
 
-                  <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '5px 0' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      Danh sách sản phẩm ({selectedInvoice.details?.length || 0})
+                    </span>
 
-                  <span className="label" style={{ marginBottom: '6px', fontWeight: '600', color: '#475569' }}>Danh sách sản phẩm đã mua:</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px', maxHeight: '280px', overflowY: 'auto', background: '#f8fafc' }}>
-                    {selectedInvoice.details && selectedInvoice.details.map((d, i) => (
-                      <div key={i} style={{ background: '#ffffff', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: '#1e293b', fontSize: '13px' }}>
-                          <span>{d.medicineName}</span>
-                          <span style={{ color: 'var(--success-hover)' }}>{d.subTotal?.toLocaleString()}đ</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                          <span>Lô: {d.batchId} | Số lượng: {d.quantity}</span>
-                          <span>Đơn giá: {d.unitPrice?.toLocaleString()}đ</span>
-                        </div>
-                        {d.note && (
-                          <div style={{ fontSize: '11px', color: '#dc2626', background: '#fef2f2', padding: '4px 8px', borderRadius: '4px', borderLeft: '3px solid #ef4444', fontStyle: 'italic', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span></span>
-                            <span>{d.note}</span>
-                          </div>
-                        )}
+                    <div style={{
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      background: '#ffffff',
+                      boxShadow: '0 1px 3px 0 rgba(0,0,0,0.02)'
+                    }}>
+                      <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <th style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f8fafc', padding: '10px 12px', fontWeight: '700', color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sản phẩm</th>
+                              <th style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f8fafc', padding: '10px 12px', fontWeight: '700', color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', width: '50px' }}>SL</th>
+                              <th style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f8fafc', padding: '10px 12px', fontWeight: '700', color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right', width: '85px' }}>Đơn giá</th>
+                              <th style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f8fafc', padding: '10px 12px', fontWeight: '700', color: '#475569', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right', width: '95px' }}>Thành tiền</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedInvoice.details && selectedInvoice.details.map((d, i) => (
+                              <React.Fragment key={i}>
+                                <tr
+                                  style={{
+                                    borderBottom: d.note ? 'none' : '1px solid #f1f5f9',
+                                    transition: 'background-color 0.15s'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                                    if (d.note && e.currentTarget.nextSibling) {
+                                      e.currentTarget.nextSibling.style.backgroundColor = '#f8fafc';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    if (d.note && e.currentTarget.nextSibling) {
+                                      e.currentTarget.nextSibling.style.backgroundColor = 'transparent';
+                                    }
+                                  }}
+                                >
+                                  <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
+                                    <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '12.5px', lineHeight: '1.4' }}>
+                                      {d.medicineName}
+                                    </div>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', padding: '1px 5px', borderRadius: '4px', fontSize: '9.5px', fontWeight: '700', marginTop: '4px' }}>
+                                      Lô: {d.batchId}
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '10px 12px', verticalAlign: 'top', textAlign: 'center', fontWeight: '600', color: '#334155' }}>
+                                    {d.quantity}
+                                  </td>
+                                  <td style={{ padding: '10px 12px', verticalAlign: 'top', textAlign: 'right', color: '#64748b' }}>
+                                    {d.unitPrice?.toLocaleString()}đ
+                                  </td>
+                                  <td style={{ padding: '10px 12px', verticalAlign: 'top', textAlign: 'right', fontWeight: '800', color: '#10b981' }}>
+                                    {d.subTotal?.toLocaleString()}đ
+                                  </td>
+                                </tr>
+                                {d.note && (
+                                  <tr
+                                    style={{
+                                      borderBottom: '1px solid #f1f5f9',
+                                      transition: 'background-color 0.15s'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                                      if (e.currentTarget.previousSibling) {
+                                        e.currentTarget.previousSibling.style.backgroundColor = '#f8fafc';
+                                      }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                      if (e.currentTarget.previousSibling) {
+                                        e.currentTarget.previousSibling.style.backgroundColor = 'transparent';
+                                      }
+                                    }}
+                                  >
+                                    <td colSpan="4" style={{ padding: '0 12px 10px 12px' }}>
+                                      <div style={{
+                                        fontSize: '11px',
+                                        color: '#b91c1c',
+                                        background: '#fef2f2',
+                                        padding: '5px 10px',
+                                        borderRadius: '6px',
+                                        borderLeft: '3px solid #ef4444',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        width: '100%',
+                                        boxSizing: 'border-box'
+                                      }}>
+                                        <span style={{ fontSize: '11px' }}>📝</span>
+                                        <span style={{ fontWeight: '500' }}>HDSD: {d.note}</span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    ))}
+                    </div>
                   </div>
 
-                  <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', marginTop: '5px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>
-                      <span>TỔNG THANH TOÁN:</span>
-                      <span style={{ color: 'var(--success-hover)', fontSize: '18px' }}>
+                  {/* Tổng thanh toán */}
+                  <div style={{
+                    backgroundColor: '#ecfdf5',
+                    padding: '16px 20px',
+                    borderRadius: '12px',
+                    border: '1px solid #a7f3d0',
+                    marginTop: 'auto',
+                    boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.05)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#065f46', letterSpacing: '0.05em' }}>
+                        TỔNG THANH TOÁN
+                      </span>
+                      <span style={{ color: '#059669', fontSize: '22px', fontWeight: '900', letterSpacing: '-0.02em' }}>
                         {(selectedInvoice.details?.reduce((sum, d) => sum + (d.subTotal || 0), 0) || 0).toLocaleString()}đ
                       </span>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                  {/* Hành động */}
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
                     <button
                       type="button"
                       className="btn-action btn-cancel"
-                      style={{ flex: 1, padding: '10px', borderRadius: '6px', fontWeight: '600' }}
+                      style={{
+                        flex: 1,
+                        padding: '12px',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        fontSize: '13px',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '6px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: '#f8fafc',
+                        color: '#475569',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
                       onClick={() => setSelectedInvoice(null)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f1f5f9';
+                        e.currentTarget.style.color = '#1e293b';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                        e.currentTarget.style.color = '#475569';
+                      }}
                     >
                       Đóng chi tiết
                     </button>
                     <button
                       type="button"
                       className="btn-action btn-select"
-                      style={{ flex: 1, backgroundColor: 'var(--success-color)', padding: '10px', borderRadius: '6px', fontWeight: '600' }}
+                      style={{
+                        flex: 1,
+                        backgroundColor: 'var(--success-color)',
+                        color: '#ffffff',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        border: 'none',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 6px -1px rgba(34, 197, 94, 0.2)',
+                        transition: 'all 0.15s'
+                      }}
                       onClick={() => {
                         setInvoiceReceiptData(selectedInvoice);
                         setShowReceiptModal(true);
                       }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.filter = 'brightness(0.95)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px -1px rgba(34, 197, 94, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.filter = 'none';
+                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(34, 197, 94, 0.2)';
+                      }}
                     >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                      </svg>
                       In hóa đơn
                     </button>
                   </div>
                 </div>
               ) : (
-                <p style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px', textAlign: 'center', padding: '40px 0' }}>Vui lòng chọn một hóa đơn ở bảng bên trái để xem chi tiết & in hóa đơn.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', textAlign: 'center', flexGrow: 1, gap: '12px' }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    backgroundColor: '#f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#94a3b8',
+                    marginBottom: '8px'
+                  }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                  </div>
+                  <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#475569', margin: 0 }}>
+                    Chưa Chọn Hóa Đơn
+                  </h3>
+                  <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: '1.5', maxWidth: '280px', margin: 0 }}>
+                    Vui lòng chọn một hóa đơn từ danh sách bên trái để xem thông tin chi tiết và in hóa đơn.
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -8086,7 +8331,7 @@ function Home() {
             )}
 
             {/* MODAL POPUP FORM THÊM / SỬA */}
-            {employeeFormMode && (
+             {employeeFormMode && (
               <div style={{
                 position: 'fixed',
                 top: 0,
@@ -8101,19 +8346,19 @@ function Home() {
                 backdropFilter: 'blur(6px)'
               }}>
                 <div className="content-card" style={{
-                  width: '650px',
-                  maxHeight: '85vh',
+                  width: '750px',
+                  maxHeight: '95vh',
                   overflowY: 'auto',
                   borderRadius: '12px',
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                  padding: '28px',
+                  padding: '20px 24px',
                   backgroundColor: '#ffffff',
                   border: '1px solid #e2e8f0',
                   animation: 'fadeIn 0.2s ease-out'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                      {employeeFormMode === 'add' ? 'Thêm mới nhân viên' : `Chỉnh sửa nhân viên`}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                    <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                      {employeeFormMode === 'add' ? 'Thêm mới nhân viên & tài khoản' : `Chỉnh sửa nhân viên & tài khoản`}
                     </h2>
                     <button
                       type="button"
@@ -8133,141 +8378,155 @@ function Home() {
                   </div>
 
                   <form onSubmit={handleEmployeeSave}>
-                    <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '12px' }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '12px' }}>
                       I. Thông tin nhân sự
                     </h3>
-                    <div className="form-group">
-                      <label className="label">Mã nhân viên:</label>
-                      <input
-                        type="text"
-                        className="input"
-                        value={employeeForm.employeeID}
-                        onChange={(e) => setEmployeeForm({ ...employeeForm, employeeID: e.target.value })}
-                        disabled={employeeFormMode === 'edit'}
-                        placeholder="VD: NV001"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Họ tên nhân viên:</label>
-                      <input
-                        type="text"
-                        className="input"
-                        value={employeeForm.fullName}
-                        onChange={(e) => setEmployeeForm({ ...employeeForm, fullName: e.target.value })}
-                        placeholder="VD: Nguyễn Văn A"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Số điện thoại:</label>
-                      <input
-                        type="text"
-                        className="input"
-                        value={employeeForm.phoneNumber}
-                        onChange={(e) => setEmployeeForm({ ...employeeForm, phoneNumber: e.target.value })}
-                        placeholder="VD: 0987654321"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Email:</label>
-                      <input
-                        type="email"
-                        className="input"
-                        value={employeeForm.email}
-                        onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
-                        placeholder="VD: nv001@gmail.com"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Giới tính:</label>
-                      <select
-                        className="select-input"
-                        value={employeeForm.gender}
-                        onChange={(e) => setEmployeeForm({ ...employeeForm, gender: e.target.value })}
-                      >
-                        <option value="Male">Nam</option>
-                        <option value="Female">Nữ</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Năm sinh:</label>
-                      <input
-                        type="number"
-                        className="input"
-                        value={employeeForm.yearOfBirth}
-                        onChange={(e) => setEmployeeForm({ ...employeeForm, yearOfBirth: Number(e.target.value) || '' })}
-                        placeholder="VD: 1995"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">Ngày vào làm:</label>
-                      <input
-                        type="date"
-                        className="input"
-                        value={employeeForm.hireDate}
-                        onChange={(e) => setEmployeeForm({ ...employeeForm, hireDate: e.target.value })}
-                        required
-                      />
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: '16px' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Mã nhân viên:</label>
+                        <input
+                          type="text"
+                          className="input"
+                          style={{ padding: '8px 12px', fontSize: '13px' }}
+                          value={employeeForm.employeeID}
+                          onChange={(e) => setEmployeeForm({ ...employeeForm, employeeID: e.target.value })}
+                          disabled={employeeFormMode === 'edit'}
+                          placeholder="VD: NV001"
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Họ tên nhân viên:</label>
+                        <input
+                          type="text"
+                          className="input"
+                          style={{ padding: '8px 12px', fontSize: '13px' }}
+                          value={employeeForm.fullName}
+                          onChange={(e) => setEmployeeForm({ ...employeeForm, fullName: e.target.value })}
+                          placeholder="VD: Nguyễn Văn A"
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Số điện thoại:</label>
+                        <input
+                          type="text"
+                          className="input"
+                          style={{ padding: '8px 12px', fontSize: '13px' }}
+                          value={employeeForm.phoneNumber}
+                          onChange={(e) => setEmployeeForm({ ...employeeForm, phoneNumber: e.target.value })}
+                          placeholder="VD: 0987654321"
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Email:</label>
+                        <input
+                          type="email"
+                          className="input"
+                          style={{ padding: '8px 12px', fontSize: '13px' }}
+                          value={employeeForm.email}
+                          onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
+                          placeholder="VD: nv001@gmail.com"
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Giới tính:</label>
+                        <select
+                          className="select-input"
+                          style={{ padding: '8px 12px', fontSize: '13px', height: '37px' }}
+                          value={employeeForm.gender}
+                          onChange={(e) => setEmployeeForm({ ...employeeForm, gender: e.target.value })}
+                        >
+                          <option value="Male">Nam</option>
+                          <option value="Female">Nữ</option>
+                        </select>
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Năm sinh:</label>
+                        <input
+                          type="number"
+                          className="input"
+                          style={{ padding: '8px 12px', fontSize: '13px' }}
+                          value={employeeForm.yearOfBirth}
+                          onChange={(e) => setEmployeeForm({ ...employeeForm, yearOfBirth: Number(e.target.value) || '' })}
+                          placeholder="VD: 1995"
+                          required
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0, gridColumn: 'span 2' }}>
+                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Ngày vào làm:</label>
+                        <input
+                          type="date"
+                          className="input"
+                          style={{ padding: '8px 12px', fontSize: '13px' }}
+                          value={employeeForm.hireDate}
+                          onChange={(e) => setEmployeeForm({ ...employeeForm, hireDate: e.target.value })}
+                          required
+                        />
+                      </div>
                     </div>
 
                     {employeeFormMode === 'add' && (
                       <>
-                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginTop: '24px', marginBottom: '12px' }}>
+                        <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginTop: '16px', marginBottom: '12px' }}>
                           II. Thông tin tài khoản liên kết (Bắt buộc)
                         </h3>
-                        <div className="form-group">
-                          <label className="label">Tên đăng nhập:</label>
-                          <input
-                            type="text"
-                            className="input"
-                            value={employeeForm.username}
-                            onChange={(e) => setEmployeeForm({ ...employeeForm, username: e.target.value })}
-                            placeholder="VD: nguyenvana"
-                            required
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="label">Vai trò (Role):</label>
-                          <select
-                            className="select-input"
-                            value={employeeForm.roleName}
-                            onChange={(e) => setEmployeeForm({ ...employeeForm, roleName: e.target.value })}
-                          >
-                            <option value="Sales">Bán hàng (Sales)</option>
-                            <option value="Product_manager">Quản lý kho (Product Manager)</option>
-                            <option value="Admin">Quản trị viên (Admin)</option>
-                          </select>
-                        </div>
-                        <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Tên đăng nhập:</label>
                             <input
-                              type="checkbox"
-                              checked={employeeForm.isStaff}
-                              onChange={(e) => setEmployeeForm({ ...employeeForm, isStaff: e.target.checked })}
+                              type="text"
+                              className="input"
+                              style={{ padding: '8px 12px', fontSize: '13px' }}
+                              value={employeeForm.username}
+                              onChange={(e) => setEmployeeForm({ ...employeeForm, username: e.target.value })}
+                              placeholder="VD: nguyenvana"
+                              required
                             />
-                            Nhân viên hệ thống (isStaff)
-                          </label>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
-                            <input
-                              type="checkbox"
-                              checked={employeeForm.isActive}
-                              onChange={(e) => setEmployeeForm({ ...employeeForm, isActive: e.target.checked })}
-                            />
-                            Kích hoạt tài khoản (isActive)
-                          </label>
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Vai trò (Role):</label>
+                            <select
+                              className="select-input"
+                              style={{ padding: '8px 12px', fontSize: '13px', height: '37px' }}
+                              value={employeeForm.roleName}
+                              onChange={(e) => setEmployeeForm({ ...employeeForm, roleName: e.target.value })}
+                            >
+                              <option value="Sales">Bán hàng (Sales)</option>
+                              <option value="Product_manager">Quản lý kho (Product Manager)</option>
+                              <option value="Admin">Quản trị viên (Admin)</option>
+                            </select>
+                          </div>
+                          <div style={{ gridColumn: 'span 2', display: 'flex', gap: '20px', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={employeeForm.isStaff}
+                                onChange={(e) => setEmployeeForm({ ...employeeForm, isStaff: e.target.checked })}
+                              />
+                              Nhân viên hệ thống (isStaff)
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={employeeForm.isActive}
+                                onChange={(e) => setEmployeeForm({ ...employeeForm, isActive: e.target.checked })}
+                              />
+                              Kích hoạt tài khoản (isActive)
+                            </label>
+                          </div>
                         </div>
                       </>
                     )}
 
-                    <div className="form-actions" style={{ marginTop: '28px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+                    <div className="form-actions" style={{ marginTop: '20px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
                       <button type="button" className="btn-action btn-cancel" style={{ marginRight: '6px' }} onClick={handleEmployeeCancel}>
                         Hủy bỏ
                       </button>
-                      <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1 }}>
+                      <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, backgroundColor: 'var(--primary-color)', border: 'none', color: '#ffffff' }}>
                         {employeeFormMode === 'add' ? 'Thêm mới' : 'Lưu lại'}
                       </button>
                     </div>
@@ -8836,15 +9095,33 @@ function Home() {
                       : line.baseUnit.unitName;
 
                     return (
-                      <div key={line.inventoryId} style={{ display: 'flex', flexDirection: 'column', paddingBottom: '6px', borderBottom: idx < posCart.length - 1 ? '1px dashed #e2e8f0' : 'none' }}>
+                      <div key={line.inventoryId} style={{ display: 'flex', flexDirection: 'column', paddingBottom: '8px', borderBottom: idx < posCart.length - 1 ? '1px dashed #e2e8f0' : 'none' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>
                           <span>{idx + 1}. {line.medicineName}</span>
                           <span style={{ color: 'var(--success-hover)' }}>{(line.quantity * currentPrice).toLocaleString()}đ</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
                           <span>SL: {line.quantity} {uName} (Đơn giá: {currentPrice.toLocaleString()}đ)</span>
-                          {line.note && <span style={{ fontStyle: 'italic', color: '#475569' }}> {line.note}</span>}
                         </div>
+                        {line.note && (
+                          <div style={{
+                            fontSize: '10.5px',
+                            color: '#b91c1c',
+                            background: '#fef2f2',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            borderLeft: '3px solid #ef4444',
+                            marginTop: '4px',
+                            fontWeight: '500',
+                            alignSelf: 'flex-start',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <span>📝 HDSD:</span>
+                            <span>{line.note}</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -8883,15 +9160,16 @@ function Home() {
                 })()}
               </div>
 
-              {/* Địa chỉ - Mặc định Tại quầy */}
+              {/* Nhập Địa chỉ */}
               <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Địa chỉ:</label>
+                <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Địa chỉ người mua:</label>
                 <input
                   type="text"
                   className="input"
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}
-                  value="Tại quầy"
-                  disabled
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                  value={posAddress}
+                  onChange={(e) => setPosAddress(e.target.value)}
+                  placeholder="Nhập địa chỉ giao hàng (không bắt buộc)..."
                 />
               </div>
 
@@ -9035,109 +9313,204 @@ function Home() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
           zIndex: 1000,
-          backdropFilter: 'blur(4px)'
+          backdropFilter: 'blur(6px)'
         }}>
           <div style={{
-            background: '#fff',
-            width: '500px',
-            padding: '30px',
-            borderRadius: '12px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+            background: '#ffffff',
+            width: '640px',
+            padding: '36px',
+            borderRadius: '16px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
             display: 'flex',
             flexDirection: 'column',
-            fontFamily: 'Courier New, Courier, monospace',
-            color: '#000',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            color: '#1e293b',
             maxHeight: '85vh',
             overflowY: 'auto',
-            border: '2px solid #334155'
+            border: '1px solid #e2e8f0'
           }}>
             {/* Header */}
-            <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 5px 0' }}>PIS PHARMACY</h2>
-              <p style={{ fontSize: '13px', margin: '2px 0' }}>123 Đường Láng, Đống Đa, Hà Nội</p>
-              <p style={{ fontSize: '13px', margin: '2px 0' }}>SĐT: 024.1234.5678</p>
-              <div style={{ borderBottom: '1px dashed #000', margin: '12px 0' }} />
-              <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '5px 0' }}>HÓA ĐƠN BÁN LẺ</h3>
-              <p style={{ fontSize: '13px', margin: '2px 0' }}>Số: HĐ-{invoiceReceiptData.invoiceID}</p>
-              <p style={{ fontSize: '13px', margin: '2px 0' }}>Ngày: {new Date(invoiceReceiptData.invoiceTime).toLocaleString('vi-VN')}</p>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '26px', fontWeight: '900', margin: '0 0 6px 0', color: 'var(--primary-color)', letterSpacing: '0.05em' }}>PIS PHARMACY</h2>
+              <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b', fontWeight: '500' }}>📍 123 Đường Láng, Đống Đa, Hà Nội</p>
+              <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b', fontWeight: '500' }}>📞 SĐT: 024.1234.5678</p>
+              <div style={{ borderBottom: '2px dashed #e2e8f0', margin: '16px 0' }} />
+              <h3 style={{ fontSize: '20px', fontWeight: '800', margin: '8px 0', color: '#0f172a', letterSpacing: '0.1em' }}>HÓA ĐƠN BÁN LẺ</h3>
+              <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b' }}>Số: <strong style={{ color: '#0f172a' }}>HĐ-{invoiceReceiptData.invoiceID}</strong></p>
+              <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b' }}>Ngày: {new Date(invoiceReceiptData.invoiceTime).toLocaleString('vi-VN')}</p>
             </div>
 
             {/* Customer Details */}
-            <div style={{ fontSize: '13px', marginBottom: '10px' }}>
-              <p style={{ margin: '3px 0' }}><strong>Khách hàng:</strong> {invoiceReceiptData.customerName || 'Khách vãng lai'}</p>
-              {invoiceReceiptData.address && <p style={{ margin: '3px 0' }}><strong>Địa chỉ:</strong> {invoiceReceiptData.address}</p>}
-              <p style={{ margin: '3px 0' }}><strong>Thanh toán:</strong> {invoiceReceiptData.paymentMethod === 'Cash' ? 'Tiền mặt' : 'Chuyển khoản / Thẻ'}</p>
+            <div style={{
+              fontSize: '13.5px',
+              marginBottom: '16px',
+              background: '#f8fafc',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px'
+            }}>
+              <div><span style={{ color: '#64748b' }}>Khách hàng:</span> <strong style={{ color: '#0f172a' }}>{invoiceReceiptData.customerName || 'Khách vãng lai'}</strong></div>
+              <div><span style={{ color: '#64748b' }}>Thanh toán:</span> <strong style={{ color: '#16a34a' }}>{invoiceReceiptData.paymentMethod === 'Cash' ? '💵 Tiền mặt' : '💳 Thẻ / Bank'}</strong></div>
+              {invoiceReceiptData.address && (
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: '#64748b' }}>Địa chỉ:</span> <strong style={{ color: '#0f172a' }}>{invoiceReceiptData.address}</strong>
+                </div>
+              )}
             </div>
 
-            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }} />
+            <div style={{ borderBottom: '1px solid #e2e8f0', margin: '12px 0' }} />
 
             {/* Items Table */}
-            <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
-                <tr style={{ borderBottom: '1px dashed #000' }}>
-                  <th style={{ textAlign: 'left', paddingBottom: '5px' }}>Tên thuốc</th>
-                  <th style={{ textAlign: 'right', paddingBottom: '5px' }}>SL</th>
-                  <th style={{ textAlign: 'right', paddingBottom: '5px' }}>Đ.Giá</th>
-                  <th style={{ textAlign: 'right', paddingBottom: '5px' }}>T.Tiền</th>
+                <tr style={{ borderBottom: '2px solid #0f172a', color: '#0f172a' }}>
+                  <th style={{ padding: '8px 4px', fontWeight: '800' }}>Tên thuốc</th>
+                  <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center', width: '50px' }}>SL</th>
+                  <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'right', width: '90px' }}>Đơn giá</th>
+                  <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'right', width: '110px' }}>Thành tiền</th>
                 </tr>
               </thead>
               <tbody>
                 {invoiceReceiptData.details && invoiceReceiptData.details.map((d, i) => (
-                  <tr key={i} style={{ verticalAlign: 'top' }}>
-                    <td style={{ paddingTop: '5px', paddingBottom: '5px' }}>
-                      {d.medicineName}
-                      <div style={{ fontSize: '11px', color: '#555' }}>Lô: {d.batchId}</div>
-                    </td>
-                    <td style={{ textAlign: 'right', paddingTop: '5px' }}>{d.quantity}</td>
-                    <td style={{ textAlign: 'right', paddingTop: '5px' }}>{d.unitPrice?.toLocaleString()}</td>
-                    <td style={{ textAlign: 'right', paddingTop: '5px' }}>{d.subTotal?.toLocaleString()}</td>
-                  </tr>
+                  <React.Fragment key={i}>
+                    <tr style={{ borderBottom: d.note ? 'none' : '1px solid #f1f5f9', verticalAlign: 'top' }}>
+                      <td style={{ padding: '12px 4px 6px 4px' }}>
+                        <div style={{ fontWeight: '700', color: '#1e293b' }}>{d.medicineName}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Lô: {d.batchId}</div>
+                      </td>
+                      <td style={{ padding: '12px 4px 6px 4px', textAlign: 'center', fontWeight: '600' }}>{d.quantity}</td>
+                      <td style={{ padding: '12px 4px 6px 4px', textAlign: 'right', color: '#475569' }}>{d.unitPrice?.toLocaleString()}đ</td>
+                      <td style={{ padding: '12px 4px 6px 4px', textAlign: 'right', fontWeight: '700', color: '#0f172a' }}>{d.subTotal?.toLocaleString()}đ</td>
+                    </tr>
+                    {d.note && (
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td colSpan="4" style={{ padding: '0 4px 12px 4px' }}>
+                          <div style={{
+                            fontSize: '11px',
+                            color: '#b91c1c',
+                            background: '#fef2f2',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            borderLeft: '3px solid #ef4444',
+                            fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}>
+                            <span>📝 HDSD:</span>
+                            <span>{d.note}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
 
-            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }} />
+            <div style={{ borderBottom: '2px solid #0f172a', margin: '16px 0' }} />
 
             {/* Calculations */}
-            <div style={{ fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '4px', alignSelf: 'flex-end', width: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '17px', marginTop: '5px' }}>
-                <span>TỔNG CỘNG:</span>
-                <span>{invoiceReceiptData.details?.reduce((sum, d) => sum + (d.subTotal || 0), 0).toLocaleString()}đ</span>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+              <div style={{
+                background: '#ecfdf5',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                border: '1px solid #a7f3d0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                boxSizing: 'border-box'
+              }}>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: '#065f46', letterSpacing: '0.05em' }}>TỔNG CỘNG THANH TOÁN:</span>
+                <span style={{ fontSize: '22px', fontWeight: '900', color: '#059669' }}>
+                  {invoiceReceiptData.details?.reduce((sum, d) => sum + (d.subTotal || 0), 0).toLocaleString()}đ
+                </span>
               </div>
             </div>
 
-            <div style={{ borderBottom: '1px dashed #000', margin: '12px 0' }} />
-
             {/* Footer text */}
-            <div style={{ textAlign: 'center', fontSize: '12px', fontStyle: 'italic' }}>
-              <p style={{ margin: '4px 0' }}>Cảm ơn quý khách. Hẹn gặp lại!</p>
+            <div style={{ textAlign: 'center', fontSize: '12.5px', color: '#64748b', fontStyle: 'italic', marginBottom: '24px' }}>
+              <p style={{ margin: '4px 0', fontWeight: '500' }}>Cảm ơn quý khách. Hẹn gặp lại!</p>
               <p style={{ margin: '4px 0' }}>Mã tra cứu hóa đơn điện tử: PIS-INV-{invoiceReceiptData.invoiceID}</p>
             </div>
 
             {/* Close buttons */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', fontFamily: 'Inter, sans-serif' }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 type="button"
                 className="btn-action btn-cancel"
-                style={{ flex: 1, padding: '10px', borderRadius: '6px', cursor: 'pointer' }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#f8fafc',
+                  color: '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
                 onClick={() => setShowReceiptModal(false)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f1f5f9';
+                  e.currentTarget.style.color = '#1e293b';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.color = '#475569';
+                }}
               >
                 Đóng
               </button>
               <button
                 type="button"
                 className="btn-action btn-select"
-                style={{ flex: 1, padding: '10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{
+                  flex: 1,
+                  backgroundColor: 'var(--primary-color)',
+                  color: '#ffffff',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  fontWeight: '700',
+                  fontSize: '13px',
+                  border: 'none',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+                  transition: 'all 0.15s'
+                }}
                 onClick={() => {
                   window.print();
                 }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.filter = 'brightness(0.95)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px -1px rgba(59, 130, 246, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.filter = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.2)';
+                }}
               >
-                In Hóa Đơn
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                In hóa đơn
               </button>
             </div>
           </div>
