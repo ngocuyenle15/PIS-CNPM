@@ -37,11 +37,12 @@ public class GoodsIssueController {
             @RequestParam(required = false) String searchVal,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         
         PagedResponse<GoodsIssueResponse> response = goodsIssueService.getAll(
-                searchType, searchVal, startDate, endDate, page, size);
+                searchType, searchVal, startDate, endDate, status, page, size);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách phiếu xuất kho thành công"));
     }
 

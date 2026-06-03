@@ -33,6 +33,7 @@ public class GoodsIssueService {
     public PagedResponse<GoodsIssueResponse> getAll(
             String searchType, String searchVal,
             String startDate, String endDate,
+            String status,
             int page, int size) {
         
         List<GoodsIssue> allIssues = goodsIssueRepository.findAll();
@@ -88,7 +89,16 @@ public class GoodsIssueService {
                 matchesDate = false;
             }
 
-            if (matchesSearch && matchesDate) {
+            boolean matchesStatus = true;
+            if (StringUtils.hasText(status)) {
+                if (status.equalsIgnoreCase("UNPROCESSED")) {
+                    matchesStatus = gi.getStatus() != GoodsIssue.IssueStatus.CONFIRMED;
+                } else if (!status.equalsIgnoreCase("ALL")) {
+                    matchesStatus = gi.getStatus() != null && gi.getStatus().name().equalsIgnoreCase(status.trim());
+                }
+            }
+
+            if (matchesSearch && matchesDate && matchesStatus) {
                 filtered.add(gi);
             }
         }

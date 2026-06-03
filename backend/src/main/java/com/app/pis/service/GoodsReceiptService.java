@@ -35,6 +35,7 @@ public class GoodsReceiptService {
     public PagedResponse<GoodsReceiptResponse> getAll(
             String searchType, String searchVal,
             String startDate, String endDate,
+            String status,
             int page, int size) {
         
         List<GoodsReceipt> allReceipts = goodsReceiptRepository.findAll();
@@ -90,7 +91,16 @@ public class GoodsReceiptService {
                 matchesDate = false;
             }
 
-            if (matchesSearch && matchesDate) {
+            boolean matchesStatus = true;
+            if (StringUtils.hasText(status)) {
+                if (status.equalsIgnoreCase("UNPROCESSED")) {
+                    matchesStatus = gr.getStatus() != GoodsReceipt.ReceiptStatus.CONFIRMED;
+                } else if (!status.equalsIgnoreCase("ALL")) {
+                    matchesStatus = gr.getStatus() != null && gr.getStatus().name().equalsIgnoreCase(status.trim());
+                }
+            }
+
+            if (matchesSearch && matchesDate && matchesStatus) {
                 filtered.add(gr);
             }
         }

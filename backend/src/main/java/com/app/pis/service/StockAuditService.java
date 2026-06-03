@@ -31,6 +31,7 @@ public class StockAuditService {
     public PagedResponse<StockAuditResponse> getAll(
             String searchType, String searchVal,
             String startDate, String endDate,
+            String status,
             int page, int size) {
         
         List<StockAudit> allAudits = stockAuditRepository.findAll();
@@ -87,7 +88,16 @@ public class StockAuditService {
                 matchesDate = false;
             }
 
-            if (matchesSearch && matchesDate) {
+            boolean matchesStatus = true;
+            if (StringUtils.hasText(status)) {
+                if (status.equalsIgnoreCase("UNPROCESSED")) {
+                    matchesStatus = sa.getStatus() != StockAudit.AuditStatus.CONFIRMED;
+                } else if (!status.equalsIgnoreCase("ALL")) {
+                    matchesStatus = sa.getStatus() != null && sa.getStatus().name().equalsIgnoreCase(status.trim());
+                }
+            }
+
+            if (matchesSearch && matchesDate && matchesStatus) {
                 filtered.add(sa);
             }
         }

@@ -277,6 +277,7 @@ function Home() {
   const [receiptSearchVal, setReceiptSearchVal] = useState('');
   const [filterReceiptStart, setFilterReceiptStart] = useState('');
   const [filterReceiptEnd, setFilterReceiptEnd] = useState('');
+  const [filterReceiptStatus, setFilterReceiptStatus] = useState('UNPROCESSED');
 
   const [issuesList, setIssuesList] = useState([]);
   const [issueCurrentPage, setIssueCurrentPage] = useState(1);
@@ -290,6 +291,7 @@ function Home() {
   const [issueSearchVal, setIssueSearchVal] = useState('');
   const [filterIssueStart, setFilterIssueStart] = useState('');
   const [filterIssueEnd, setFilterIssueEnd] = useState('');
+  const [filterIssueStatus, setFilterIssueStatus] = useState('UNPROCESSED');
 
   const [auditsList, setAuditsList] = useState([]);
   const [auditCurrentPage, setAuditCurrentPage] = useState(1);
@@ -303,6 +305,7 @@ function Home() {
   const [auditSearchVal, setAuditSearchVal] = useState('');
   const [filterAuditStart, setFilterAuditStart] = useState('');
   const [filterAuditEnd, setFilterAuditEnd] = useState('');
+  const [filterAuditStatus, setFilterAuditStatus] = useState('UNPROCESSED');
 
   const [historyTransactions, setHistoryTransactions] = useState([]);
   const [selectedMedicineForHistory, setSelectedMedicineForHistory] = useState('');
@@ -416,13 +419,15 @@ function Home() {
     searchType = null,
     searchVal = null,
     startDate = null,
-    endDate = null
+    endDate = null,
+    status = null
   ) => {
     try {
       const actualSearchType = searchType !== null ? searchType : (activeTab === 'warehouse_receipt' ? receiptSearchType : '');
       const actualSearchVal = searchVal !== null ? searchVal : (activeTab === 'warehouse_receipt' ? receiptSearchVal : '');
       const actualStartDate = startDate !== null ? startDate : (activeTab === 'warehouse_receipt' ? filterReceiptStart : '');
       const actualEndDate = endDate !== null ? endDate : (activeTab === 'warehouse_receipt' ? filterReceiptEnd : '');
+      const actualStatus = status !== null ? status : (activeTab === 'warehouse_receipt' ? filterReceiptStatus : 'UNPROCESSED');
 
       const res = await api.get('/goods-receipts', {
         params: {
@@ -431,7 +436,8 @@ function Home() {
           searchType: actualSearchType || undefined,
           searchVal: actualSearchVal || undefined,
           startDate: actualStartDate || undefined,
-          endDate: actualEndDate || undefined
+          endDate: actualEndDate || undefined,
+          status: actualStatus !== 'ALL' ? actualStatus : undefined
         }
       });
       const paged = res.data?.data || {};
@@ -449,13 +455,15 @@ function Home() {
     searchType = null,
     searchVal = null,
     startDate = null,
-    endDate = null
+    endDate = null,
+    status = null
   ) => {
     try {
       const actualSearchType = searchType !== null ? searchType : (activeTab === 'warehouse_issue' ? issueSearchType : '');
       const actualSearchVal = searchVal !== null ? searchVal : (activeTab === 'warehouse_issue' ? issueSearchVal : '');
       const actualStartDate = startDate !== null ? startDate : (activeTab === 'warehouse_issue' ? filterIssueStart : '');
       const actualEndDate = endDate !== null ? endDate : (activeTab === 'warehouse_issue' ? filterIssueEnd : '');
+      const actualStatus = status !== null ? status : (activeTab === 'warehouse_issue' ? filterIssueStatus : 'UNPROCESSED');
 
       const res = await api.get('/goods-issues', {
         params: {
@@ -464,7 +472,8 @@ function Home() {
           searchType: actualSearchType || undefined,
           searchVal: actualSearchVal || undefined,
           startDate: actualStartDate || undefined,
-          endDate: actualEndDate || undefined
+          endDate: actualEndDate || undefined,
+          status: actualStatus !== 'ALL' ? actualStatus : undefined
         }
       });
       const paged = res.data?.data || {};
@@ -572,13 +581,15 @@ function Home() {
     searchType = null,
     searchVal = null,
     startDate = null,
-    endDate = null
+    endDate = null,
+    status = null
   ) => {
     try {
       const actualSearchType = searchType !== null ? searchType : (activeTab === 'warehouse_audit' ? auditSearchType : '');
       const actualSearchVal = searchVal !== null ? searchVal : (activeTab === 'warehouse_audit' ? auditSearchVal : '');
       const actualStartDate = startDate !== null ? startDate : (activeTab === 'warehouse_audit' ? filterAuditStart : '');
       const actualEndDate = endDate !== null ? endDate : (activeTab === 'warehouse_audit' ? filterAuditEnd : '');
+      const actualStatus = status !== null ? status : (activeTab === 'warehouse_audit' ? filterAuditStatus : 'UNPROCESSED');
 
       const res = await api.get('/stock-audits', {
         params: {
@@ -587,7 +598,8 @@ function Home() {
           searchType: actualSearchType || undefined,
           searchVal: actualSearchVal || undefined,
           startDate: actualStartDate || undefined,
-          endDate: actualEndDate || undefined
+          endDate: actualEndDate || undefined,
+          status: actualStatus !== 'ALL' ? actualStatus : undefined
         }
       });
       const paged = res.data?.data || {};
@@ -865,15 +877,18 @@ function Home() {
       setActiveFilterEndExpiry('');
       fetchInventory(1, '', 'ALL', '', '', '', '', '', '');
     } else if (activeTab === 'warehouse_receipt') {
-      fetchReceipts(1);
+      setFilterReceiptStatus('UNPROCESSED');
+      fetchReceipts(1, null, null, null, null, 'UNPROCESSED');
       fetchSuppliers();
       fetchAllMedicines();
     } else if (activeTab === 'warehouse_issue') {
-      fetchIssues(1);
+      setFilterIssueStatus('UNPROCESSED');
+      fetchIssues(1, null, null, null, null, 'UNPROCESSED');
       fetchInventory(1, '', 'ALL');
       fetchAllInventories();
     } else if (activeTab === 'warehouse_audit') {
-      fetchAudits(1);
+      setFilterAuditStatus('UNPROCESSED');
+      fetchAudits(1, null, null, null, null, 'UNPROCESSED');
       fetchAllInventories();
     } else if (activeTab === 'warehouse_history') {
       fetchReceipts(1);
@@ -3594,7 +3609,7 @@ function Home() {
                   </svg>
                   <input
                     type="text"
-                    placeholder="Tìm theo tên thuốc hoặc mã lô..."
+                    placeholder="Tìm theo tên thuốc, mã lô hoặc hoạt chất chính..."
                     className="search-input search-input-with-icon"
                     style={{ maxWidth: 'none', flexGrow: 1 }}
                     value={searchInventory}
@@ -4369,7 +4384,7 @@ function Home() {
               )}
             </div>
 
-            <div className="table-actions" style={{ marginBottom: '20px' }}>
+            <div className="table-actions" style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
               <div className="advanced-search-group" style={{ width: '100%', gap: '10px', alignItems: 'center' }}>
                 <select
                   className="search-select"
@@ -4454,6 +4469,61 @@ function Home() {
                     Đặt lại
                   </button>
                 )}
+              </div>
+
+              {/* Status Quick Filter Chips */}
+              <div className="filter-chips-container">
+                <button
+                  type="button"
+                  className={`filter-chip ${filterReceiptStatus === 'ALL' ? 'active-all' : ''}`}
+                  onClick={() => {
+                    setFilterReceiptStatus('ALL');
+                    fetchReceipts(1, receiptSearchType, receiptSearchVal, filterReceiptStart, filterReceiptEnd, 'ALL');
+                  }}
+                >
+                  Tất cả
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterReceiptStatus === 'UNPROCESSED' ? 'active-near-expiry' : ''}`}
+                  onClick={() => {
+                    setFilterReceiptStatus('UNPROCESSED');
+                    fetchReceipts(1, receiptSearchType, receiptSearchVal, filterReceiptStart, filterReceiptEnd, 'UNPROCESSED');
+                  }}
+                >
+                  Chưa xử lý
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterReceiptStatus === 'DRAFT' ? 'active-low-stock' : ''}`}
+                  onClick={() => {
+                    setFilterReceiptStatus('DRAFT');
+                    fetchReceipts(1, receiptSearchType, receiptSearchVal, filterReceiptStart, filterReceiptEnd, 'DRAFT');
+                  }}
+                >
+                  Nháp
+                </button>
+                <button
+                  type="button"
+                  className="filter-chip"
+                  style={filterReceiptStatus === 'CONFIRMED' ? { backgroundColor: '#f0fdf4', borderColor: '#22c55e', color: '#15803d', fontWeight: '600' } : {}}
+                  onClick={() => {
+                    setFilterReceiptStatus('CONFIRMED');
+                    fetchReceipts(1, receiptSearchType, receiptSearchVal, filterReceiptStart, filterReceiptEnd, 'CONFIRMED');
+                  }}
+                >
+                  Đã nhập kho
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterReceiptStatus === 'CANCELLED' ? 'active-expired' : ''}`}
+                  onClick={() => {
+                    setFilterReceiptStatus('CANCELLED');
+                    fetchReceipts(1, receiptSearchType, receiptSearchVal, filterReceiptStart, filterReceiptEnd, 'CANCELLED');
+                  }}
+                >
+                  Đã hủy
+                </button>
               </div>
             </div>
 
@@ -5079,7 +5149,7 @@ function Home() {
               )}
             </div>
 
-            <div className="table-actions" style={{ marginBottom: '20px' }}>
+            <div className="table-actions" style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
               <div className="advanced-search-group" style={{ width: '100%', gap: '10px', alignItems: 'center' }}>
                 <select
                   className="search-select"
@@ -5164,6 +5234,61 @@ function Home() {
                     Đặt lại
                   </button>
                 )}
+              </div>
+
+              {/* Status Quick Filter Chips */}
+              <div className="filter-chips-container">
+                <button
+                  type="button"
+                  className={`filter-chip ${filterIssueStatus === 'ALL' ? 'active-all' : ''}`}
+                  onClick={() => {
+                    setFilterIssueStatus('ALL');
+                    fetchIssues(1, issueSearchType, issueSearchVal, filterIssueStart, filterIssueEnd, 'ALL');
+                  }}
+                >
+                  Tất cả
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterIssueStatus === 'UNPROCESSED' ? 'active-near-expiry' : ''}`}
+                  onClick={() => {
+                    setFilterIssueStatus('UNPROCESSED');
+                    fetchIssues(1, issueSearchType, issueSearchVal, filterIssueStart, filterIssueEnd, 'UNPROCESSED');
+                  }}
+                >
+                  Chưa xử lý
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterIssueStatus === 'DRAFT' ? 'active-low-stock' : ''}`}
+                  onClick={() => {
+                    setFilterIssueStatus('DRAFT');
+                    fetchIssues(1, issueSearchType, issueSearchVal, filterIssueStart, filterIssueEnd, 'DRAFT');
+                  }}
+                >
+                  Nháp
+                </button>
+                <button
+                  type="button"
+                  className="filter-chip"
+                  style={filterIssueStatus === 'CONFIRMED' ? { backgroundColor: '#f0fdf4', borderColor: '#22c55e', color: '#15803d', fontWeight: '600' } : {}}
+                  onClick={() => {
+                    setFilterIssueStatus('CONFIRMED');
+                    fetchIssues(1, issueSearchType, issueSearchVal, filterIssueStart, filterIssueEnd, 'CONFIRMED');
+                  }}
+                >
+                  Đã xuất kho
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterIssueStatus === 'CANCELLED' ? 'active-expired' : ''}`}
+                  onClick={() => {
+                    setFilterIssueStatus('CANCELLED');
+                    fetchIssues(1, issueSearchType, issueSearchVal, filterIssueStart, filterIssueEnd, 'CANCELLED');
+                  }}
+                >
+                  Đã hủy
+                </button>
               </div>
             </div>
 
@@ -5627,7 +5752,7 @@ function Home() {
               )}
             </div>
 
-            <div className="table-actions" style={{ marginBottom: '20px' }}>
+            <div className="table-actions" style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
               <div className="advanced-search-group" style={{ width: '100%', gap: '10px', alignItems: 'center' }}>
                 <select
                   className="search-select"
@@ -5710,6 +5835,72 @@ function Home() {
                     Đặt lại
                   </button>
                 )}
+              </div>
+
+              {/* Status Quick Filter Chips */}
+              <div className="filter-chips-container">
+                <button
+                  type="button"
+                  className={`filter-chip ${filterAuditStatus === 'ALL' ? 'active-all' : ''}`}
+                  onClick={() => {
+                    setFilterAuditStatus('ALL');
+                    fetchAudits(1, auditSearchType, auditSearchVal, filterAuditStart, filterAuditEnd, 'ALL');
+                  }}
+                >
+                  Tất cả
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterAuditStatus === 'UNPROCESSED' ? 'active-near-expiry' : ''}`}
+                  onClick={() => {
+                    setFilterAuditStatus('UNPROCESSED');
+                    fetchAudits(1, auditSearchType, auditSearchVal, filterAuditStart, filterAuditEnd, 'UNPROCESSED');
+                  }}
+                >
+                  Chưa xử lý
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterAuditStatus === 'DRAFT' ? 'active-low-stock' : ''}`}
+                  onClick={() => {
+                    setFilterAuditStatus('DRAFT');
+                    fetchAudits(1, auditSearchType, auditSearchVal, filterAuditStart, filterAuditEnd, 'DRAFT');
+                  }}
+                >
+                  Nháp
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterAuditStatus === 'IN_PROGRESS' ? 'active-low-stock' : ''}`}
+                  onClick={() => {
+                    setFilterAuditStatus('IN_PROGRESS');
+                    fetchAudits(1, auditSearchType, auditSearchVal, filterAuditStart, filterAuditEnd, 'IN_PROGRESS');
+                  }}
+                  style={filterAuditStatus === 'IN_PROGRESS' ? { backgroundColor: '#ffedd5', borderColor: '#f97316', color: '#c2410c' } : {}}
+                >
+                  Đang kiểm kê
+                </button>
+                <button
+                  type="button"
+                  className="filter-chip"
+                  style={filterAuditStatus === 'CONFIRMED' ? { backgroundColor: '#f0fdf4', borderColor: '#22c55e', color: '#15803d', fontWeight: '600' } : {}}
+                  onClick={() => {
+                    setFilterAuditStatus('CONFIRMED');
+                    fetchAudits(1, auditSearchType, auditSearchVal, filterAuditStart, filterAuditEnd, 'CONFIRMED');
+                  }}
+                >
+                  Đã đối soát
+                </button>
+                <button
+                  type="button"
+                  className={`filter-chip ${filterAuditStatus === 'CANCELLED' ? 'active-expired' : ''}`}
+                  onClick={() => {
+                    setFilterAuditStatus('CANCELLED');
+                    fetchAudits(1, auditSearchType, auditSearchVal, filterAuditStart, filterAuditEnd, 'CANCELLED');
+                  }}
+                >
+                  Đã hủy
+                </button>
               </div>
             </div>
 
@@ -6708,7 +6899,7 @@ function Home() {
                 <div className="advanced-search-group" style={{ width: '100%' }}>
                   <input
                     type="text"
-                    placeholder="Tìm theo tên thuốc hoặc mã lô để bán..."
+                    placeholder="Tìm theo tên thuốc, mã lô hoặc hoạt chất chính để bán..."
                     className="search-input"
                     style={{ maxWidth: 'none', flexGrow: 1 }}
                     value={posSearchKeyword}

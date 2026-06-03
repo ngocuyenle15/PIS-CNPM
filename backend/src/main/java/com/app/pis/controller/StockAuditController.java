@@ -37,11 +37,12 @@ public class StockAuditController {
             @RequestParam(required = false) String searchVal,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         
         PagedResponse<StockAuditResponse> response = stockAuditService.getAll(
-                searchType, searchVal, startDate, endDate, page, size);
+                searchType, searchVal, startDate, endDate, status, page, size);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách phiếu kiểm kê kho thành công"));
     }
 

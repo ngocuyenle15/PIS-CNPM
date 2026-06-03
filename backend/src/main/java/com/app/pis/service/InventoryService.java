@@ -67,7 +67,8 @@ public class InventoryService {
                 String cleanSearch = search.trim().toLowerCase();
                 String medName = inv.getMedicine().getMedicineName().toLowerCase();
                 String batchId = inv.getBatchId().toLowerCase();
-                matchesSearch = medName.contains(cleanSearch) || batchId.contains(cleanSearch);
+                String ingredients = inv.getMedicine().getIngredients() != null ? inv.getMedicine().getIngredients().toLowerCase() : "";
+                matchesSearch = medName.contains(cleanSearch) || batchId.contains(cleanSearch) || ingredients.contains(cleanSearch);
             }
 
             boolean matchesType = true;
