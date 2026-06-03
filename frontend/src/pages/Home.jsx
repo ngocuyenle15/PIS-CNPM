@@ -4696,8 +4696,8 @@ function Home() {
                 alignItems: 'center',
                 zIndex: 1000
               }}>
-                <div className="content-card" style={{ width: '1280px', maxWidth: '95%', height: '800px', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', border: '1px solid #cbd5e1', padding: '24px', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)', margin: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <div className="content-card" style={{ width: '98%', height: '128vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff', border: '1px solid #cbd5e1', padding: '24px', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', flexShrink: 0 }}>
                     <h2 style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase' }}>
                       {receiptFormMode === 'add' ? (receiptForm.receiptId ? `Hiệu Chỉnh Phiếu Nhập Nháp (${receiptForm.receiptId})` : 'Lập Phiếu Nhập Mới') : 'Chi Tiết Phiếu Nhập'}
                     </h2>
@@ -4717,8 +4717,8 @@ function Home() {
                   </div>
 
                   {receiptFormMode === 'add' ? (
-                    <form onSubmit={handleSaveReceiptDraft}>
-                      <div className="form-group">
+                    <form onSubmit={handleSaveReceiptDraft} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                      <div className="form-group" style={{ flexShrink: 0 }}>
                         <label className="label">Nhà cung cấp:</label>
                         <SearchableSelect
                           options={suppliersList}
@@ -4730,7 +4730,7 @@ function Home() {
                         />
                       </div>
 
-                      <div className="form-group">
+                      <div className="form-group" style={{ flexShrink: 0 }}>
                         <label className="label">Ghi chú phiếu nhập:</label>
                         <textarea
                           className="input"
@@ -4741,12 +4741,12 @@ function Home() {
                         />
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '15px 0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '15px 0', flexShrink: 0 }}>
                         <span className="label">Danh sách thuốc nhập:</span>
                         <button type="button" className="btn-action btn-select" onClick={handleAddLine}>+ Thêm thuốc</button>
                       </div>
 
-                      <div style={{ height: '380px', overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '6px', marginBottom: '15px', background: '#f8fafc' }}>
+                      <div style={{ flexGrow: 1, overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '6px', marginBottom: '15px', background: '#f8fafc' }}>
                         <table className="custom-table" style={{ margin: 0, border: 'none', minWidth: '1000px' }}>
                           <thead>
                             <tr style={{ background: '#f8fafc' }}>
@@ -4879,27 +4879,27 @@ function Home() {
                         </table>
                       </div>
 
-                      <div className="form-actions">
+                      <div className="form-actions" style={{ flexShrink: 0 }}>
                         <button type="button" className="btn-action btn-cancel" onClick={() => setReceiptFormMode(null)}>Hủy bỏ</button>
                         <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1 }}>Lưu nháp chứng từ</button>
                       </div>
                     </form>
                   ) : (
-                    <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
                       {selectedReceipt && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', overflow: 'hidden' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', flexShrink: 0 }}>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Mã phiếu:</strong> <span style={{ fontWeight: '600' }}>{selectedReceipt.receiptId}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Nhà cung cấp:</strong> <span>{selectedReceipt.supplierName}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Người lập:</strong> <span>{selectedReceipt.employeeName}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Thời gian:</strong> <span>{selectedReceipt.receiptTime ? new Date(selectedReceipt.receiptTime).toLocaleString('vi-VN') : '---'}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Trạng thái:</strong> <strong style={{ color: selectedReceipt.status === 'CONFIRMED' ? 'var(--success-color)' : 'var(--error-color)' }}>{selectedReceipt.status}</strong></div>
                           </div>
-                          <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Ghi chú:</strong> <span>{selectedReceipt.note || '(Không có)'}</span></div>
+                          <div style={{ flexShrink: 0 }}><strong style={{ fontSize: '13px', color: '#64748b' }}>Ghi chú:</strong> <span>{selectedReceipt.note || '(Không có)'}</span></div>
 
-                          <div style={{ marginTop: '15px' }}>
-                            <span className="label" style={{ marginBottom: '6px' }}>Chi tiết dòng thuốc nhập:</span>
-                            <div style={{ height: '420px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc' }}>
+                          <div style={{ marginTop: '15px', flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <span className="label" style={{ marginBottom: '6px', flexShrink: 0 }}>Chi tiết dòng thuốc nhập:</span>
+                            <div style={{ flexGrow: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc' }}>
                               <table className="custom-table" style={{ margin: 0, border: 'none' }}>
                                 <thead>
                                   <tr style={{ background: '#f8fafc' }}>
@@ -5460,8 +5460,8 @@ function Home() {
                 alignItems: 'center',
                 zIndex: 1000
               }}>
-                <div className="content-card" style={{ width: '1280px', maxWidth: '95%', height: '800px', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', border: '1px solid #cbd5e1', padding: '24px', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)', margin: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <div className="content-card" style={{ width: '98%', height: '128vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff', border: '1px solid #cbd5e1', padding: '24px', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', flexShrink: 0 }}>
                     <h2 style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase' }}>
                       {issueFormMode === 'add' ? (issueForm.issueId ? `Hiệu Chỉnh Phiếu Xuất Nháp (${issueForm.issueId})` : 'Lập Phiếu Xuất Mới') : 'Chi Tiết Phiếu Xuất'}
                     </h2>
@@ -5481,8 +5481,8 @@ function Home() {
                   </div>
 
                   {issueFormMode === 'add' ? (
-                    <form onSubmit={handleSaveIssueDraft}>
-                      <div className="form-group">
+                    <form onSubmit={handleSaveIssueDraft} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                      <div className="form-group" style={{ flexShrink: 0 }}>
                         <label className="label">Lý do xuất kho:</label>
                         <select
                           className="select-input"
@@ -5498,7 +5498,7 @@ function Home() {
                         </select>
                       </div>
 
-                      <div className="form-group">
+                      <div className="form-group" style={{ flexShrink: 0 }}>
                         <label className="label">Ghi chú xuất kho:</label>
                         <textarea
                           className="input"
@@ -5509,12 +5509,12 @@ function Home() {
                         />
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '15px 0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '15px 0', flexShrink: 0 }}>
                         <span className="label">Lô hàng xuất kho:</span>
                         <button type="button" className="btn-action btn-brand" onClick={handleAddIssueLine}>+ Thêm lô xuất</button>
                       </div>
 
-                      <div style={{ height: '380px', overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '6px', marginBottom: '15px', background: '#f8fafc' }}>
+                      <div style={{ flexGrow: 1, overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '6px', marginBottom: '15px', background: '#f8fafc' }}>
                         <table className="custom-table" style={{ margin: 0, border: 'none', minWidth: '800px' }}>
                           <thead>
                             <tr style={{ background: '#f8fafc' }}>
@@ -5609,27 +5609,27 @@ function Home() {
                         </table>
                       </div>
 
-                      <div className="form-actions">
+                      <div className="form-actions" style={{ flexShrink: 0 }}>
                         <button type="button" className="btn-action btn-cancel" onClick={() => setIssueFormMode(null)}>Hủy bỏ</button>
                         <button type="submit" className="btn-action btn-delete" style={{ flexGrow: 1, backgroundColor: 'var(--error-color)' }}>Lưu phiếu xuất nháp</button>
                       </div>
                     </form>
                   ) : (
-                    <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
                       {selectedIssue && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', overflow: 'hidden' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', flexShrink: 0 }}>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Mã phiếu xuất:</strong> <span style={{ fontWeight: '600' }}>{selectedIssue.issueId}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Lý do xuất:</strong> <strong style={{ color: 'var(--error-hover)' }}>{selectedIssue.issueType}</strong></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Người lập:</strong> <span>{selectedIssue.employeeName}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Thời gian:</strong> <span>{selectedIssue.issueTime ? new Date(selectedIssue.issueTime).toLocaleString('vi-VN') : '---'}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Trạng thái:</strong> <strong style={{ color: selectedIssue.status === 'CONFIRMED' ? 'var(--success-color)' : 'var(--error-color)' }}>{selectedIssue.status}</strong></div>
                           </div>
-                          <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Ghi chú:</strong> <span>{selectedIssue.note || '(Không có)'}</span></div>
+                          <div style={{ flexShrink: 0 }}><strong style={{ fontSize: '13px', color: '#64748b' }}>Ghi chú:</strong> <span>{selectedIssue.note || '(Không có)'}</span></div>
 
-                          <div style={{ marginTop: '15px' }}>
-                            <span className="label" style={{ marginBottom: '6px' }}>Chi tiết lô thuốc xuất:</span>
-                            <div style={{ height: '420px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc' }}>
+                          <div style={{ marginTop: '15px', flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <span className="label" style={{ marginBottom: '6px', flexShrink: 0 }}>Chi tiết lô thuốc xuất:</span>
+                            <div style={{ flexGrow: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc' }}>
                               <table className="custom-table" style={{ margin: 0, border: 'none' }}>
                                 <thead>
                                   <tr style={{ background: '#f8fafc' }}>
@@ -6064,8 +6064,8 @@ function Home() {
                 alignItems: 'center',
                 zIndex: 1000
               }}>
-                <div className="content-card" style={{ width: '1280px', maxWidth: '95%', height: '800px', maxHeight: '90vh', overflowY: 'auto', background: '#ffffff', border: '1px solid #cbd5e1', padding: '24px', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)', margin: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <div className="content-card" style={{ width: '98%', height: '128vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff', border: '1px solid #cbd5e1', padding: '24px', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', flexShrink: 0 }}>
                     <h2 style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase' }}>
                       {auditFormMode === 'edit' ? 'Nhập Số Đếm Thực Tế' : 'Xem Chi Tiết Kiểm Kê'}
                     </h2>
@@ -6073,8 +6073,8 @@ function Home() {
                   </div>
 
                   {auditFormMode === 'edit' ? (
-                    <form onSubmit={handleSaveDraftQuantity}>
-                      <div className="form-group">
+                    <form onSubmit={handleSaveDraftQuantity} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                      <div className="form-group" style={{ flexShrink: 0 }}>
                         <label className="label">Ghi chú phiếu kiểm kê:</label>
                         <input
                           type="text"
@@ -6085,11 +6085,11 @@ function Home() {
                         />
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '15px 0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '15px 0', flexShrink: 0 }}>
                         <span className="label">Bảng đối soát chi tiết tồn kho:</span>
                       </div>
 
-                      <div style={{ height: '420px', overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '6px', marginBottom: '15px', background: '#f8fafc' }}>
+                      <div style={{ flexGrow: 1, overflowY: 'auto', border: '1px solid #cbd5e1', borderRadius: '6px', marginBottom: '15px', background: '#f8fafc' }}>
                         <table className="custom-table" style={{ margin: 0, border: 'none', minWidth: '800px' }}>
                           <thead>
                             <tr style={{ background: '#f8fafc' }}>
@@ -6135,26 +6135,26 @@ function Home() {
                         </table>
                       </div>
 
-                      <div className="form-actions">
+                      <div className="form-actions" style={{ flexShrink: 0 }}>
                         <button type="button" className="btn-action btn-cancel" onClick={() => setAuditFormMode(null)}>Đóng</button>
                         <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, backgroundColor: 'var(--warning-hover)' }}>Lưu số thực tế đếm tạm</button>
                       </div>
                     </form>
                   ) : (
-                    <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
                       {selectedAudit && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', overflow: 'hidden' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', flexShrink: 0 }}>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Mã phiếu kiểm:</strong> <span style={{ fontWeight: '600' }}>{selectedAudit.auditId}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Người lập:</strong> <span>{selectedAudit.createdByName}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Thời gian:</strong> <span>{selectedAudit.auditTime ? new Date(selectedAudit.auditTime).toLocaleString('vi-VN') : '---'}</span></div>
                             <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Trạng thái:</strong> <strong style={{ color: selectedAudit.status === 'CONFIRMED' ? 'var(--success-color)' : 'var(--warning-hover)' }}>{selectedAudit.status}</strong></div>
                           </div>
-                          <div><strong style={{ fontSize: '13px', color: '#64748b' }}>Ghi chú:</strong> <span>{selectedAudit.note || '(Không có)'}</span></div>
+                          <div style={{ flexShrink: 0 }}><strong style={{ fontSize: '13px', color: '#64748b' }}>Ghi chú:</strong> <span>{selectedAudit.note || '(Không có)'}</span></div>
 
-                          <div style={{ marginTop: '15px' }}>
-                            <span className="label" style={{ marginBottom: '6px' }}>Bảng chi tiết chênh lệch đối soát:</span>
-                            <div style={{ height: '420px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc' }}>
+                          <div style={{ marginTop: '15px', flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <span className="label" style={{ marginBottom: '6px', flexShrink: 0 }}>Bảng chi tiết chênh lệch đối soát:</span>
+                            <div style={{ flexGrow: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc' }}>
                               <table className="custom-table" style={{ margin: 0, border: 'none' }}>
                                 <thead>
                                   <tr style={{ background: '#f8fafc' }}>
@@ -6250,7 +6250,7 @@ function Home() {
             {activeHistoryTab === 'DOCUMENTS' ? (
               <div>
                 <p style={{ color: '#4b5563', fontSize: '14px', marginBottom: '15px' }}>
-                  * Dưới đây là thống kê tổng số lượng chứng từ và nhật ký các giao dịch kho gần đây nhất từ hệ thống.
+                  Dưới đây là thống kê tổng số lượng chứng từ và nhật ký các giao dịch kho gần đây nhất từ hệ thống.
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '25px' }}>
                   <div className="content-card" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px', backgroundColor: '#f8fafc', boxShadow: 'none', border: '1px solid #e2e8f0' }}>
