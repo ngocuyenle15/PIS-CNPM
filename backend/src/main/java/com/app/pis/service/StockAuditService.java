@@ -92,6 +92,8 @@ public class StockAuditService {
             if (StringUtils.hasText(status)) {
                 if (status.equalsIgnoreCase("UNPROCESSED")) {
                     matchesStatus = sa.getStatus() != StockAudit.AuditStatus.CONFIRMED;
+                } else if (status.equalsIgnoreCase("IN_PROGRESS")) {
+                    matchesStatus = sa.getStatus() == StockAudit.AuditStatus.IN_PROGRESS || sa.getStatus() == StockAudit.AuditStatus.DRAFT;
                 } else if (!status.equalsIgnoreCase("ALL")) {
                     matchesStatus = sa.getStatus() != null && sa.getStatus().name().equalsIgnoreCase(status.trim());
                 }
@@ -197,7 +199,7 @@ public class StockAuditService {
 
         // RÀNG BUỘC TRẠNG THÁI: Phải ở trạng thái DRAFT hoặc IN_PROGRESS mới được cập nhật số đếm
         if (audit.getStatus() != StockAudit.AuditStatus.DRAFT && audit.getStatus() != StockAudit.AuditStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Chỉ được nhập số đếm thực tế khi phiếu ở trạng thái ĐANG XỬ LÝ (DRAFT) hoặc ĐANG THỰC HIỆN (IN_PROGRESS). Trạng thái hiện tại: " + audit.getStatus());
+            throw new IllegalStateException("Chỉ được nhập số đếm thực tế khi phiếu ở trạng thái ĐANG XỬ LÝ (DRAFT) hoặc ĐANG XỬ LÝ (IN_PROGRESS). Trạng thái hiện tại: " + audit.getStatus());
         }
 
         if (audit.getStatus() == StockAudit.AuditStatus.DRAFT) {
@@ -240,7 +242,7 @@ public class StockAuditService {
 
         // RÀNG BUỘC TRẠNG THÁI: DRAFT hoặc IN_PROGRESS -> CONFIRMED
         if (audit.getStatus() != StockAudit.AuditStatus.DRAFT && audit.getStatus() != StockAudit.AuditStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Chỉ hoàn thành kiểm kê khi phiếu ở trạng thái ĐANG XỬ LÝ (DRAFT) hoặc ĐANG THỰC HIỆN (IN_PROGRESS). Trạng thái hiện tại: " + audit.getStatus());
+            throw new IllegalStateException("Chỉ hoàn thành kiểm kê khi phiếu ở trạng thái ĐANG XỬ LÝ (DRAFT) hoặc ĐANG XỬ LÝ (IN_PROGRESS). Trạng thái hiện tại: " + audit.getStatus());
         }
 
         // KIỂM TRA ĐÃ ĐIỀN ĐỦ SỐ THỰC TẾ CHƯA

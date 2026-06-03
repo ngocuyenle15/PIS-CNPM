@@ -277,7 +277,7 @@ function Home() {
   const [receiptSearchVal, setReceiptSearchVal] = useState('');
   const [filterReceiptStart, setFilterReceiptStart] = useState('');
   const [filterReceiptEnd, setFilterReceiptEnd] = useState('');
-  const [filterReceiptStatus, setFilterReceiptStatus] = useState('UNPROCESSED');
+  const [filterReceiptStatus, setFilterReceiptStatus] = useState('DRAFT');
 
   const [issuesList, setIssuesList] = useState([]);
   const [issueCurrentPage, setIssueCurrentPage] = useState(1);
@@ -291,7 +291,7 @@ function Home() {
   const [issueSearchVal, setIssueSearchVal] = useState('');
   const [filterIssueStart, setFilterIssueStart] = useState('');
   const [filterIssueEnd, setFilterIssueEnd] = useState('');
-  const [filterIssueStatus, setFilterIssueStatus] = useState('UNPROCESSED');
+  const [filterIssueStatus, setFilterIssueStatus] = useState('DRAFT');
 
   const [auditsList, setAuditsList] = useState([]);
   const [auditCurrentPage, setAuditCurrentPage] = useState(1);
@@ -305,7 +305,7 @@ function Home() {
   const [auditSearchVal, setAuditSearchVal] = useState('');
   const [filterAuditStart, setFilterAuditStart] = useState('');
   const [filterAuditEnd, setFilterAuditEnd] = useState('');
-  const [filterAuditStatus, setFilterAuditStatus] = useState('UNPROCESSED');
+  const [filterAuditStatus, setFilterAuditStatus] = useState('IN_PROGRESS');
 
   const [historyTransactions, setHistoryTransactions] = useState([]);
   const [selectedMedicineForHistory, setSelectedMedicineForHistory] = useState('');
@@ -427,7 +427,7 @@ function Home() {
       const actualSearchVal = searchVal !== null ? searchVal : (activeTab === 'warehouse_receipt' ? receiptSearchVal : '');
       const actualStartDate = startDate !== null ? startDate : (activeTab === 'warehouse_receipt' ? filterReceiptStart : '');
       const actualEndDate = endDate !== null ? endDate : (activeTab === 'warehouse_receipt' ? filterReceiptEnd : '');
-      const actualStatus = status !== null ? status : (activeTab === 'warehouse_receipt' ? filterReceiptStatus : 'UNPROCESSED');
+      const actualStatus = status !== null ? status : (activeTab === 'warehouse_receipt' ? filterReceiptStatus : 'DRAFT');
 
       const res = await api.get('/goods-receipts', {
         params: {
@@ -463,7 +463,7 @@ function Home() {
       const actualSearchVal = searchVal !== null ? searchVal : (activeTab === 'warehouse_issue' ? issueSearchVal : '');
       const actualStartDate = startDate !== null ? startDate : (activeTab === 'warehouse_issue' ? filterIssueStart : '');
       const actualEndDate = endDate !== null ? endDate : (activeTab === 'warehouse_issue' ? filterIssueEnd : '');
-      const actualStatus = status !== null ? status : (activeTab === 'warehouse_issue' ? filterIssueStatus : 'UNPROCESSED');
+      const actualStatus = status !== null ? status : (activeTab === 'warehouse_issue' ? filterIssueStatus : 'DRAFT');
 
       const res = await api.get('/goods-issues', {
         params: {
@@ -576,6 +576,52 @@ function Home() {
     printContent(`Phiếu Xuất - ${selectedIssue.issueId}`, htmlContent);
   };
 
+  const handlePrintAudit = (auditItem) => {
+    const auditToPrint = auditItem || selectedAudit;
+    if (!auditToPrint) return;
+    const detailsRows = auditToPrint.details?.map((d, i) => `
+      <tr>
+        <td style="text-align: center;">#${i + 1}</td>
+        <td style="font-weight: bold;">${d.medicineName}</td>
+        <td>${d.batchId || '---'}</td>
+        <td style="text-align: center;">${d.systemQuantity}</td>
+        <td style="text-align: center;">${d.unitName || '---'}</td>
+        <td style="text-align: center;">${d.actualQuantity !== null && d.actualQuantity !== undefined ? d.actualQuantity : '___'}</td>
+        <td style="text-align: right;">${d.discrepancy !== null && d.discrepancy !== undefined ? (d.discrepancy > 0 ? `+${d.discrepancy}` : d.discrepancy) : '___'}</td>
+      </tr>
+    `).join('') || '';
+
+    const htmlContent = `
+      <h2>Phiếu Kiểm Kê Kho</h2>
+      <div class="info-grid">
+        <div class="info-item"><strong>Mã phiếu kiểm:</strong> ${auditToPrint.auditId}</div>
+        <div class="info-item"><strong>Người lập:</strong> ${auditToPrint.createdByName}</div>
+        <div class="info-item"><strong>Thời gian:</strong> ${auditToPrint.auditTime ? new Date(auditToPrint.auditTime).toLocaleString('vi-VN') : '---'}</div>
+        <div class="info-item"><strong>Trạng thái:</strong> ${auditToPrint.status === 'CONFIRMED' ? 'Đã hoàn thành' : (auditToPrint.status === 'CANCELLED' ? 'Đã hủy' : 'Đang kiểm kê')}</div>
+        <div class="info-item" style="grid-column: span 2;"><strong>Ghi chú:</strong> ${auditToPrint.note || '(Không có)'}</div>
+      </div>
+      
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 50px;">STT</th>
+            <th>Tên thuốc</th>
+            <th>Mã lô</th>
+            <th style="text-align: center;">Sổ sách</th>
+            <th style="text-align: center;">Đơn vị</th>
+            <th style="text-align: center;">Thực đếm</th>
+            <th style="text-align: right;">Chênh lệch</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${detailsRows}
+        </tbody>
+      </table>
+    `;
+
+    printContent(`Phiếu Kiểm Kê - ${auditToPrint.auditId}`, htmlContent);
+  };
+
   const fetchAudits = async (
     page = 1,
     searchType = null,
@@ -589,7 +635,7 @@ function Home() {
       const actualSearchVal = searchVal !== null ? searchVal : (activeTab === 'warehouse_audit' ? auditSearchVal : '');
       const actualStartDate = startDate !== null ? startDate : (activeTab === 'warehouse_audit' ? filterAuditStart : '');
       const actualEndDate = endDate !== null ? endDate : (activeTab === 'warehouse_audit' ? filterAuditEnd : '');
-      const actualStatus = status !== null ? status : (activeTab === 'warehouse_audit' ? filterAuditStatus : 'UNPROCESSED');
+      const actualStatus = status !== null ? status : (activeTab === 'warehouse_audit' ? filterAuditStatus : 'IN_PROGRESS');
 
       const res = await api.get('/stock-audits', {
         params: {
@@ -877,18 +923,18 @@ function Home() {
       setActiveFilterEndExpiry('');
       fetchInventory(1, '', 'ALL', '', '', '', '', '', '');
     } else if (activeTab === 'warehouse_receipt') {
-      setFilterReceiptStatus('UNPROCESSED');
-      fetchReceipts(1, null, null, null, null, 'UNPROCESSED');
+      setFilterReceiptStatus('DRAFT');
+      fetchReceipts(1, null, null, null, null, 'DRAFT');
       fetchSuppliers();
       fetchAllMedicines();
     } else if (activeTab === 'warehouse_issue') {
-      setFilterIssueStatus('UNPROCESSED');
-      fetchIssues(1, null, null, null, null, 'UNPROCESSED');
+      setFilterIssueStatus('DRAFT');
+      fetchIssues(1, null, null, null, null, 'DRAFT');
       fetchInventory(1, '', 'ALL');
       fetchAllInventories();
     } else if (activeTab === 'warehouse_audit') {
-      setFilterAuditStatus('UNPROCESSED');
-      fetchAudits(1, null, null, null, null, 'UNPROCESSED');
+      setFilterAuditStatus('IN_PROGRESS');
+      fetchAudits(1, null, null, null, null, 'IN_PROGRESS');
       fetchAllInventories();
     } else if (activeTab === 'warehouse_history') {
       fetchReceipts(1);
@@ -4485,16 +4531,6 @@ function Home() {
                 </button>
                 <button
                   type="button"
-                  className={`filter-chip ${filterReceiptStatus === 'UNPROCESSED' ? 'active-near-expiry' : ''}`}
-                  onClick={() => {
-                    setFilterReceiptStatus('UNPROCESSED');
-                    fetchReceipts(1, receiptSearchType, receiptSearchVal, filterReceiptStart, filterReceiptEnd, 'UNPROCESSED');
-                  }}
-                >
-                  Chưa xử lý
-                </button>
-                <button
-                  type="button"
                   className={`filter-chip ${filterReceiptStatus === 'DRAFT' ? 'active-low-stock' : ''}`}
                   onClick={() => {
                     setFilterReceiptStatus('DRAFT');
@@ -5250,16 +5286,6 @@ function Home() {
                 </button>
                 <button
                   type="button"
-                  className={`filter-chip ${filterIssueStatus === 'UNPROCESSED' ? 'active-near-expiry' : ''}`}
-                  onClick={() => {
-                    setFilterIssueStatus('UNPROCESSED');
-                    fetchIssues(1, issueSearchType, issueSearchVal, filterIssueStart, filterIssueEnd, 'UNPROCESSED');
-                  }}
-                >
-                  Chưa xử lý
-                </button>
-                <button
-                  type="button"
                   className={`filter-chip ${filterIssueStatus === 'DRAFT' ? 'active-low-stock' : ''}`}
                   onClick={() => {
                     setFilterIssueStatus('DRAFT');
@@ -5800,7 +5826,7 @@ function Home() {
                       auditSearchType === 'auditId' ? 'Tìm kiếm theo mã phiếu...' :
                         auditSearchType === 'batchId' ? 'Tìm kiếm theo mã lô thuốc...' :
                           auditSearchType === 'createdBy' ? 'Tìm kiếm theo tên người lập...' :
-                            'Tìm kiếm theo trạng thái (IN_PROGRESS - Đang đếm kho, CONFIRMED...)...'
+                            'Tìm kiếm theo trạng thái (IN_PROGRESS - Đang xử lý, CONFIRMED...)...'
                     }
                     className="search-input"
                     style={{ maxWidth: 'none', flexGrow: 1 }}
@@ -5853,16 +5879,6 @@ function Home() {
                 </button>
                 <button
                   type="button"
-                  className={`filter-chip ${filterAuditStatus === 'UNPROCESSED' ? 'active-near-expiry' : ''}`}
-                  onClick={() => {
-                    setFilterAuditStatus('UNPROCESSED');
-                    fetchAudits(1, auditSearchType, auditSearchVal, filterAuditStart, filterAuditEnd, 'UNPROCESSED');
-                  }}
-                >
-                  Chưa xử lý
-                </button>
-                <button
-                  type="button"
                   className={`filter-chip ${filterAuditStatus === 'IN_PROGRESS' ? 'active-low-stock' : ''}`}
                   onClick={() => {
                     setFilterAuditStatus('IN_PROGRESS');
@@ -5870,7 +5886,7 @@ function Home() {
                   }}
                   style={filterAuditStatus === 'IN_PROGRESS' ? { backgroundColor: '#ffedd5', borderColor: '#f97316', color: '#c2410c' } : {}}
                 >
-                  Đang kiểm kê
+                  Đang xử lý
                 </button>
                 <button
                   type="button"
@@ -5912,9 +5928,9 @@ function Home() {
                     auditsList.map((item) => {
                       let statusColor = '#94a3b8';
                       let statusText = 'Đang xử lý';
-                      if (item.status === 'IN_PROGRESS') {
+                      if (item.status === 'IN_PROGRESS' || item.status === 'DRAFT') {
                         statusColor = 'var(--warning-hover)';
-                        statusText = 'Đang đếm kho';
+                        statusText = 'Đang xử lý';
                       } else if (item.status === 'CONFIRMED') {
                         statusColor = 'var(--success-color)';
                         statusText = 'Đã hoàn thành';
@@ -5957,13 +5973,37 @@ function Home() {
                                     onClick={() => {
                                       setSelectedAudit(item);
                                       setAuditForm({ note: item.note || '', details: item.details || [] });
-                                      setAuditFormMode((item.status === 'IN_PROGRESS' && (role === 'Admin' || role === 'Product_manager')) ? 'edit' : 'view');
+                                      setAuditFormMode('view');
                                       setActiveDropdown(null);
                                     }}
                                   >
-                                    {(item.status === 'IN_PROGRESS' && (role === 'Admin' || role === 'Product_manager')) ? 'Đếm kho' : 'Xem chi tiết'}
+                                    Xem chi tiết
                                   </button>
-                                  {item.status === 'IN_PROGRESS' && (role === 'Admin' || role === 'Product_manager') && (
+                                  {(item.status === 'IN_PROGRESS' || item.status === 'DRAFT') && (
+                                    <button
+                                      type="button"
+                                      className="action-dropdown-item"
+                                      onClick={() => {
+                                        setSelectedAudit(item);
+                                        setAuditForm({ note: item.note || '', details: item.details || [] });
+                                        setAuditFormMode('edit');
+                                        setActiveDropdown(null);
+                                      }}
+                                    >
+                                      Đếm kho
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="action-dropdown-item"
+                                    onClick={() => {
+                                      handlePrintAudit(item);
+                                      setActiveDropdown(null);
+                                    }}
+                                  >
+                                    In phiếu
+                                  </button>
+                                  {(item.status === 'IN_PROGRESS' || item.status === 'DRAFT') && (role === 'Admin' || role === 'Product_manager') && (
                                     <>
                                       <button
                                         type="button"
@@ -6061,7 +6101,19 @@ function Home() {
                     <h2 style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase' }}>
                       {auditFormMode === 'edit' ? 'Nhập Số Đếm Thực Tế' : 'Xem Chi Tiết Kiểm Kê'}
                     </h2>
-                    <button className="btn-action btn-cancel" style={{ padding: '4px 8px' }} onClick={() => setAuditFormMode(null)}>X đóng</button>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {auditFormMode === 'view' && (
+                        <button
+                          type="button"
+                          className="btn-action btn-select"
+                          style={{ padding: '4px 12px' }}
+                          onClick={() => handlePrintAudit(selectedAudit)}
+                        >
+                          In Phiếu
+                        </button>
+                      )}
+                      <button className="btn-action btn-cancel" style={{ padding: '4px 8px' }} onClick={() => setAuditFormMode(null)}>X đóng</button>
+                    </div>
                   </div>
 
                   {auditFormMode === 'edit' ? (
@@ -6329,9 +6381,9 @@ function Home() {
                             } else if (doc.status === 'CANCELLED') {
                               statusColor = 'var(--error-color)';
                               statusText = 'Đã hủy';
-                            } else if (doc.status === 'IN_PROGRESS') {
+                            } else if (doc.status === 'IN_PROGRESS' || doc.status === 'DRAFT') {
                               statusColor = 'var(--warning-hover)';
-                              statusText = 'Đang đếm kho';
+                              statusText = 'Đang xử lý';
                             }
 
                             return (
