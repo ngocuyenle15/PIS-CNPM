@@ -4331,12 +4331,12 @@ function Home() {
                 conversionRate: Number(d.conversionRate) || 1
               }))
             });
-            alert('Lưu nháp phiếu nhập kho thành công!');
+            alert('Lưu phiếu nhập kho (Đang xử lý) thành công!');
             setReceiptFormMode(null);
             fetchReceipts(1);
           } catch (error) {
-            console.error('Lỗi lưu nháp phiếu nhập:', error);
-            alert('Không thể lưu nháp phiếu nhập: ' + (error.response?.data?.message || error.message));
+            console.error('Lỗi lưu phiếu nhập (Đang xử lý):', error);
+            alert('Không thể lưu phiếu nhập (Đang xử lý): ' + (error.response?.data?.message || error.message));
           }
         };
 
@@ -4432,7 +4432,7 @@ function Home() {
                         receiptSearchType === 'batchId' ? 'Tìm kiếm theo mã lô thuốc...' :
                           receiptSearchType === 'supplier' ? 'Tìm kiếm theo tên nhà cung cấp...' :
                             receiptSearchType === 'employee' ? 'Tìm kiếm theo tên người lập...' :
-                              'Tìm kiếm theo trạng thái (DRAFT, CONFIRMED...)...'
+                              'Tìm kiếm theo trạng thái (DRAFT - Đang xử lý, CONFIRMED...)...'
                     }
                     className="search-input"
                     style={{ maxWidth: 'none', flexGrow: 1 }}
@@ -4501,7 +4501,7 @@ function Home() {
                     fetchReceipts(1, receiptSearchType, receiptSearchVal, filterReceiptStart, filterReceiptEnd, 'DRAFT');
                   }}
                 >
-                  Nháp
+                  Đang xử lý
                 </button>
                 <button
                   type="button"
@@ -4543,7 +4543,7 @@ function Home() {
                   {receiptsList.length > 0 ? (
                     receiptsList.map((item) => {
                       let statusColor = '#94a3b8'; // DRAFT
-                      let statusText = 'Lưu nháp';
+                      let statusText = 'Đang xử lý';
                       if (item.status === 'CONFIRMED') {
                         statusColor = 'var(--success-color)';
                         statusText = 'Đã nhập kho';
@@ -4699,7 +4699,7 @@ function Home() {
                 <div className="content-card" style={{ width: '98%', height: '128vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff', border: '1px solid #cbd5e1', padding: '24px', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', flexShrink: 0 }}>
                     <h2 style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase' }}>
-                      {receiptFormMode === 'add' ? (receiptForm.receiptId ? `Hiệu Chỉnh Phiếu Nhập Nháp (${receiptForm.receiptId})` : 'Lập Phiếu Nhập Mới') : 'Chi Tiết Phiếu Nhập'}
+                      {receiptFormMode === 'add' ? (receiptForm.receiptId ? `Hiệu Chỉnh Phiếu Nhập (Đang xử lý) (${receiptForm.receiptId})` : 'Lập Phiếu Nhập Mới') : 'Chi Tiết Phiếu Nhập'}
                     </h2>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       {receiptFormMode === 'view' && (
@@ -4881,7 +4881,7 @@ function Home() {
 
                       <div className="form-actions" style={{ flexShrink: 0 }}>
                         <button type="button" className="btn-action btn-cancel" onClick={() => setReceiptFormMode(null)}>Hủy bỏ</button>
-                        <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1 }}>Lưu nháp chứng từ</button>
+                        <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1 }}>Lưu chứng từ (Đang xử lý)</button>
                       </div>
                     </form>
                   ) : (
@@ -5087,7 +5087,7 @@ function Home() {
                 conversionRate: Number(d.conversionRate) || 1
               }))
             });
-            alert('Lưu phiếu xuất kho nháp thành công!');
+            alert('Lưu phiếu xuất kho (Đang xử lý) thành công!');
             setIssueFormMode(null);
             fetchIssues(1);
           } catch (error) {
@@ -5197,7 +5197,7 @@ function Home() {
                         issueSearchType === 'batchId' ? 'Tìm kiếm theo mã lô thuốc...' :
                           issueSearchType === 'issueType' ? 'Tìm kiếm theo lý do xuất...' :
                             issueSearchType === 'employee' ? 'Tìm kiếm theo tên người lập...' :
-                              'Tìm kiếm theo trạng thái (DRAFT, CONFIRMED...)...'
+                              'Tìm kiếm theo trạng thái (DRAFT - Đang xử lý, CONFIRMED...)...'
                     }
                     className="search-input"
                     style={{ maxWidth: 'none', flexGrow: 1 }}
@@ -5266,7 +5266,7 @@ function Home() {
                     fetchIssues(1, issueSearchType, issueSearchVal, filterIssueStart, filterIssueEnd, 'DRAFT');
                   }}
                 >
-                  Nháp
+                  Đang xử lý
                 </button>
                 <button
                   type="button"
@@ -5308,7 +5308,7 @@ function Home() {
                   {issuesList.length > 0 ? (
                     issuesList.map((item) => {
                       let statusColor = '#94a3b8';
-                      let statusText = 'Lưu nháp';
+                      let statusText = 'Đang xử lý';
                       if (item.status === 'CONFIRMED') {
                         statusColor = 'var(--success-color)';
                         statusText = 'Đã xuất kho';
@@ -5463,7 +5463,7 @@ function Home() {
                 <div className="content-card" style={{ width: '98%', height: '128vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#ffffff', border: '1px solid #cbd5e1', padding: '24px', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', flexShrink: 0 }}>
                     <h2 style={{ fontSize: '18px', fontWeight: '700', textTransform: 'uppercase' }}>
-                      {issueFormMode === 'add' ? (issueForm.issueId ? `Hiệu Chỉnh Phiếu Xuất Nháp (${issueForm.issueId})` : 'Lập Phiếu Xuất Mới') : 'Chi Tiết Phiếu Xuất'}
+                      {issueFormMode === 'add' ? (issueForm.issueId ? `Hiệu Chỉnh Phiếu Xuất (Đang xử lý) (${issueForm.issueId})` : 'Lập Phiếu Xuất Mới') : 'Chi Tiết Phiếu Xuất'}
                     </h2>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       {issueFormMode === 'view' && (
@@ -5611,7 +5611,7 @@ function Home() {
 
                       <div className="form-actions" style={{ flexShrink: 0 }}>
                         <button type="button" className="btn-action btn-cancel" onClick={() => setIssueFormMode(null)}>Hủy bỏ</button>
-                        <button type="submit" className="btn-action btn-delete" style={{ flexGrow: 1, backgroundColor: 'var(--error-color)' }}>Lưu phiếu xuất nháp</button>
+                        <button type="submit" className="btn-action btn-delete" style={{ flexGrow: 1, backgroundColor: 'var(--error-color)' }}>Lưu phiếu xuất (Đang xử lý)</button>
                       </div>
                     </form>
                   ) : (
@@ -5800,7 +5800,7 @@ function Home() {
                       auditSearchType === 'auditId' ? 'Tìm kiếm theo mã phiếu...' :
                         auditSearchType === 'batchId' ? 'Tìm kiếm theo mã lô thuốc...' :
                           auditSearchType === 'createdBy' ? 'Tìm kiếm theo tên người lập...' :
-                            'Tìm kiếm theo trạng thái (DRAFT, CONFIRMED...)...'
+                            'Tìm kiếm theo trạng thái (IN_PROGRESS - Đang đếm kho, CONFIRMED...)...'
                     }
                     className="search-input"
                     style={{ maxWidth: 'none', flexGrow: 1 }}
@@ -5911,7 +5911,7 @@ function Home() {
                   {auditsList.length > 0 ? (
                     auditsList.map((item) => {
                       let statusColor = '#94a3b8';
-                      let statusText = 'Lưu nháp';
+                      let statusText = 'Đang xử lý';
                       if (item.status === 'IN_PROGRESS') {
                         statusColor = 'var(--warning-hover)';
                         statusText = 'Đang đếm kho';
@@ -6322,7 +6322,7 @@ function Home() {
 
                           return combinedDocs.map((doc) => {
                             let statusColor = '#94a3b8';
-                            let statusText = 'Lưu nháp';
+                            let statusText = 'Đang xử lý';
                             if (doc.status === 'CONFIRMED') {
                               statusColor = 'var(--success-color)';
                               statusText = doc.type === 'KIEMKE' ? 'Đã hoàn thành' : (doc.type === 'NHAP' ? 'Đã nhập kho' : 'Đã xuất kho');

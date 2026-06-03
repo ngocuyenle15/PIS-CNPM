@@ -56,7 +56,7 @@ public class GoodsIssueController {
     public ResponseEntity<?> createDraft(@Valid @RequestBody GoodsIssueRequest request) {
         Employee employee = getCurrentEmployee();
         GoodsIssueResponse response = goodsIssueService.createIssueDraft(request, employee);
-        return ResponseEntity.ok(ApiResponse.success(response, "Tạo nháp phiếu xuất kho thành công"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Tạo phiếu xuất kho thành công"));
     }
 
     @PatchMapping("/{id}/confirm")

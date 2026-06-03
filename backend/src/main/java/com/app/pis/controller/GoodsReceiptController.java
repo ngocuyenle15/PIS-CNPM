@@ -57,7 +57,7 @@ public class GoodsReceiptController {
     public ResponseEntity<?> createDraft(@Valid @RequestBody GoodsReceiptRequest request) {
         Employee employee = getCurrentEmployee();
         GoodsReceiptResponse response = goodsReceiptService.createReceiptDraft(request, employee);
-        return ResponseEntity.ok(ApiResponse.success(response, "Tạo nháp phiếu nhập kho thành công"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Tạo phiếu nhập kho thành công"));
     }
 
     @Transactional

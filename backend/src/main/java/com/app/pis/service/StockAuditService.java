@@ -182,7 +182,7 @@ public class StockAuditService {
 
         // RÀNG BUỘC TRẠNG THÁI: DRAFT -> IN_PROGRESS
         if (audit.getStatus() != StockAudit.AuditStatus.DRAFT) {
-            throw new IllegalStateException("Phiếu kiểm kê phải ở trạng thái NHÁP (DRAFT) mới có thể bắt đầu kiểm kho. Trạng thái hiện tại: " + audit.getStatus());
+            throw new IllegalStateException("Phiếu kiểm kê phải ở trạng thái ĐANG XỬ LÝ (DRAFT) mới có thể bắt đầu kiểm kho. Trạng thái hiện tại: " + audit.getStatus());
         }
 
         audit.setStatus(StockAudit.AuditStatus.IN_PROGRESS);
@@ -197,7 +197,7 @@ public class StockAuditService {
 
         // RÀNG BUỘC TRẠNG THÁI: Phải ở trạng thái DRAFT hoặc IN_PROGRESS mới được cập nhật số đếm
         if (audit.getStatus() != StockAudit.AuditStatus.DRAFT && audit.getStatus() != StockAudit.AuditStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Chỉ được nhập số đếm thực tế khi phiếu ở trạng thái NHÁP (DRAFT) hoặc ĐANG THỰC HIỆN (IN_PROGRESS). Trạng thái hiện tại: " + audit.getStatus());
+            throw new IllegalStateException("Chỉ được nhập số đếm thực tế khi phiếu ở trạng thái ĐANG XỬ LÝ (DRAFT) hoặc ĐANG THỰC HIỆN (IN_PROGRESS). Trạng thái hiện tại: " + audit.getStatus());
         }
 
         if (audit.getStatus() == StockAudit.AuditStatus.DRAFT) {
@@ -240,7 +240,7 @@ public class StockAuditService {
 
         // RÀNG BUỘC TRẠNG THÁI: DRAFT hoặc IN_PROGRESS -> CONFIRMED
         if (audit.getStatus() != StockAudit.AuditStatus.DRAFT && audit.getStatus() != StockAudit.AuditStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Chỉ hoàn thành kiểm kê khi phiếu ở trạng thái NHÁP (DRAFT) hoặc ĐANG THỰC HIỆN (IN_PROGRESS). Trạng thái hiện tại: " + audit.getStatus());
+            throw new IllegalStateException("Chỉ hoàn thành kiểm kê khi phiếu ở trạng thái ĐANG XỬ LÝ (DRAFT) hoặc ĐANG THỰC HIỆN (IN_PROGRESS). Trạng thái hiện tại: " + audit.getStatus());
         }
 
         // KIỂM TRA ĐÃ ĐIỀN ĐỦ SỐ THỰC TẾ CHƯA

@@ -223,7 +223,7 @@ public class GoodsIssueService {
 
         // RÀNG BUỘC CHUYỂN TRẠNG THÁI: Chỉ cho phép chuyển sang CONFIRMED từ DRAFT
         if (issue.getStatus() != GoodsIssue.IssueStatus.DRAFT) {
-            throw new IllegalStateException("Chỉ có thể xác nhận phiếu xuất ở trạng thái NHÁP (DRAFT). Trạng thái hiện tại: " + issue.getStatus());
+            throw new IllegalStateException("Chỉ có thể xác nhận phiếu xuất ở trạng thái ĐANG XỬ LÝ (DRAFT). Trạng thái hiện tại: " + issue.getStatus());
         }
 
         for (GoodsIssueDetail detail : issue.getDetails()) {
@@ -284,7 +284,7 @@ public class GoodsIssueService {
 
         // RÀNG BUỘC CHUYỂN TRẠNG THÁI: Chỉ cho phép chuyển sang CANCELLED từ DRAFT
         if (issue.getStatus() != GoodsIssue.IssueStatus.DRAFT) {
-            throw new IllegalStateException("Chỉ có thể hủy phiếu xuất ở trạng thái NHÁP (DRAFT). Trạng thái hiện tại: " + issue.getStatus());
+            throw new IllegalStateException("Chỉ có thể hủy phiếu xuất ở trạng thái ĐANG XỬ LÝ (DRAFT). Trạng thái hiện tại: " + issue.getStatus());
         }
 
         issue.setStatus(GoodsIssue.IssueStatus.CANCELLED);

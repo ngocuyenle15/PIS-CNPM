@@ -224,7 +224,7 @@ public class GoodsReceiptService {
 
         // RÀNG BUỘC CHUYỂN TRẠNG THÁI: Chỉ cho phép chuyển sang CONFIRMED từ DRAFT
         if (receipt.getStatus() != GoodsReceipt.ReceiptStatus.DRAFT) {
-            throw new IllegalStateException("Chỉ có thể xác nhận phiếu nhập ở trạng thái NHÁP (DRAFT). Trạng thái hiện tại: " + receipt.getStatus());
+            throw new IllegalStateException("Chỉ có thể xác nhận phiếu nhập ở trạng thái ĐANG XỬ LÝ (DRAFT). Trạng thái hiện tại: " + receipt.getStatus());
         }
 
         for (GoodsReceiptDetail detail : receipt.getDetails()) {
@@ -288,7 +288,7 @@ public class GoodsReceiptService {
 
         // RÀNG BUỘC CHUYỂN TRẠNG THÁI: Chỉ cho phép chuyển sang CANCELLED từ DRAFT
         if (receipt.getStatus() != GoodsReceipt.ReceiptStatus.DRAFT) {
-            throw new IllegalStateException("Chỉ có thể hủy phiếu nhập ở trạng thái NHÁP (DRAFT). Trạng thái hiện tại: " + receipt.getStatus());
+            throw new IllegalStateException("Chỉ có thể hủy phiếu nhập ở trạng thái ĐANG XỬ LÝ (DRAFT). Trạng thái hiện tại: " + receipt.getStatus());
         }
 
         receipt.setStatus(GoodsReceipt.ReceiptStatus.CANCELLED);

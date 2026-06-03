@@ -56,7 +56,7 @@ public class StockAuditController {
     public ResponseEntity<?> createDraft(@Valid @RequestBody StockAuditRequest request) {
         Employee employee = getCurrentEmployee();
         StockAuditResponse response = stockAuditService.createAuditDraft(request, employee);
-        return ResponseEntity.ok(ApiResponse.success(response, "Tạo nháp phiếu kiểm kê kho thành công"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Tạo phiếu kiểm kê kho thành công"));
     }
 
     @PatchMapping("/{id}/start")
