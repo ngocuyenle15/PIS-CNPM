@@ -8352,7 +8352,7 @@ function Home() {
                                   {linkedAcc ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                       <div style={{ fontWeight: '700', color: '#1e3a8a', fontSize: '13px' }}>
-                                        👤 {linkedAcc.username}
+                                        {linkedAcc.username}
                                       </div>
                                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                                         <span style={{

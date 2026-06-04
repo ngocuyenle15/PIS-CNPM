@@ -92,6 +92,7 @@ public class CustomerService {
 
         try {
             customerRepository.delete(customer);
+            customerRepository.flush();
         } catch (DataIntegrityViolationException ex) {
             throw new IllegalArgumentException("Không thể xóa khách hàng '" + customer.getFullName() + "' vì đã phát sinh lịch sử hóa đơn hoặc đơn hàng");
         }

@@ -233,6 +233,7 @@ public class MedicineService {
 
         try {
             medicineRepository.delete(medicine);
+            medicineRepository.flush();
         } catch (DataIntegrityViolationException ex) {
             throw new IllegalArgumentException("Không thể xóa thuốc '" + medicine.getMedicineName() + "' vì dữ liệu đã phát sinh giao dịch trong hệ thống (Hóa đơn, đơn hàng, hoặc tồn kho)");
         }

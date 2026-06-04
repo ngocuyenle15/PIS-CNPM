@@ -103,6 +103,7 @@ public class SupplierService {
 
         try {
             supplierRepository.delete(supplier);
+            supplierRepository.flush();
         } catch (DataIntegrityViolationException ex) {
             throw new IllegalArgumentException("Không thể xóa nhà cung cấp '" + supplier.getSupplierName() + "' vì đã phát sinh lịch sử nhập kho");
         }
