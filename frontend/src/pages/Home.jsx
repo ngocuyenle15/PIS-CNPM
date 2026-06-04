@@ -101,6 +101,19 @@ function Home() {
   const username = localStorage.getItem('username') || 'User';
   const role = localStorage.getItem('role') || 'Role';
 
+  const getRoleClass = (r) => {
+    if (r === 'Admin') return 'role-admin';
+    if (r === 'Product_manager') return 'role-manager';
+    return 'role-staff';
+  };
+
+  const getRoleDisplayName = (r) => {
+    if (r === 'Admin') return 'Quản trị viên';
+    if (r === 'Product_manager') return 'Quản lý kho';
+    return 'Nhân viên';
+  };
+
+
   // 1. STATE QUẢN LÝ SIDEBAR ĐA CẤP
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem('activeTab') || 'overview';
@@ -8893,8 +8906,18 @@ function Home() {
       <aside className="sidebar">
         {/* User profile section */}
         <div className="user-profile">
-          <div className="user-name">{username}</div>
-          <div className="user-role">{role}</div>
+          <div className="user-avatar-container">
+            <div className="user-avatar">
+              {username.charAt(0).toUpperCase()}
+            </div>
+            <span className="user-status-indicator"></span>
+          </div>
+          <div className="user-info">
+            <div className="user-name" title={username}>{username}</div>
+            <div className={`user-role-badge ${getRoleClass(role)}`}>
+              {getRoleDisplayName(role)}
+            </div>
+          </div>
         </div>
 
         {/* CÂY MENU ĐA CẤP (COLLAPSIBLE SIDEBAR) */}
@@ -9022,6 +9045,11 @@ function Home() {
         {/* NÚT ĐĂNG XUẤT */}
         <div className="logout-container">
           <button onClick={handleLogout} className="btn-logout">
+            <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
             Đăng xuất
           </button>
         </div>
