@@ -8344,7 +8344,7 @@ function Home() {
             )}
 
             {/* MODAL POPUP FORM THÊM / SỬA */}
-             {employeeFormMode && (
+            {employeeFormMode && (
               <div style={{
                 position: 'fixed',
                 top: 0,
@@ -8394,7 +8394,7 @@ function Home() {
                     <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '12px' }}>
                       I. Thông tin nhân sự
                     </h3>
-                    
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: '16px' }}>
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Mã nhân viên:</label>
