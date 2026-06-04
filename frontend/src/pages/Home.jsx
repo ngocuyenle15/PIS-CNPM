@@ -241,6 +241,7 @@ function Home() {
     createAccountForExisting: false
   });
   const [employeeCurrentPage, setEmployeeCurrentPage] = useState(1);
+  const [filterEmployeeStatus, setFilterEmployeeStatus] = useState('ACTIVE');
 
   // States for Account Management
   const [accountsList, setAccountsList] = useState([]);
@@ -1727,7 +1728,8 @@ function Home() {
         email: employeeForm.email.trim(),
         gender: employeeForm.gender,
         yearOfBirth: Number(employeeForm.yearOfBirth),
-        hireDate: employeeForm.hireDate
+        hireDate: employeeForm.hireDate,
+        isActive: employeeForm.isActive
       };
 
       try {
@@ -8220,6 +8222,10 @@ function Home() {
             </h2>
             {(() => {
               const filtered = employeesList.filter(e => {
+                const isEmployeeActive = e.isActive !== false;
+                if (filterEmployeeStatus === 'ACTIVE' && !isEmployeeActive) return false;
+                if (filterEmployeeStatus === 'INACTIVE' && isEmployeeActive) return false;
+
                 const linkedAcc = accountsList.find(acc => acc.employee && acc.employee.employeeID === e.employeeID);
                 const searchLower = searchEmployee.toLowerCase();
                 return (
@@ -8277,6 +8283,31 @@ function Home() {
                       }}
                     >
                       Thêm nhân viên
+                    </button>
+                  </div>
+
+                  <div className="filter-chips-container" style={{ marginTop: '12px', marginBottom: '16px' }}>
+                    <button
+                      type="button"
+                      className="filter-chip"
+                      style={filterEmployeeStatus === 'ACTIVE' ? { backgroundColor: '#d1fae5', borderColor: '#10b981', color: '#065f46', fontWeight: '600' } : {}}
+                      onClick={() => {
+                        setFilterEmployeeStatus('ACTIVE');
+                        setEmployeeCurrentPage(1);
+                      }}
+                    >
+                      active
+                    </button>
+                    <button
+                      type="button"
+                      className="filter-chip"
+                      style={filterEmployeeStatus === 'INACTIVE' ? { backgroundColor: '#fee2e2', borderColor: '#f87171', color: '#991b1b', fontWeight: '600' } : {}}
+                      onClick={() => {
+                        setFilterEmployeeStatus('INACTIVE');
+                        setEmployeeCurrentPage(1);
+                      }}
+                    >
+                      notactive
                     </button>
                   </div>
 
@@ -8354,8 +8385,7 @@ function Home() {
                                   )}
                                 </td>
                                 <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                                  <button className="btn-action btn-edit" style={{ marginRight: '6px' }} onClick={() => handleEmployeeEditClick(item)}>Chi tiết & Sửa</button>
-                                  <button className="btn-action btn-delete" onClick={() => handleEmployeeDelete(item.employeeID)}>Xóa</button>
+                                  <button className="btn-action btn-edit" onClick={() => handleEmployeeEditClick(item)}>Chi tiết & Sửa</button>
                                 </td>
                               </tr>
                             );

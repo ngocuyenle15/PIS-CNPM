@@ -82,7 +82,7 @@ public class EmployeeService {
         employee.setGender(request.getGender());
         employee.setYearOfBirth(request.getYearOfBirth());
         employee.setHireDate(request.getHireDate());
-        employee.setIsActive(true);
+        employee.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
 
         return employeeRepository.save(employee);
     }
@@ -127,23 +127,33 @@ public class EmployeeService {
             employee.setHireDate(request.getHireDate());
         }
 
+        if (request.getIsActive() != null) {
+            employee.setIsActive(request.getIsActive());
+            // Sync status to the associated account
+            accountRepository.findByEmployee(employee).ifPresent(account -> {
+                account.setIsActive(request.getIsActive());
+                accountRepository.save(account);
+                if (!request.getIsActive()) {
+                    refreshTokenService.deleteByUsername(account.getUsername());
+                }
+            });
+        }
+
         return employeeRepository.save(employee);
     }
 
     @Transactional
     public void delete(String id) {
         Employee employee = getById(id);
+        employee.setIsActive(false);
+        employeeRepository.save(employee);
 
-        // Thu hồi refresh token của tài khoản liên kết nếu có
+        // Vô hiệu hóa tài khoản liên kết nếu có và thu hồi refresh token
         accountRepository.findByEmployee(employee).ifPresent(account -> {
+            account.setIsActive(false);
+            accountRepository.save(account);
             refreshTokenService.deleteByUsername(account.getUsername());
         });
-
-        try {
-            employeeRepository.delete(employee);
-        } catch (DataIntegrityViolationException ex) {
-            throw new IllegalArgumentException("Không thể xóa nhân viên này vì đã phát sinh lịch sử dữ liệu trong hệ thống");
-        }
     }
 
     @Transactional

@@ -32,4 +32,6 @@ public class EmployeeRequest {
     private Integer yearOfBirth;
 
     private LocalDate hireDate;
+
+    private Boolean isActive;
 }

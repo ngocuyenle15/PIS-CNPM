@@ -138,6 +138,14 @@ public class AccountService {
 
         if (request.getIsActive() != null) {
             account.setIsActive(request.getIsActive());
+            // Sync status to the associated employee
+            if (account.getEmployee() != null) {
+                account.getEmployee().setIsActive(request.getIsActive());
+                employeeRepository.save(account.getEmployee());
+            }
+            if (!request.getIsActive()) {
+                refreshTokenService.deleteByUsername(account.getUsername());
+            }
         }
 
         Account savedAccount = accountRepository.save(account);
@@ -151,7 +159,15 @@ public class AccountService {
 
         // Revoke active sessions / refresh tokens
         refreshTokenService.deleteByUsername(account.getUsername());
-        accountRepository.delete(account);
+        
+        account.setIsActive(false);
+        accountRepository.save(account);
+
+        // Sync status to the associated employee
+        if (account.getEmployee() != null) {
+            account.getEmployee().setIsActive(false);
+            employeeRepository.save(account.getEmployee());
+        }
     }
 
     private String generateRandomPassword() {
