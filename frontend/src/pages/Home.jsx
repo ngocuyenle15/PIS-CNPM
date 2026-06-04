@@ -130,7 +130,7 @@ function Home() {
     const initialTab = localStorage.getItem('activeTab') || 'overview';
     const isKho = ['warehouse_inventory', 'warehouse_receipt', 'warehouse_issue', 'warehouse_audit', 'warehouse_history', 'warehouse_supplier'].includes(initialTab);
     const isBanHang = ['sales_pos', 'sales_invoices', 'sales_customers'].includes(initialTab);
-    const isHeThong = ['sys_employees', 'sys_accounts'].includes(initialTab);
+    const isHeThong = ['sys_management'].includes(initialTab);
 
     return {
       thuoc: !isKho && !isBanHang && !isHeThong,
@@ -219,6 +219,7 @@ function Home() {
   const [supplierCurrentPage, setSupplierCurrentPage] = useState(1);
 
   // States for Employee Management
+  const [innerSystemTab, setInnerSystemTab] = useState('employees');
   const [employeesList, setEmployeesList] = useState([]);
   const [searchEmployee, setSearchEmployee] = useState('');
   const [employeeFormMode, setEmployeeFormMode] = useState(null); // null, 'add' or 'edit'
@@ -233,7 +234,11 @@ function Home() {
     username: '',
     roleName: 'Sales',
     isStaff: true,
-    isActive: true
+    isActive: true,
+    hasAccount: false,
+    accountID: null,
+    password: '',
+    createAccountForExisting: false
   });
   const [employeeCurrentPage, setEmployeeCurrentPage] = useState(1);
 
@@ -913,11 +918,9 @@ function Home() {
       fetchOrigins(1);
     } else if (activeTab === 'warehouse_supplier') {
       fetchSuppliers();
-    } else if (activeTab === 'sys_employees') {
+    } else if (activeTab === 'sys_management') {
       fetchEmployees();
-    } else if (activeTab === 'sys_accounts') {
       fetchAccounts();
-      fetchEmployees();
     } else if (activeTab === 'warehouse_inventory') {
       setSearchInventory('');
       setFilterCatalog('');
@@ -1711,13 +1714,14 @@ function Home() {
         const generatedPass = data?.account?.generatedPassword;
         alert(`Tạo hồ sơ nhân viên và tài khoản thành công!\nMật khẩu khởi tạo tự sinh là: ${generatedPass || '(Không có)'}\nVui lòng lưu lại mật khẩu này.`);
         await fetchEmployees();
+        await fetchAccounts();
         handleEmployeeCancel();
       } catch (error) {
         console.error('Lỗi khi lưu nhân viên kèm tài khoản:', error);
         alert(error.response?.data?.message || 'Có lỗi xảy ra khi lưu nhân viên và tài khoản.');
       }
     } else {
-      const payload = {
+      const employeePayload = {
         fullName: employeeForm.fullName.trim(),
         phoneNumber: employeeForm.phoneNumber.trim(),
         email: employeeForm.email.trim(),
@@ -1727,18 +1731,54 @@ function Home() {
       };
 
       try {
-        await api.patch(`/employees/${employeeForm.employeeID}`, payload);
-        alert('Cập nhật hồ sơ nhân viên thành công!');
+        // 1. Update Employee Profile
+        await api.patch(`/employees/${employeeForm.employeeID}`, employeePayload);
+
+        // 2. Handle Linked Account
+        if (employeeForm.hasAccount) {
+          // Update existing account
+          const accountPayload = {
+            roleName: employeeForm.roleName,
+            isStaff: employeeForm.isStaff,
+            isActive: employeeForm.isActive
+          };
+          if (employeeForm.password && employeeForm.password.trim()) {
+            accountPayload.password = employeeForm.password.trim();
+          }
+          await api.patch(`/accounts/${employeeForm.accountID}`, accountPayload);
+          alert('Cập nhật thông tin nhân viên và tài khoản thành công!');
+        } else if (employeeForm.createAccountForExisting) {
+          // Create new account for existing employee
+          if (!employeeForm.username.trim()) {
+            alert('Vui lòng nhập Tên đăng nhập!');
+            return;
+          }
+          const accountPayload = {
+            username: employeeForm.username.trim(),
+            employeeID: employeeForm.employeeID,
+            roleName: employeeForm.roleName,
+            isStaff: employeeForm.isStaff,
+            isActive: employeeForm.isActive
+          };
+          const resAcc = await api.post('/accounts', accountPayload);
+          const genPassword = resAcc.data?.data?.generatedPassword;
+          alert(`Cập nhật nhân viên và tạo tài khoản thành công!\nMật khẩu khởi tạo tự sinh là: ${genPassword || '(Không có)'}\nVui lòng lưu lại mật khẩu này.`);
+        } else {
+          alert('Cập nhật hồ sơ nhân viên thành công!');
+        }
+
         await fetchEmployees();
+        await fetchAccounts();
         handleEmployeeCancel();
       } catch (error) {
-        console.error('Lỗi khi cập nhật nhân viên:', error);
-        alert(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật nhân viên.');
+        console.error('Lỗi khi cập nhật nhân viên/tài khoản:', error);
+        alert(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật.');
       }
     }
   };
 
   const handleEmployeeEditClick = (item) => {
+    const linkedAcc = accountsList.find(acc => acc.employee && acc.employee.employeeID === item.employeeID);
     setEmployeeFormMode('edit');
     setEmployeeForm({
       employeeID: item.employeeID,
@@ -1748,10 +1788,14 @@ function Home() {
       gender: item.gender,
       yearOfBirth: item.yearOfBirth,
       hireDate: item.hireDate,
-      username: '',
-      roleName: 'Sales',
-      isStaff: true,
-      isActive: true
+      username: linkedAcc ? linkedAcc.username : '',
+      roleName: linkedAcc ? linkedAcc.role : 'Sales',
+      isStaff: linkedAcc ? linkedAcc.isStaff : true,
+      isActive: linkedAcc ? linkedAcc.isActive : true,
+      hasAccount: !!linkedAcc,
+      accountID: linkedAcc ? linkedAcc.accountID : null,
+      password: '',
+      createAccountForExisting: false
     });
   };
 
@@ -1761,6 +1805,7 @@ function Home() {
         await api.delete(`/employees/${id}`);
         alert('Xóa nhân viên thành công!');
         await fetchEmployees();
+        await fetchAccounts();
         if (employeeForm.employeeID === id) {
           handleEmployeeCancel();
         }
@@ -1784,7 +1829,11 @@ function Home() {
       username: '',
       roleName: 'Sales',
       isStaff: true,
-      isActive: true
+      isActive: true,
+      hasAccount: false,
+      accountID: null,
+      password: '',
+      createAccountForExisting: false
     });
   };
 
@@ -2239,7 +2288,7 @@ function Home() {
         </div>
       );
     }
-    if ((activeTab === 'sys_employees' || activeTab === 'sys_accounts') && role !== 'Admin') {
+    if (activeTab === 'sys_management' && role !== 'Admin') {
       return (
         <div className="content-card">
           <h2 style={{ color: 'var(--error-color)' }}>Không có quyền truy cập</h2>
@@ -8163,695 +8212,535 @@ function Home() {
       }
 
       /* PHÂN HỆ HỆ THỐNG */
-      case 'sys_employees': {
-        const filtered = employeesList.filter(e =>
-          e.fullName.toLowerCase().includes(searchEmployee.toLowerCase()) ||
-          e.employeeID.toLowerCase().includes(searchEmployee.toLowerCase()) ||
-          (e.phoneNumber && e.phoneNumber.toLowerCase().includes(searchEmployee.toLowerCase())) ||
-          (e.email && e.email.toLowerCase().includes(searchEmployee.toLowerCase()))
-        );
-
-        // Client side pagination
-        const itemsPerPage = 10;
-        const totalItems = filtered.length;
-        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-        const currentPage = Math.min(employeeCurrentPage, totalPages);
-        const indexOfLastItem = currentPage * itemsPerPage;
-        const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-        const currentEmployees = filtered.slice(indexOfFirstItem, indexOfLastItem);
-
+      case 'sys_management': {
         return (
-          <div className="content-card" style={{ width: '100%' }}>
-            <h1 className="content-title">Quản Lý Nhân Viên</h1>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Quản Trị Hệ Thống - Nhân Viên & Tài Khoản
+            </h2>
+            {(() => {
+              const filtered = employeesList.filter(e => {
+                const linkedAcc = accountsList.find(acc => acc.employee && acc.employee.employeeID === e.employeeID);
+                const searchLower = searchEmployee.toLowerCase();
+                return (
+                  e.fullName.toLowerCase().includes(searchLower) ||
+                  e.employeeID.toLowerCase().includes(searchLower) ||
+                  (e.phoneNumber && e.phoneNumber.toLowerCase().includes(searchLower)) ||
+                  (e.email && e.email.toLowerCase().includes(searchLower)) ||
+                  (linkedAcc && linkedAcc.username.toLowerCase().includes(searchLower))
+                );
+              });
 
-            <div className="table-actions">
-              <input
-                type="text"
-                placeholder="Tìm kiếm nhân viên theo mã, tên, SĐT..."
-                className="search-input"
-                style={{ maxWidth: 'none', flexGrow: 1 }}
-                value={searchEmployee}
-                onChange={(e) => {
-                  setSearchEmployee(e.target.value);
-                  setEmployeeCurrentPage(1);
-                }}
-              />
-              <button
-                className="btn-create"
-                onClick={() => {
-                  setEmployeeFormMode('add');
-                  setEmployeeForm({
-                    employeeID: 'NV' + Math.random().toString(36).substring(2, 6).toUpperCase(),
-                    fullName: '',
-                    phoneNumber: '',
-                    email: '',
-                    gender: 'Male',
-                    yearOfBirth: new Date().getFullYear() - 25,
-                    hireDate: new Date().toISOString().split('T')[0],
-                    username: '',
-                    roleName: 'Sales',
-                    isStaff: true,
-                    isActive: true
-                  });
-                }}
-              >
-                Thêm nhân viên
-              </button>
-            </div>
+              const itemsPerPage = 10;
+              const totalItems = filtered.length;
+              const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+              const currentPage = Math.min(employeeCurrentPage, totalPages);
+              const indexOfLastItem = currentPage * itemsPerPage;
+              const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+              const currentEmployees = filtered.slice(indexOfFirstItem, indexOfLastItem);
 
-            <div className="custom-table-container">
-              <table className="custom-table">
-                <thead>
-                  <tr>
-                    <th>Mã NV</th>
-                    <th>Họ tên</th>
-                    <th>Số điện thoại</th>
-                    <th>Email</th>
-                    <th>Giới tính</th>
-                    <th>Năm sinh</th>
-                    <th style={{ textAlign: 'center' }}>Hành động</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentEmployees.length > 0 ? (
-                    currentEmployees.map((item) => (
-                      <tr key={item.employeeID}>
-                        <td style={{ fontWeight: '600' }}>{item.employeeID}</td>
-                        <td>{item.fullName}</td>
-                        <td>{item.phoneNumber}</td>
-                        <td>{item.email}</td>
-                        <td>
-                          <span style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            backgroundColor: item.gender === 'Male' ? '#dbeafe' : '#fce7f3',
-                            color: item.gender === 'Male' ? '#1e40af' : '#9d174d'
-                          }}>
-                            {item.gender === 'Male' ? 'Nam' : 'Nữ'}
-                          </span>
-                        </td>
-                        <td>{item.yearOfBirth}</td>
-                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                          <button className="btn-action btn-edit" style={{ marginRight: '6px' }} onClick={() => handleEmployeeEditClick(item)}>Sửa</button>
-                          <button className="btn-action btn-delete" onClick={() => handleEmployeeDelete(item.employeeID)}>Xóa</button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy nhân viên nào.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            {totalItems > 0 && (
-              <div className="pagination-container" style={{ borderRadius: '0 0 8px 8px', marginTop: '10px', padding: '10px 14px' }}>
-                <div className="pagination-info" style={{ fontSize: '12px' }}>
-                  Hiển thị {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} - {Math.min(currentPage * itemsPerPage, totalItems)} của {totalItems} nhân viên
-                </div>
-                {totalPages > 1 && (
-                  <div className="pagination-buttons" style={{ gap: '4px' }}>
-                    <button
-                      type="button"
-                      className="pagination-btn"
-                      style={{ padding: '6px 10px', fontSize: '12px' }}
-                      disabled={currentPage === 1}
-                      onClick={() => setEmployeeCurrentPage(currentPage - 1)}
-                    >
-                      ◀
-                    </button>
-
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        type="button"
-                        className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
-                        style={{ padding: '6px 10px', fontSize: '12px' }}
-                        onClick={() => setEmployeeCurrentPage(page)}
-                      >
-                        {page}
-                      </button>
-                    ))}
-
-                    <button
-                      type="button"
-                      className="pagination-btn"
-                      style={{ padding: '6px 10px', fontSize: '12px' }}
-                      disabled={currentPage === totalPages}
-                      onClick={() => setEmployeeCurrentPage(currentPage + 1)}
-                    >
-                      ▶
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* MODAL POPUP FORM THÊM / SỬA */}
-            {employeeFormMode && (
-              <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(15, 23, 42, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 9999,
-                backdropFilter: 'blur(6px)'
-              }}>
-                <div className="content-card" style={{
-                  width: '750px',
-                  maxHeight: '95vh',
-                  overflowY: 'auto',
-                  borderRadius: '12px',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                  padding: '20px 24px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  animation: 'fadeIn 0.2s ease-out'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                    <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                      {employeeFormMode === 'add' ? 'Thêm mới nhân viên & tài khoản' : `Chỉnh sửa nhân viên & tài khoản`}
-                    </h2>
-                    <button
-                      type="button"
-                      onClick={handleEmployeeCancel}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        fontSize: '24px',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                        lineHeight: 1,
-                        padding: '4px'
-                      }}
-                    >
-                      &times;
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleEmployeeSave}>
-                    <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '12px' }}>
-                      I. Thông tin nhân sự
-                    </h3>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: '16px' }}>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Mã nhân viên:</label>
-                        <input
-                          type="text"
-                          className="input"
-                          style={{ padding: '8px 12px', fontSize: '13px' }}
-                          value={employeeForm.employeeID}
-                          onChange={(e) => setEmployeeForm({ ...employeeForm, employeeID: e.target.value })}
-                          disabled={employeeFormMode === 'edit'}
-                          placeholder="VD: NV001"
-                          required
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Họ tên nhân viên:</label>
-                        <input
-                          type="text"
-                          className="input"
-                          style={{ padding: '8px 12px', fontSize: '13px' }}
-                          value={employeeForm.fullName}
-                          onChange={(e) => setEmployeeForm({ ...employeeForm, fullName: e.target.value })}
-                          placeholder="VD: Nguyễn Văn A"
-                          required
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Số điện thoại:</label>
-                        <input
-                          type="text"
-                          className="input"
-                          style={{ padding: '8px 12px', fontSize: '13px' }}
-                          value={employeeForm.phoneNumber}
-                          onChange={(e) => setEmployeeForm({ ...employeeForm, phoneNumber: e.target.value })}
-                          placeholder="VD: 0987654321"
-                          required
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Email:</label>
-                        <input
-                          type="email"
-                          className="input"
-                          style={{ padding: '8px 12px', fontSize: '13px' }}
-                          value={employeeForm.email}
-                          onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
-                          placeholder="VD: nv001@gmail.com"
-                          required
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Giới tính:</label>
-                        <select
-                          className="select-input"
-                          style={{ padding: '8px 12px', fontSize: '13px', height: '37px' }}
-                          value={employeeForm.gender}
-                          onChange={(e) => setEmployeeForm({ ...employeeForm, gender: e.target.value })}
-                        >
-                          <option value="Male">Nam</option>
-                          <option value="Female">Nữ</option>
-                        </select>
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Năm sinh:</label>
-                        <input
-                          type="number"
-                          className="input"
-                          style={{ padding: '8px 12px', fontSize: '13px' }}
-                          value={employeeForm.yearOfBirth}
-                          onChange={(e) => setEmployeeForm({ ...employeeForm, yearOfBirth: Number(e.target.value) || '' })}
-                          placeholder="VD: 1995"
-                          required
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: 0, gridColumn: 'span 2' }}>
-                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Ngày vào làm:</label>
-                        <input
-                          type="date"
-                          className="input"
-                          style={{ padding: '8px 12px', fontSize: '13px' }}
-                          value={employeeForm.hireDate}
-                          onChange={(e) => setEmployeeForm({ ...employeeForm, hireDate: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {employeeFormMode === 'add' && (
-                      <>
-                        <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginTop: '16px', marginBottom: '12px' }}>
-                          II. Thông tin tài khoản liên kết (Bắt buộc)
-                        </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Tên đăng nhập:</label>
-                            <input
-                              type="text"
-                              className="input"
-                              style={{ padding: '8px 12px', fontSize: '13px' }}
-                              value={employeeForm.username}
-                              onChange={(e) => setEmployeeForm({ ...employeeForm, username: e.target.value })}
-                              placeholder="VD: nguyenvana"
-                              required
-                            />
-                          </div>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Vai trò (Role):</label>
-                            <select
-                              className="select-input"
-                              style={{ padding: '8px 12px', fontSize: '13px', height: '37px' }}
-                              value={employeeForm.roleName}
-                              onChange={(e) => setEmployeeForm({ ...employeeForm, roleName: e.target.value })}
-                            >
-                              <option value="Sales">Bán hàng (Sales)</option>
-                              <option value="Product_manager">Quản lý kho (Product Manager)</option>
-                              <option value="Admin">Quản trị viên (Admin)</option>
-                            </select>
-                          </div>
-                          <div style={{ gridColumn: 'span 2', display: 'flex', gap: '20px', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
-                              <input
-                                type="checkbox"
-                                checked={employeeForm.isStaff}
-                                onChange={(e) => setEmployeeForm({ ...employeeForm, isStaff: e.target.checked })}
-                              />
-                              Nhân viên hệ thống (isStaff)
-                            </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
-                              <input
-                                type="checkbox"
-                                checked={employeeForm.isActive}
-                                onChange={(e) => setEmployeeForm({ ...employeeForm, isActive: e.target.checked })}
-                              />
-                              Kích hoạt tài khoản (isActive)
-                            </label>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    <div className="form-actions" style={{ marginTop: '20px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                      <button type="button" className="btn-action btn-cancel" style={{ marginRight: '6px' }} onClick={handleEmployeeCancel}>
-                        Hủy bỏ
-                      </button>
-                      <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, backgroundColor: 'var(--primary-color)', border: 'none', color: '#ffffff' }}>
-                        {employeeFormMode === 'add' ? 'Thêm mới' : 'Lưu lại'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      }
-      case 'sys_accounts': {
-        const filtered = accountsList.filter(a =>
-          a.username.toLowerCase().includes(searchAccount.toLowerCase()) ||
-          (a.role && a.role.toLowerCase().includes(searchAccount.toLowerCase())) ||
-          (a.employee && a.employee.fullName.toLowerCase().includes(searchAccount.toLowerCase())) ||
-          (a.employee && a.employee.employeeID.toLowerCase().includes(searchAccount.toLowerCase()))
-        );
-
-        // Client side pagination
-        const itemsPerPage = 10;
-        const totalItems = filtered.length;
-        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-        const currentPage = Math.min(accountCurrentPage, totalPages);
-        const indexOfLastItem = currentPage * itemsPerPage;
-        const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-        const currentAccounts = filtered.slice(indexOfFirstItem, indexOfLastItem);
-
-        // Employees list that don't have accounts yet (for manual creation)
-        const unlinkedEmployees = employeesList.filter(emp =>
-          !accountsList.some(acc => acc.employee && acc.employee.employeeID === emp.employeeID)
-        );
-
-        return (
-          <div className="split-layout">
-            {/* CỘT TRÁI: DANH SÁCH BẢNG TÀI KHOẢN */}
-            <div className="split-left content-card">
-              <h1 className="content-title">Tài Khoản & Phân Quyền</h1>
-
-              <div className="table-actions">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm tài khoản theo username, quyền, nhân viên..."
-                  className="search-input"
-                  style={{ maxWidth: 'none', flexGrow: 1 }}
-                  value={searchAccount}
-                  onChange={(e) => {
-                    setSearchAccount(e.target.value);
-                    setAccountCurrentPage(1);
-                  }}
-                />
-                <button
-                  className="btn-create"
-                  onClick={() => {
-                    setAccountFormMode('add');
-                    setAccountForm({
-                      accountID: '',
-                      username: '',
-                      roleName: 'Sales',
-                      employeeID: unlinkedEmployees[0] ? unlinkedEmployees[0].employeeID : '',
-                      isStaff: true,
-                      isActive: true,
-                      password: ''
-                    });
-                  }}
-                >
-                  Cấp tài khoản
-                </button>
-              </div>
-
-              <div className="custom-table-container">
-                <table className="custom-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Tên đăng nhập</th>
-                      <th>Quyền (Role)</th>
-                      <th>Nhân viên liên kết</th>
-                      <th>Nhân viên (isStaff)</th>
-                      <th>Trạng thái</th>
-                      <th>First Login</th>
-                      <th style={{ textAlign: 'center' }}>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentAccounts.length > 0 ? (
-                      currentAccounts.map((item) => (
-                        <tr key={item.accountID} style={accountForm.accountID === item.accountID ? { backgroundColor: '#f0fdf4' } : {}}>
-                          <td style={{ fontWeight: '600' }}>{item.accountID}</td>
-                          <td style={{ fontWeight: '600', color: '#1e3a8a' }}>{item.username}</td>
-                          <td>
-                            <span style={{
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              backgroundColor: item.role === 'Admin' ? '#fee2e2' : item.role === 'Product_manager' ? '#fef3c7' : '#dcfce7',
-                              color: item.role === 'Admin' ? '#991b1b' : item.role === 'Product_manager' ? '#92400e' : '#166534'
-                            }}>
-                              {item.role}
-                            </span>
-                          </td>
-                          <td>
-                            {item.employee ? (
-                              <span style={{ fontSize: '13px' }}>
-                                <strong>{item.employee.fullName}</strong> ({item.employee.employeeID})
-                              </span>
-                            ) : (
-                              <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Không liên kết</span>
-                            )}
-                          </td>
-                          <td>
-                            <span style={{ color: item.isStaff ? '#166534' : '#94a3b8' }}>
-                              {item.isStaff ? 'Có' : 'Không'}
-                            </span>
-                          </td>
-                          <td>
-                            <span style={{
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              backgroundColor: item.isActive ? '#d1fae5' : '#f3f4f6',
-                              color: item.isActive ? '#065f46' : '#374151'
-                            }}>
-                              {item.isActive ? 'Đang hoạt động' : 'Đã khóa'}
-                            </span>
-                          </td>
-                          <td>
-                            <span style={{ color: item.isFirstLogin ? '#ea580c' : '#94a3b8' }}>
-                              {item.isFirstLogin ? 'Chưa đổi mật khẩu' : 'Đã đổi'}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                            <button className="btn-action btn-edit" style={{ marginRight: '6px' }} onClick={() => handleAccountEditClick(item)}>Sửa</button>
-                            <button className="btn-action btn-delete" onClick={() => handleAccountDelete(item.accountID)}>Xóa</button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="8" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy tài khoản nào.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination Controls */}
-              {totalItems > 0 && (
-                <div className="pagination-container" style={{ borderRadius: '0 0 8px 8px', marginTop: '10px', padding: '10px 14px' }}>
-                  <div className="pagination-info" style={{ fontSize: '12px' }}>
-                    Hiển thị {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} - {Math.min(currentPage * itemsPerPage, totalItems)} của {totalItems} tài khoản
-                  </div>
-                  {totalPages > 1 && (
-                    <div className="pagination-buttons" style={{ gap: '4px' }}>
-                      <button
-                        type="button"
-                        className="pagination-btn"
-                        style={{ padding: '6px 10px', fontSize: '12px' }}
-                        disabled={currentPage === 1}
-                        onClick={() => setAccountCurrentPage(currentPage - 1)}
-                      >
-                        ◀
-                      </button>
-
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                          key={page}
-                          type="button"
-                          className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
-                          style={{ padding: '6px 10px', fontSize: '12px' }}
-                          onClick={() => setAccountCurrentPage(page)}
-                        >
-                          {page}
-                        </button>
-                      ))}
-
-                      <button
-                        type="button"
-                        className="pagination-btn"
-                        style={{ padding: '6px 10px', fontSize: '12px' }}
-                        disabled={currentPage === totalPages}
-                        onClick={() => setAccountCurrentPage(currentPage + 1)}
-                      >
-                        ▶
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* CỘT PHẢI: FORM CHỈNH SỬA / CẤP LẺ & RESET PASSWORD */}
-            <div className="split-right" style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '420px' }}>
-              <div className="content-card" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                  {accountFormMode === 'add' ? 'Cấp Tài Khoản Mới' : 'Hiệu Chỉnh Tài Khoản'}
-                </h2>
-                <form onSubmit={handleAccountSave}>
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
-                    <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px', display: 'block' }}>Tên đăng nhập (username):</label>
+              return (
+                <div className="content-card" style={{ width: '100%', border: 'none', padding: 0, boxShadow: 'none', background: 'transparent' }}>
+                  <div className="table-actions">
                     <input
                       type="text"
-                      className="input"
-                      style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                      value={accountForm.username}
-                      onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
-                      disabled={accountFormMode === 'edit'}
-                      placeholder="VD: nguyenvana"
-                      required
+                      placeholder="Tìm kiếm nhân viên theo mã, tên, SĐT, tài khoản..."
+                      className="search-input"
+                      style={{ maxWidth: 'none', flexGrow: 1 }}
+                      value={searchEmployee}
+                      onChange={(e) => {
+                        setSearchEmployee(e.target.value);
+                        setEmployeeCurrentPage(1);
+                      }}
                     />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
-                    <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px', display: 'block' }}>Vai trò (Role):</label>
-                    <select
-                      className="select-input"
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
-                      value={accountForm.roleName}
-                      onChange={(e) => setAccountForm({ ...accountForm, roleName: e.target.value })}
-                      required
+                    <button
+                      className="btn-create"
+                      onClick={() => {
+                        setEmployeeFormMode('add');
+                        setEmployeeForm({
+                          employeeID: 'NV' + Math.random().toString(36).substring(2, 6).toUpperCase(),
+                          fullName: '',
+                          phoneNumber: '',
+                          email: '',
+                          gender: 'Male',
+                          yearOfBirth: new Date().getFullYear() - 25,
+                          hireDate: new Date().toISOString().split('T')[0],
+                          username: '',
+                          roleName: 'Sales',
+                          isStaff: true,
+                          isActive: true,
+                          hasAccount: false,
+                          accountID: null,
+                          password: '',
+                          createAccountForExisting: false
+                        });
+                      }}
                     >
-                      <option value="Sales">Bán hàng (Sales)</option>
-                      <option value="Product_manager">Quản lý kho (Product Manager)</option>
-                      <option value="Admin">Quản trị viên (Admin)</option>
-                    </select>
+                      Thêm nhân viên
+                    </button>
                   </div>
 
-                  {accountFormMode === 'add' ? (
-                    <div className="form-group" style={{ marginBottom: '16px' }}>
-                      <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px', display: 'block' }}>Nhân viên liên kết:</label>
-                      {unlinkedEmployees.length > 0 ? (
-                        (() => {
-                          const mappedEmployees = unlinkedEmployees.map(emp => ({
-                            ...emp,
-                            displayName: `${emp.fullName} (${emp.employeeID})`
-                          }));
-                          return (
-                            <SearchableSelect
-                              options={mappedEmployees}
-                              value={accountForm.employeeID}
-                              onChange={(val) => setAccountForm({ ...accountForm, employeeID: val })}
-                              idKey="employeeID"
-                              nameKey="displayName"
-                              placeholder="Chọn nhân viên..."
-                            />
-                          );
-                        })()
-                      ) : (
-                        <input
-                          type="text"
-                          className="input"
-                          style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', color: '#64748b' }}
-                          value="(Không còn nhân viên nào chưa có tài khoản)"
-                          disabled
-                        />
+                  <div className="custom-table-container">
+                    <table className="custom-table">
+                      <thead>
+                        <tr>
+                          <th>Mã NV</th>
+                          <th>Họ tên</th>
+                          <th>Số điện thoại</th>
+                          <th>Email</th>
+                          <th>Giới tính</th>
+                          <th>Năm sinh</th>
+                          <th>Tài khoản</th>
+                          <th style={{ textAlign: 'center' }}>Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentEmployees.length > 0 ? (
+                          currentEmployees.map((item) => {
+                            const linkedAcc = accountsList.find(acc => acc.employee && acc.employee.employeeID === item.employeeID);
+                            return (
+                              <tr key={item.employeeID}>
+                                <td style={{ fontWeight: '600' }}>{item.employeeID}</td>
+                                <td style={{ fontWeight: '600' }}>{item.fullName}</td>
+                                <td>{item.phoneNumber}</td>
+                                <td>{item.email}</td>
+                                <td>
+                                  <span style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    backgroundColor: item.gender === 'Male' ? '#dbeafe' : '#fce7f3',
+                                    color: item.gender === 'Male' ? '#1e40af' : '#9d174d'
+                                  }}>
+                                    {item.gender === 'Male' ? 'Nam' : 'Nữ'}
+                                  </span>
+                                </td>
+                                <td>{item.yearOfBirth}</td>
+                                <td>
+                                  {linkedAcc ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                      <div style={{ fontWeight: '700', color: '#1e3a8a', fontSize: '13px' }}>
+                                        👤 {linkedAcc.username}
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                        <span style={{
+                                          padding: '2px 6px',
+                                          borderRadius: '4px',
+                                          fontSize: '11px',
+                                          fontWeight: '600',
+                                          backgroundColor: linkedAcc.role === 'Admin' ? '#fee2e2' : linkedAcc.role === 'Product_manager' ? '#fef3c7' : '#dcfce7',
+                                          color: linkedAcc.role === 'Admin' ? '#991b1b' : linkedAcc.role === 'Product_manager' ? '#92400e' : '#166534'
+                                        }}>
+                                          {linkedAcc.role === 'Admin' ? 'Admin' : linkedAcc.role === 'Product_manager' ? 'Quản lý kho' : 'Bán hàng'}
+                                        </span>
+                                        <span style={{
+                                          padding: '2px 6px',
+                                          borderRadius: '4px',
+                                          fontSize: '11px',
+                                          fontWeight: '600',
+                                          backgroundColor: linkedAcc.isActive ? '#d1fae5' : '#f1f5f9',
+                                          color: linkedAcc.isActive ? '#065f46' : '#64748b',
+                                          border: linkedAcc.isActive ? 'none' : '1px solid #cbd5e1'
+                                        }}>
+                                          {linkedAcc.isActive ? 'Đang hoạt động' : 'Bị khóa'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '13px' }}>
+                                      🚫 Chưa cấp tài khoản
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                  <button className="btn-action btn-edit" style={{ marginRight: '6px' }} onClick={() => handleEmployeeEditClick(item)}>Chi tiết & Sửa</button>
+                                  <button className="btn-action btn-delete" onClick={() => handleEmployeeDelete(item.employeeID)}>Xóa</button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan="8" style={{ textAlign: 'center', color: '#94a3b8', padding: '24px' }}>Không tìm thấy nhân viên nào.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {totalItems > 0 && (
+                    <div className="pagination-container" style={{ borderRadius: '0 0 8px 8px', marginTop: '10px', padding: '10px 14px' }}>
+                      <div className="pagination-info" style={{ fontSize: '12px' }}>
+                        Hiển thị {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)} - {Math.min(currentPage * itemsPerPage, totalItems)} của {totalItems} nhân viên
+                      </div>
+                      {totalPages > 1 && (
+                        <div className="pagination-buttons" style={{ gap: '4px' }}>
+                          <button
+                            type="button"
+                            className="pagination-btn"
+                            style={{ padding: '6px 10px', fontSize: '12px' }}
+                            disabled={currentPage === 1}
+                            onClick={() => setEmployeeCurrentPage(currentPage - 1)}
+                          >
+                            ◀
+                          </button>
+
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <button
+                              key={page}
+                              type="button"
+                              className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                              style={{ padding: '6px 10px', fontSize: '12px' }}
+                              onClick={() => setEmployeeCurrentPage(page)}
+                            >
+                              {page}
+                            </button>
+                          ))}
+
+                          <button
+                            type="button"
+                            className="pagination-btn"
+                            style={{ padding: '6px 10px', fontSize: '12px' }}
+                            disabled={currentPage === totalPages}
+                            onClick={() => setEmployeeCurrentPage(currentPage + 1)}
+                          >
+                            ▶
+                          </button>
+                        </div>
                       )}
-                    </div>
-                  ) : (
-                    <div className="form-group" style={{ marginBottom: '16px' }}>
-                      <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', marginBottom: '6px', display: 'block' }}>Nhân viên liên kết (Không thể đổi):</label>
-                      <input
-                        type="text"
-                        className="input"
-                        style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', color: '#64748b' }}
-                        value={
-                          accountsList.find(a => a.accountID === accountForm.accountID)?.employee
-                            ? `${accountsList.find(a => a.accountID === accountForm.accountID).employee.fullName} (${accountsList.find(a => a.accountID === accountForm.accountID).employee.employeeID})`
-                            : 'Không liên kết'
-                        }
-                        disabled
-                      />
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#334155', fontWeight: '500', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                        checked={accountForm.isStaff}
-                        onChange={(e) => setAccountForm({ ...accountForm, isStaff: e.target.checked })}
-                      />
-                      Nhân viên hệ thống (isStaff)
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#334155', fontWeight: '500', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                        checked={accountForm.isActive}
-                        onChange={(e) => setAccountForm({ ...accountForm, isActive: e.target.checked })}
-                      />
-                      Kích hoạt tài khoản (isActive)
-                    </label>
-                  </div>
+                  {employeeFormMode && (
+                    <div style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 9999,
+                      backdropFilter: 'blur(6px)'
+                    }}>
+                      <div className="content-card" style={{
+                        width: '750px',
+                        maxHeight: '95vh',
+                        overflowY: 'auto',
+                        borderRadius: '12px',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        padding: '20px 24px',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        animation: 'fadeIn 0.2s ease-out'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                          <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                            {employeeFormMode === 'add' ? 'Thêm mới nhân viên & tài khoản' : `Chỉnh sửa nhân viên & tài khoản`}
+                          </h2>
+                          <button
+                            type="button"
+                            onClick={handleEmployeeCancel}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              fontSize: '24px',
+                              color: '#94a3b8',
+                              cursor: 'pointer',
+                              lineHeight: 1,
+                              padding: '4px'
+                            }}
+                          >
+                            &times;
+                          </button>
+                        </div>
 
-                  <div className="form-actions" style={{ marginTop: '24px', gap: '8px', display: 'flex' }}>
-                    {accountFormMode === 'add' && (
-                      <button
-                        type="button"
-                        className="btn-action btn-cancel"
-                        style={{ padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
-                        onClick={handleAccountCancel}
-                      >
-                        Hủy bỏ
-                      </button>
-                    )}
-                    <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, padding: '10px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: '700', border: 'none', cursor: 'pointer', backgroundColor: 'var(--primary-color)' }}>
-                      {accountFormMode === 'add' ? 'Cấp tài khoản' : 'Lưu lại'}
-                    </button>
-                  </div>
-                </form>
-              </div>
+                        <form onSubmit={handleEmployeeSave}>
+                          <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginBottom: '12px' }}>
+                            I. Thông tin nhân sự
+                          </h3>
 
-              {accountFormMode === 'edit' && accountForm.accountID && (
-                <div className="content-card" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff' }}>
-                  <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                    🔒 Đổi Mật Khẩu Tài Khoản
-                  </h2>
-                  <form onSubmit={handleAccountResetPassword}>
-                    <div className="form-group" style={{ marginBottom: '16px' }}>
-                      <label className="label" style={{ fontWeight: '600', color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Mật khẩu mới:</label>
-                      <input
-                        type="password"
-                        className="input"
-                        style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                        value={accountForm.password}
-                        onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
-                        placeholder="Nhập mật khẩu mới..."
-                        required
-                      />
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: '16px' }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Mã nhân viên:</label>
+                              <input
+                                type="text"
+                                className="input"
+                                style={{ padding: '8px 12px', fontSize: '13px' }}
+                                value={employeeForm.employeeID}
+                                onChange={(e) => setEmployeeForm({ ...employeeForm, employeeID: e.target.value })}
+                                disabled={employeeFormMode === 'edit'}
+                                placeholder="VD: NV001"
+                                required
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Họ tên nhân viên:</label>
+                              <input
+                                type="text"
+                                className="input"
+                                style={{ padding: '8px 12px', fontSize: '13px' }}
+                                value={employeeForm.fullName}
+                                onChange={(e) => setEmployeeForm({ ...employeeForm, fullName: e.target.value })}
+                                placeholder="VD: Nguyễn Văn A"
+                                required
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Số điện thoại:</label>
+                              <input
+                                type="text"
+                                className="input"
+                                style={{ padding: '8px 12px', fontSize: '13px' }}
+                                value={employeeForm.phoneNumber}
+                                onChange={(e) => setEmployeeForm({ ...employeeForm, phoneNumber: e.target.value })}
+                                placeholder="VD: 0987654321"
+                                required
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Email:</label>
+                              <input
+                                type="email"
+                                className="input"
+                                style={{ padding: '8px 12px', fontSize: '13px' }}
+                                value={employeeForm.email}
+                                onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
+                                placeholder="VD: nv001@gmail.com"
+                                required
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Giới tính:</label>
+                              <select
+                                className="select-input"
+                                style={{ padding: '8px 12px', fontSize: '13px', height: '37px' }}
+                                value={employeeForm.gender}
+                                onChange={(e) => setEmployeeForm({ ...employeeForm, gender: e.target.value })}
+                              >
+                                <option value="Male">Nam</option>
+                                <option value="Female">Nữ</option>
+                              </select>
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Năm sinh:</label>
+                              <input
+                                type="number"
+                                className="input"
+                                style={{ padding: '8px 12px', fontSize: '13px' }}
+                                value={employeeForm.yearOfBirth}
+                                onChange={(e) => setEmployeeForm({ ...employeeForm, yearOfBirth: Number(e.target.value) || '' })}
+                                placeholder="VD: 1995"
+                                required
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0, gridColumn: 'span 2' }}>
+                              <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Ngày vào làm:</label>
+                              <input
+                                type="date"
+                                className="input"
+                                style={{ padding: '8px 12px', fontSize: '13px' }}
+                                value={employeeForm.hireDate}
+                                onChange={(e) => setEmployeeForm({ ...employeeForm, hireDate: e.target.value })}
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          {employeeFormMode === 'add' ? (
+                            <>
+                              <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginTop: '16px', marginBottom: '12px' }}>
+                                II. Thông tin tài khoản liên kết (Bắt buộc)
+                              </h3>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                  <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Tên đăng nhập:</label>
+                                  <input
+                                    type="text"
+                                    className="input"
+                                    style={{ padding: '8px 12px', fontSize: '13px' }}
+                                    value={employeeForm.username}
+                                    onChange={(e) => setEmployeeForm({ ...employeeForm, username: e.target.value })}
+                                    placeholder="VD: nguyenvana"
+                                    required
+                                  />
+                                </div>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                  <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Vai trò (Role):</label>
+                                  <select
+                                    className="select-input"
+                                    style={{ padding: '8px 12px', fontSize: '13px', height: '37px' }}
+                                    value={employeeForm.roleName}
+                                    onChange={(e) => setEmployeeForm({ ...employeeForm, roleName: e.target.value })}
+                                  >
+                                    <option value="Sales">Bán hàng (Sales)</option>
+                                    <option value="Product_manager">Quản lý kho (Product Manager)</option>
+                                    <option value="Admin">Quản trị viên (Admin)</option>
+                                  </select>
+                                </div>
+                                <div style={{ gridColumn: 'span 2', display: 'flex', gap: '20px', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={employeeForm.isStaff}
+                                      onChange={(e) => setEmployeeForm({ ...employeeForm, isStaff: e.target.checked })}
+                                    />
+                                    Nhân viên hệ thống (isStaff)
+                                  </label>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={employeeForm.isActive}
+                                      onChange={(e) => setEmployeeForm({ ...employeeForm, isActive: e.target.checked })}
+                                    />
+                                    Kích hoạt tài khoản (isActive)
+                                  </label>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#475569', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px', marginTop: '16px', marginBottom: '12px' }}>
+                                II. Thông tin tài khoản liên kết
+                              </h3>
+                              
+                              {employeeForm.hasAccount ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+                                  <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Tên đăng nhập (username):</label>
+                                    <input
+                                      type="text"
+                                      className="input"
+                                      style={{ padding: '8px 12px', fontSize: '13px', backgroundColor: '#f1f5f9', color: '#64748b' }}
+                                      value={employeeForm.username}
+                                      disabled
+                                    />
+                                  </div>
+                                  <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Vai trò (Role):</label>
+                                    <select
+                                      className="select-input"
+                                      style={{ padding: '8px 12px', fontSize: '13px', height: '37px' }}
+                                      value={employeeForm.roleName}
+                                      onChange={(e) => setEmployeeForm({ ...employeeForm, roleName: e.target.value })}
+                                    >
+                                      <option value="Sales">Bán hàng (Sales)</option>
+                                      <option value="Product_manager">Quản lý kho (Product Manager)</option>
+                                      <option value="Admin">Quản trị viên (Admin)</option>
+                                    </select>
+                                  </div>
+                                  <div style={{ gridColumn: 'span 2', display: 'flex', gap: '20px', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={employeeForm.isStaff}
+                                        onChange={(e) => setEmployeeForm({ ...employeeForm, isStaff: e.target.checked })}
+                                      />
+                                      Nhân viên hệ thống (isStaff)
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={employeeForm.isActive}
+                                        onChange={(e) => setEmployeeForm({ ...employeeForm, isActive: e.target.checked })}
+                                      />
+                                      Kích hoạt tài khoản (isActive)
+                                    </label>
+                                  </div>
+                                  <div className="form-group" style={{ gridColumn: 'span 2', marginTop: '4px' }}>
+                                    <label className="label" style={{ fontSize: '13px', marginBottom: '4px', color: '#e11d48', fontWeight: '600' }}>🔑 Đặt lại mật khẩu (Để trống nếu không đổi):</label>
+                                    <input
+                                      type="password"
+                                      className="input"
+                                      style={{ padding: '8px 12px', fontSize: '13px', border: '1px solid #fda4af' }}
+                                      value={employeeForm.password}
+                                      onChange={(e) => setEmployeeForm({ ...employeeForm, password: e.target.value })}
+                                      placeholder="Nhập mật khẩu mới nếu muốn đổi..."
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#334155', fontWeight: '600', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                      checked={employeeForm.createAccountForExisting}
+                                      onChange={(e) => setEmployeeForm({ ...employeeForm, createAccountForExisting: e.target.checked })}
+                                    />
+                                    Cấp tài khoản mới cho nhân viên này
+                                  </label>
+                                  
+                                  {employeeForm.createAccountForExisting && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '10px' }}>
+                                      <div className="form-group" style={{ marginBottom: 0 }}>
+                                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Tên đăng nhập:</label>
+                                        <input
+                                          type="text"
+                                          className="input"
+                                          style={{ padding: '8px 12px', fontSize: '13px' }}
+                                          value={employeeForm.username}
+                                          onChange={(e) => setEmployeeForm({ ...employeeForm, username: e.target.value })}
+                                          placeholder="VD: nguyenvana"
+                                          required={employeeForm.createAccountForExisting}
+                                        />
+                                      </div>
+                                      <div className="form-group" style={{ marginBottom: 0 }}>
+                                        <label className="label" style={{ fontSize: '13px', marginBottom: '4px' }}>Vai trò (Role):</label>
+                                        <select
+                                          className="select-input"
+                                          style={{ padding: '8px 12px', fontSize: '13px', height: '37px' }}
+                                          value={employeeForm.roleName}
+                                          onChange={(e) => setEmployeeForm({ ...employeeForm, roleName: e.target.value })}
+                                        >
+                                          <option value="Sales">Bán hàng (Sales)</option>
+                                          <option value="Product_manager">Quản lý kho (Product Manager)</option>
+                                          <option value="Admin">Quản trị viên (Admin)</option>
+                                        </select>
+                                      </div>
+                                      <div style={{ gridColumn: 'span 2', display: 'flex', gap: '20px', background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                          <input
+                                            type="checkbox"
+                                            checked={employeeForm.isStaff}
+                                            onChange={(e) => setEmployeeForm({ ...employeeForm, isStaff: e.target.checked })}
+                                          />
+                                          Nhân viên hệ thống (isStaff)
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                          <input
+                                            type="checkbox"
+                                            checked={employeeForm.isActive}
+                                            onChange={(e) => setEmployeeForm({ ...employeeForm, isActive: e.target.checked })}
+                                          />
+                                          Kích hoạt tài khoản (isActive)
+                                        </label>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          <div className="form-actions" style={{ marginTop: '20px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                            <button type="button" className="btn-action btn-cancel" style={{ marginRight: '6px' }} onClick={handleEmployeeCancel}>
+                              Hủy bỏ
+                            </button>
+                            <button type="submit" className="btn-action btn-select" style={{ flexGrow: 1, backgroundColor: 'var(--primary-color)', border: 'none', color: '#ffffff' }}>
+                              {employeeFormMode === 'add' ? 'Thêm mới' : 'Lưu lại'}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
-                    <button
-                      type="submit"
-                      className="btn-create"
-                      style={{ width: '100%', border: 'none', marginTop: '14px', backgroundColor: '#e11d48', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '700', color: '#ffffff', cursor: 'pointer' }}
-                    >
-                      Đặt lại mật khẩu 🔒
-                    </button>
-                  </form>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </div>
         );
       }
@@ -8989,23 +8878,24 @@ function Home() {
             )}
           </div>
 
-          {/* MENU 4: HỆ THỐNG (Parent key: 'heThong') */}
+          {/* MENU 4: HỆ THỐNG */}
           {role === 'Admin' && (
             <div>
-              <button className="menu-btn-parent" onClick={() => toggleMenu('heThong')}>
-                <span>Hệ thống</span>
-                <span className="menu-arrow">{expandedMenus.heThong ? '▲' : '▼'}</span>
+              <button
+                className={`menu-btn-parent ${activeTab === 'sys_management' ? 'active' : ''}`}
+                style={activeTab === 'sys_management' ? { backgroundColor: 'var(--primary-color)', color: '#ffffff' } : {}}
+                onClick={() => {
+                  setActiveTab('sys_management');
+                  setExpandedMenus({
+                    thuoc: false,
+                    kho: false,
+                    banHang: false,
+                    heThong: false
+                  });
+                }}
+              >
+                <span>Quản trị hệ thống</span>
               </button>
-              {expandedMenus.heThong && (
-                <div className="submenu-list">
-                  <button className={`submenu-btn ${activeTab === 'sys_employees' ? 'active' : ''}`} onClick={() => setActiveTab('sys_employees')}>
-                    Quản lý nhân viên
-                  </button>
-                  <button className={`submenu-btn ${activeTab === 'sys_accounts' ? 'active' : ''}`} onClick={() => setActiveTab('sys_accounts')}>
-                    Tài khoản & Phân quyền
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
