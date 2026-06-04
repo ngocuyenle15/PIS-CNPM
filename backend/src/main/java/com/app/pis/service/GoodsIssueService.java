@@ -211,7 +211,7 @@ public class GoodsIssueService {
             }
         }
 
-        issue.setDetails(details);
+        issue.getDetails().addAll(details);
         GoodsIssue saved = goodsIssueRepository.save(issue);
         return mapToResponse(saved);
     }

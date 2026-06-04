@@ -212,7 +212,7 @@ public class GoodsReceiptService {
             }
         }
 
-        receipt.setDetails(details);
+        receipt.getDetails().addAll(details);
         GoodsReceipt saved = goodsReceiptRepository.save(receipt);
         return mapToResponse(saved);
     }

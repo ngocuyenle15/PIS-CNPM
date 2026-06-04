@@ -800,18 +800,18 @@ function Home() {
 
       // 3. Chuẩn hóa cảnh báo khẩn cấp (Hết hạn và Tồn kho thấp)
       const expiredAlerts = (criticalExpiredRes.data?.data?.items || []).map(item => ({
-        id: `exp-${item.inventoryId || Math.random()}`,
+        id: `exp-${item.id || Math.random()}`,
         type: 'EXPIRED',
-        title: item.medicineName,
-        desc: `Lô ${item.batchNumber || 'N/A'} đã hết hạn từ ${item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('vi-VN') : 'N/A'} (Tồn: ${item.quantity || 0})`,
+        title: item.medicine?.medicineName || 'N/A',
+        desc: `Lô ${item.batchId || 'N/A'} đã hết hạn từ ${item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('vi-VN') : 'N/A'} (Tồn: ${item.stockQuantity ?? 0} ${item.medicine?.baseUnit?.unitName || ''})`,
         severity: 'high'
       }));
 
       const lowStockAlerts = (criticalLowStockRes.data?.data?.items || []).map(item => ({
-        id: `low-${item.inventoryId || Math.random()}`,
+        id: `low-${item.id || Math.random()}`,
         type: 'LOW_STOCK',
-        title: item.medicineName,
-        desc: `Tồn kho thấp: còn ${item.quantity || 0} ${item.unitName || ''} (Ngưỡng: ${item.minStock || 10})`,
+        title: item.medicine?.medicineName || 'N/A',
+        desc: `Tồn kho thấp: còn ${item.stockQuantity ?? 0} ${item.medicine?.baseUnit?.unitName || ''} (Ngưỡng: 20 ${item.medicine?.baseUnit?.unitName || ''})`,
         severity: 'medium'
       }));
 
@@ -2553,8 +2553,8 @@ function Home() {
                         key={alert.id}
                         style={{
                           display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
+                          flexDirection: 'column',
+                          gap: '4px',
                           padding: '12px 14px',
                           borderRadius: '8px',
                           backgroundColor: alert.type === 'EXPIRED' ? '#fee2e2' : '#fffbeb',
@@ -2562,33 +2562,12 @@ function Home() {
                           transition: 'transform 0.15s'
                         }}
                       >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '75%' }}>
-                          <span style={{ fontWeight: '600', fontSize: '13px', color: alert.type === 'EXPIRED' ? '#991b1b' : '#92400e' }}>
-                            {alert.title}
-                          </span>
-                          <span style={{ fontSize: '11px', color: alert.type === 'EXPIRED' ? '#b91c1c' : '#b45309', lineHeight: '1.4' }}>
-                            {alert.desc}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleAlertAction(alert)}
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            cursor: 'pointer',
-                            backgroundColor: alert.type === 'EXPIRED' ? '#ef4444' : '#d97706',
-                            color: '#ffffff',
-                            transition: 'opacity 0.2s',
-                            flexShrink: 0
-                          }}
-                          onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
-                          onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
-                        >
-                          {alert.type === 'EXPIRED' ? 'Xuất hủy' : 'Nhập hàng'}
-                        </button>
+                        <span style={{ fontWeight: '600', fontSize: '13px', color: alert.type === 'EXPIRED' ? '#991b1b' : '#92400e' }}>
+                          {alert.title}
+                        </span>
+                        <span style={{ fontSize: '11px', color: alert.type === 'EXPIRED' ? '#b91c1c' : '#b45309', lineHeight: '1.4' }}>
+                          {alert.desc}
+                        </span>
                       </div>
                     ))
                   ) : (
@@ -6020,16 +5999,6 @@ function Home() {
                                       Đếm kho
                                     </button>
                                   )}
-                                  <button
-                                    type="button"
-                                    className="action-dropdown-item"
-                                    onClick={() => {
-                                      handlePrintAudit(item);
-                                      setActiveDropdown(null);
-                                    }}
-                                  >
-                                    In phiếu
-                                  </button>
                                   {(item.status === 'IN_PROGRESS' || item.status === 'DRAFT') && (role === 'Admin' || role === 'Product_manager') && (
                                     <>
                                       <button
