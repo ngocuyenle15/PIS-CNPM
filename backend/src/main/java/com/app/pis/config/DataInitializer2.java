@@ -54,10 +54,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-// @Component
+@Component
 @RequiredArgsConstructor
 @Slf4j
-public class DataInitializer implements CommandLineRunner {
+public class DataInitializer2 implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
     private final EmployeeRepository employeeRepository;
@@ -83,7 +83,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        log.info("Bắt đầu khởi tạo dữ liệu mẫu hệ thống...");
+        log.info("Bắt đầu khởi tạo dữ liệu mẫu chuẩn thực tế (DataInitializer2)...");
 
         // 1. Seed Roles
         for (Role.RoleName roleName : Role.RoleName.values()) {
@@ -95,7 +95,7 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
 
-        // 2. Seed Employees and Accounts - 25 items per entity
+        // 2. Seed Employees and Accounts - 25 items per entity (>= 20 rows)
         List<Employee> employees = new ArrayList<>();
         Role adminRole = roleRepository.findByRoleName(Role.RoleName.Admin)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Role Admin trong Database"));
@@ -104,32 +104,37 @@ public class DataInitializer implements CommandLineRunner {
         Role managerRole = roleRepository.findByRoleName(Role.RoleName.Product_manager)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Role Product_manager trong Database"));
 
-        for (int i = 1; i <= 25; i++) {
+        List<String> employeeNames = List.of(
+            "Lê Ngọc Uyển   ", "Trần Quang Khoan", "Phan Thiện Vỹ", "Phạm Hoàng Nam", "Lê Minh Tuấn",
+            "Đặng Thu Thảo", "Vũ Huy Khánh", "Bùi Hồng Nhung", "Đỗ Quốc Việt", "Ngô Phương Anh",
+            "Hồ Hoàng Hải", "Phan Gia Bảo", "Lý Thanh Bình", "Trịnh Xuân Giang", "Mai Tuyết Trinh",
+            "Lâm Thế Kiệt", "Vương Quốc Huy", "Trần Mai Phương", "Lê Cẩm Tú", "Hoàng Kim Liên",
+            "Đinh Trọng Nghĩa", "Phùng Mỹ Linh", "Nguyễn Đắc Tài", "Vũ Quang Vinh", "Dương Thu Trang"
+        );
+
+        for (int i = 1; i <= 5; i++) {
             String empId = "EMP" + String.format("%03d", i);
             Employee emp;
             if (!employeeRepository.existsById(empId)) {
                 emp = new Employee();
                 emp.setEmployeeID(empId);
+                emp.setFullName(employeeNames.get(i - 1));
                 if (i == 1) {
-                    emp.setFullName("System Administrator");
                     emp.setPhoneNumber("0123456789");
                     emp.setEmail("admin@example.com");
                     emp.setGender(Employee.Gender.Male);
                     emp.setYearOfBirth(1990);
                 } else if (i == 2) {
-                    emp.setFullName("Nguyễn Thị Bán Hàng");
                     emp.setPhoneNumber("0987654321");
                     emp.setEmail("sales@example.com");
                     emp.setGender(Employee.Gender.Female);
                     emp.setYearOfBirth(1995);
                 } else if (i == 3) {
-                    emp.setFullName("Trần Văn Thủ Kho");
                     emp.setPhoneNumber("0911223344");
                     emp.setEmail("manager@example.com");
                     emp.setGender(Employee.Gender.Male);
                     emp.setYearOfBirth(1988);
                 } else {
-                    emp.setFullName("Nhân viên " + i);
                     emp.setPhoneNumber("0900000" + String.format("%03d", i));
                     emp.setEmail("employee" + i + "@example.com");
                     emp.setGender(i % 2 == 0 ? Employee.Gender.Male : Employee.Gender.Female);
@@ -182,13 +187,14 @@ public class DataInitializer implements CommandLineRunner {
 
         Employee adminEmployee = employees.get(0);
 
-        // 4. Seed Catalog (Danh mục nhóm thuốc) - 26 bản ghi
+        // 4. Seed Catalog (Danh mục nhóm thuốc) - 26 bản ghi (>= 20 rows)
         List<String> catalogNames = List.of(
-            "Thuốc kháng sinh", "Thuốc giảm đau", "Thuốc kháng viêm", "Thuốc nhỏ mắt", "Vitamin & Khoáng chất",
-            "Thuốc tiêu hóa", "Thuốc tim mạch", "Thuốc tiểu đường", "Thuốc dị ứng", "Thuốc ho & cảm cúm",
-            "Dược mỹ phẩm", "Thuốc bôi da", "Thuốc trị nấm", "Thực phẩm chức năng", "Thiết bị y tế",
-            "Thuốc nhỏ mũi", "Thuốc thần kinh", "Thuốc bổ não", "Thuốc xương khớp", "Sữa công thức",
-            "Thuốc hạ sốt", "Dầu gió & cao xoa", "Thuốc bổ gan", "Thuốc hô hấp", "Dược liệu & Thảo dược", "Thiết bị bảo hộ"
+            "Thuốc kháng sinh", "Thuốc giảm đau & hạ sốt", "Thuốc kháng viêm", "Thuốc nhỏ mắt & tai", "Vitamin & Khoáng chất",
+            "Thuốc tiêu hóa & dạ dày", "Thuốc tim mạch & huyết áp", "Thuốc trị tiểu đường", "Thuốc kháng Histamine dị ứng", "Thuốc ho & cảm cúm",
+            "Dược mỹ phẩm chăm sóc da", "Thuốc bôi ngoài da", "Thuốc trị nấm", "Thực phẩm chức năng", "Thiết bị y tế gia đình",
+            "Thuốc nhỏ & xịt mũi", "Thuốc an thần & thần kinh", "Thuốc bổ não & tuần hoàn", "Thuốc xương khớp & gout", "Sữa & Dinh dưỡng",
+            "Dầu gió & cao xoa", "Thuốc bổ gan & giải độc", "Thuốc đường hô hấp", "Dược liệu & Thảo dược", "Thiết bị bảo hộ y tế",
+            "Dịch truyền & bù điện giải"
         );
         List<Catalog> catalogs = new ArrayList<>();
         for (int i = 0; i < catalogNames.size(); i++) {
@@ -202,7 +208,7 @@ public class DataInitializer implements CommandLineRunner {
         }
         log.info("Đã seed xong {} Catalog.", catalogs.size());
 
-        // 5. Seed Unit (Đơn vị tính) - 26 bản ghi
+        // 5. Seed Unit (Đơn vị tính) - 26 bản ghi (>= 20 rows)
         List<String> unitNames = List.of(
             "Viên", "Hộp", "Chai", "Vỉ", "Tuýp", "Gói", "Ống", "Lọ", "Cốc", "Thìa",
             "Bình", "Cái", "Chiếc", "Cuộn", "Miếng", "Tờ", "Ống tiêm", "Amput", "Viên sủi", "Túi",
@@ -220,7 +226,7 @@ public class DataInitializer implements CommandLineRunner {
         }
         log.info("Đã seed xong {} Unit.", units.size());
 
-        // 6. Seed Origin (Nước sản xuất) - 26 bản ghi
+        // 6. Seed Origin (Nước sản xuất) - 26 bản ghi (>= 20 rows)
         List<String> originNames = List.of(
             "Việt Nam", "Mỹ", "Pháp", "Đức", "Ấn Độ", "Anh", "Ý", "Nhật Bản", "Hàn Quốc", "Thụy Sĩ",
             "Úc", "Canada", "Singapore", "Thái Lan", "Malaysia", "Trung Quốc", "Tây Ban Nha", "Bỉ", "Hà Lan", "Thụy Điển",
@@ -238,14 +244,20 @@ public class DataInitializer implements CommandLineRunner {
         }
         log.info("Đã seed xong {} Origin.", origins.size());
 
-        // 7. Seed Supplier (Nhà cung cấp) - 27 bản ghi
+        // 7. Seed Supplier (Nhà cung cấp) - 27 bản ghi (>= 20 rows)
         List<String> supplierNames = List.of(
             "TỒN KHO KHỞI TẠO",
-            "Dược Phẩm Trung Ương 1", "Dược Hậu Giang (DHG)", "Traphaco", "Imexpharm", "Pharmedic",
-            "OPC Pharmaceutical", "Domesco", "Dược Hà Tây", "Dược Phẩm OPC", "Dược Sanofi",
-            "Dược Bến Tre", "Dược Lâm Đồng", "Dược Cửu Long", "Dược Phẩm Boston", "Dược Phẩm Nam Hà",
-            "Dược Phẩm Khánh Hòa", "Dược Phẩm Hà Bắc", "Dược Phẩm Vĩnh Phúc", "Dược Phẩm Trà Vinh", "Dược Phẩm Tiền Giang",
-            "Dược Phẩm Yên Bái", "Dược Phẩm Ninh Bình", "Dược Phẩm Bình Định", "Dược Phẩm Cần Thơ", "Dược Phẩm Danapha", "Dược Phẩm Mekophar"
+            "Công ty Cổ phần Dược phẩm Trung ương 1 (CPC1)", "Công ty Cổ phần Dược Hậu Giang (DHG)",
+            "Công ty Cổ phần Traphaco", "Công ty Cổ phần Dược phẩm Imexpharm", "Công ty Cổ phần Dược phẩm Domesco",
+            "Công ty Cổ phần Dược Phẩm OPC", "Công ty Cổ phần Dược Hà Tây", "Công ty Cổ phần Pharmedic",
+            "Công ty TNHH Sanofi-Aventis Việt Nam", "Công ty Cổ phần Dược Lâm Đồng (Ladophar)",
+            "Công ty Cổ phần Dược Cửu Long (Pharimexco)", "Công ty Cổ phần Dược phẩm Boston Việt Nam",
+            "Công ty Cổ phần Dược phẩm Nam Hà", "Công ty Cổ phần Dược phẩm Khánh Hòa",
+            "Công ty Cổ phần Dược phẩm Savi (Savipharm)", "Công ty Cổ phần Dược Vĩnh Phúc (Vinphaco)",
+            "Công ty Cổ phần Dược Medipharco", "Công ty Cổ phần Dược phẩm Danapha", "Công ty Cổ phần Hóa - Dược phẩm Mekophar",
+            "Công ty Cổ phần Dược vật tư y tế Bình Định (Bidiphar)", "Công ty Cổ phần Dược Phẩm Yên Bái",
+            "Công ty Cổ phần Dược phẩm Gia Lai", "Công ty Cổ phần Dược phẩm Tipharco",
+            "Công ty Cổ phần Dược phẩm Quảng Bình", "Công ty TNHH AstraZeneca Việt Nam", "Công ty TNHH Pfizer Việt Nam"
         );
         List<Supplier> suppliers = new ArrayList<>();
         for (int i = 0; i < supplierNames.size(); i++) {
@@ -259,7 +271,7 @@ public class DataInitializer implements CommandLineRunner {
         }
         log.info("Đã seed xong {} Supplier.", suppliers.size());
 
-        // 8. Seed Customer (Khách hàng) - 26 bản ghi
+        // 8. Seed Customer (Khách hàng) - 26 bản ghi (>= 20 rows)
         List<String> customerNames = List.of(
             "Nguyễn Văn Anh", "Trần Thị Bình", "Lê Hoàng Chi", "Phạm Minh Đức", "Hoàng Thị Hương",
             "Vũ Văn Gia", "Ngô Thị Kim", "Đỗ Minh Long", "Bùi Thị Mai", "Phan Văn Nam",
@@ -284,22 +296,56 @@ public class DataInitializer implements CommandLineRunner {
         }
         log.info("Đã seed xong {} Customer.", customers.size());
 
-        // 9. Seed Medicine - 30 bản ghi
+        // 9. Seed Medicine - 75 bản ghi (yêu cầu > 70 thuốc)
+        List<String> medicineNames = List.of(
+            "Paracetamol 500mg", "Ibuprofen 400mg", "Meloxicam 7.5mg", "Diclofenac 50mg", "Celecoxib 200mg",
+            "Aspirin 81mg", "Amoxicillin 500mg", "Augmentin 1g", "Klamentin 625mg", "Cephalexin 500mg",
+            "Cefuroxime Axetil 500mg", "Zinnat 250mg", "Cefixime 200mg", "Azithromycin 500mg", "Zithromax 250mg",
+            "Clarithromycin 500mg", "Klacid MR 500mg", "Levofloxacin 500mg", "Tavanic 500mg", "Ciprofloxacin 500mg",
+            "Metronidazole 250mg", "Acetylcysteine 200mg", "Acemuc 200mg", "Ambroxol 30mg", "Bisolvon 8mg",
+            "Dextromethorphan 15mg", "Ventolin Nebules 2.5mg", "Seretide Evohaler 25/250mcg", "Singulair 4mg", "Loratadine 10mg",
+            "Clarityne 10mg", "Cetirizine 10mg", "Zyrtec 10mg", "Fexofenadine 180mg", "Telfast 60mg",
+            "Aerius 5mg", "Chlorpheniramine 4mg", "Omeprazole 20mg", "Nexium mups 40mg", "Pantoprazole 40mg",
+            "Pariet 20mg", "Ranitidine 150mg", "Famotidine 20mg", "Phosphalugel", "Gaviscon Dual Action",
+            "Motilium 10mg", "Primperan 10mg", "Zofran 8mg", "Imodium 2mg", "Smecta 3g",
+            "Oresol 27.9g", "Duphalac 667mg/ml", "Dulcolax 5mg", "Glucophage 850mg", "Diamicron MR 60mg",
+            "Amaryl 2mg", "Amlor 5mg", "Adalat LA 30mg", "Cozaar 50mg", "Diovan 80mg",
+            "Micardis 40mg", "Captopril 25mg", "Betaloc ZOK 50mg", "Concor 5mg", "Lipitor 20mg",
+            "Crestor 10mg", "Zocor 20mg", "Lipanthyl NT 145mg", "Seduxen 5mg", "Tanakan 40mg",
+            "Nootropil 800mg", "Merislon 6mg", "Sibelium 5mg", "Glucosamine Chondroitin", "Calcium D3 Sandoz"
+        );
+
+        List<String> ingredientsList = List.of(
+            "Paracetamol 500mg", "Ibuprofen 400mg", "Meloxicam 7.5mg", "Diclofenac 50mg", "Celecoxib 200mg",
+            "Aspirin 81mg", "Amoxicillin 500mg", "Amoxicillin 875mg + Clavulanic Acid 125mg", "Amoxicillin 500mg + Clavulanic Acid 125mg", "Cephalexin 500mg",
+            "Cefuroxime Axetil 500mg", "Cefuroxime 250mg", "Cefixime 200mg", "Azithromycin 500mg", "Azithromycin 250mg",
+            "Clarithromycin 500mg", "Clarithromycin 500mg", "Levofloxacin 500mg", "Levofloxacin 500mg", "Ciprofloxacin 500mg",
+            "Metronidazole 250mg", "Acetylcysteine 200mg", "Acetylcysteine 200mg", "Ambroxol hydrochloride 30mg", "Bromhexine hydrochloride 8mg",
+            "Dextromethorphan HBr 15mg", "Salbutamol 2.5mg", "Salmeterol 25mcg + Fluticasone Propionate 250mcg", "Montelukast natri 4mg", "Loratadine 10mg",
+            "Loratadine 10mg", "Cetirizine dihydrochloride 10mg", "Cetirizine dihydrochloride 10mg", "Fexofenadine hydrochloride 180mg", "Fexofenadine hydrochloride 60mg",
+            "Desloratadine 5mg", "Chlorpheniramine maleate 4mg", "Omeprazole 20mg", "Esomeprazole magnesium trihydrate 40mg", "Pantoprazole 40mg",
+            "Rabeprazole natri 20mg", "Ranitidine 150mg", "Famotidine 20mg", "Colloid Alumini phosphat 20%", "Natri alginate + Calci carbonat",
+            "Domperidone 10mg", "Metoclopramide hydrochloride 10mg", "Ondansetron 8mg", "Loperamide hydrochloride 2mg", "Dioctahedral smectite 3g",
+            "Natri clorid, Natri citrat, Kali clorid, Glucose khan", "Lactulose 10g/15ml", "Bisacodyl 5mg", "Metformin hydrochloride 850mg", "Gliclazide 60mg",
+            "Glimepiride 2mg", "Amlodipine besylate 5mg", "Nifedipine 30mg", "Losartan kali 50mg", "Valsartan 80mg",
+            "Telmisartan 40mg", "Captopril 25mg", "Metoprolol succinate 50mg", "Bisoprolol fumarate 5mg", "Atorvastatin calcium trihydrate 20mg",
+            "Rosuvastatin calcium 10mg", "Simvastatin 20mg", "Fenofibrate 145mg", "Diazepam 5mg", "Ginkgo biloba extract 40mg",
+            "Piracetam 800mg", "Betahistine mesilate 6mg", "Flunarizine hydrochloride 5mg", "Glucosamine sulfate 1500mg", "Calcium lactate gluconate + Calcium carbonate + Vitamin D3"
+        );
+
         List<Medicine> medicines = new ArrayList<>();
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < medicineNames.size(); i++) {
             String id = "MED" + String.format("%03d", i + 1);
             if (!medicineRepository.existsById(id)) {
                 Medicine m = new Medicine();
                 m.setMedicineID(id);
-                m.setMedicineName("Thuốc " + (char)('A' + (i % 26)) + (i >= 26 ? String.valueOf(i / 26) : ""));
+                m.setMedicineName(medicineNames.get(i));
                 m.setImage("https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=300&q=80");
-                m.setIngredients("Thành phần hoạt chất chính của " + m.getMedicineName() + " và tá dược vừa đủ");
-                
+                m.setIngredients(ingredientsList.get(i) + " và tá dược vừa đủ");
                 m.setCatalog(catalogs.get(i % catalogs.size()));
                 m.setBaseUnit(units.get(i % units.size()));
                 m.setOrigin(origins.get(i % origins.size()));
-                m.setUnitPrice(BigDecimal.valueOf(10000 + i * 5000));
-                
+                m.setUnitPrice(BigDecimal.valueOf(10000 + i * 2000));
                 medicines.add(medicineRepository.save(m));
             } else {
                 medicines.add(medicineRepository.findById(id).orElse(null));
@@ -307,7 +353,7 @@ public class DataInitializer implements CommandLineRunner {
         }
         log.info("Đã seed xong {} Medicine.", medicines.size());
 
-        // 10. Seed MedicineUnit (Quy đổi đơn vị phụ cho TẤT CẢ 30 thuốc)
+        // 10. Seed MedicineUnit (Quy đổi đơn vị phụ cho TẤT CẢ thuốc) - 75+ bản ghi (>= 20 rows)
         Unit unitVien    = unitRepository.findById("UNIT001").orElse(null);
         Unit unitHop     = unitRepository.findById("UNIT002").orElse(null);
         Unit unitChai    = unitRepository.findById("UNIT003").orElse(null);
@@ -363,23 +409,42 @@ public class DataInitializer implements CommandLineRunner {
         }
         log.info("Đã seed xong {} MedicineUnit conversion rates.", seededConversions);
 
-        // 11. Seed Inventory (Lô kho) - 30 bản ghi
+        // 11. Seed Inventory (Lô kho) - 75 bản ghi (đảm bảo tồn tại INV001 cho Test) (>= 20 rows)
         List<Inventory> inventories = new ArrayList<>();
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 75; i++) {
             String invId = "INV" + String.format("%03d", i + 1);
             if (!inventoryRepository.existsById(invId)) {
                 Inventory inv = new Inventory();
                 inv.setId(invId);
                 inv.setBatchId("BATCH" + String.format("%03d", i + 1));
                 inv.setMedicine(medicines.get(i % medicines.size()));
-                inv.setImportPrice(BigDecimal.valueOf(8000 + i * 2000));
-                inv.setStockQuantity(100 + i * 50);
-                if (i % 10 == 2) { inv.setExpiryDate(LocalDate.now().minusMonths(1)); inv.setManufacturedDate(LocalDate.now().minusMonths(13)); }
-                else if (i % 10 == 5) { inv.setExpiryDate(LocalDate.now().plusDays(15)); inv.setManufacturedDate(LocalDate.now().minusDays(350)); }
-                else { inv.setExpiryDate(LocalDate.now().plusYears(1 + i % 2)); inv.setManufacturedDate(LocalDate.now().minusMonths(6)); }
-                if (i % 10 == 4) { inv.setStatus(Inventory.InventoryStatus.SOLD_OUT); inv.setStockQuantity(0); }
-                else if (i % 10 == 8) { inv.setStatus(Inventory.InventoryStatus.DISPOSED); }
-                else { inv.setStatus(Inventory.InventoryStatus.ACTIVE); }
+                inv.setImportPrice(BigDecimal.valueOf(8000 + i * 200));
+                inv.setStockQuantity(100 + i * 5);
+                if (i % 10 == 2) { 
+                    inv.setExpiryDate(LocalDate.now().minusMonths(1)); 
+                    inv.setManufacturedDate(LocalDate.now().minusMonths(13)); 
+                } else if (i % 10 == 5) { 
+                    inv.setExpiryDate(LocalDate.now().plusDays(15)); 
+                    inv.setManufacturedDate(LocalDate.now().minusDays(350)); 
+                } else { 
+                    inv.setExpiryDate(LocalDate.now().plusYears(1 + i % 2)); 
+                    inv.setManufacturedDate(LocalDate.now().minusMonths(6)); 
+                }
+                if (i % 10 == 4) { 
+                    inv.setStatus(Inventory.InventoryStatus.SOLD_OUT); 
+                    inv.setStockQuantity(0); 
+                } else if (i % 10 == 8) { 
+                    inv.setStatus(Inventory.InventoryStatus.DISPOSED); 
+                } else { 
+                    inv.setStatus(Inventory.InventoryStatus.ACTIVE); 
+                }
+                
+                // Đảm bảo INV001 là Active và còn hàng cho Integration Test chạy tốt
+                if (i == 0) {
+                    inv.setStatus(Inventory.InventoryStatus.ACTIVE);
+                    inv.setStockQuantity(150);
+                }
+                
                 inventories.add(inventoryRepository.save(inv));
             } else {
                 inventories.add(inventoryRepository.findById(invId).orElse(null));
@@ -387,7 +452,7 @@ public class DataInitializer implements CommandLineRunner {
         }
         log.info("Đã seed xong {} Inventory (Lô kho).", inventories.size());
 
-        // 12. Seed GoodsReceipt (Phiếu nhập kho) - 25 bản ghi
+        // 12. Seed GoodsReceipt (Phiếu nhập kho) - 25 bản ghi (>= 20 rows)
         for (int i = 1; i <= 25; i++) {
             String receiptId = "GR" + String.format("%03d", i);
             if (!goodsReceiptRepository.existsById(receiptId)) {
@@ -397,7 +462,8 @@ public class DataInitializer implements CommandLineRunner {
                 gr.setEmployee(employees.get(i % employees.size()));
                 gr.setSupplier(suppliers.get(i % suppliers.size()));
                 gr.setStatus(i % 5 == 0 ? GoodsReceipt.ReceiptStatus.DRAFT : GoodsReceipt.ReceiptStatus.CONFIRMED);
-                gr.setNote("Nhập hàng đợt " + i);
+                gr.setNote("Nhập hàng đợt thực tế " + i);
+                
                 GoodsReceiptDetail grd = new GoodsReceiptDetail();
                 grd.setReceipt(gr);
                 grd.setMedicine(medicines.get(i % medicines.size()));
@@ -409,12 +475,13 @@ public class DataInitializer implements CommandLineRunner {
                 grd.setTransactionUnit(unitHop);
                 grd.setConversionRate(10);
                 gr.getDetails().add(grd);
+                
                 goodsReceiptRepository.save(gr);
             }
         }
         log.info("Đã seed xong 25 GoodsReceipt.");
 
-        // 13. Seed GoodsIssue (Phiếu xuất kho) - 25 bản ghi
+        // 13. Seed GoodsIssue (Phiếu xuất kho) - 25 bản ghi (>= 20 rows)
         for (int i = 1; i <= 25; i++) {
             String issueId = "GI" + String.format("%03d", i);
             if (!goodsIssueRepository.existsById(issueId)) {
@@ -424,7 +491,8 @@ public class DataInitializer implements CommandLineRunner {
                 gi.setEmployee(employees.get((i + 1) % employees.size()));
                 gi.setIssueType(i % 4 == 0 ? GoodsIssue.IssueType.EXPIRED : GoodsIssue.IssueType.SALE);
                 gi.setStatus(i % 5 == 0 ? GoodsIssue.IssueStatus.DRAFT : GoodsIssue.IssueStatus.CONFIRMED);
-                gi.setNote("Xuất kho đợt " + i);
+                gi.setNote("Xuất kho đợt thực tế " + i);
+                
                 GoodsIssueDetail gid = new GoodsIssueDetail();
                 gid.setIssue(gi);
                 gid.setInventory(inventories.get(i % inventories.size()));
@@ -432,20 +500,22 @@ public class DataInitializer implements CommandLineRunner {
                 gid.setTransactionUnit(unitVien);
                 gid.setConversionRate(1);
                 gi.getDetails().add(gid);
+                
                 goodsIssueRepository.save(gi);
             }
         }
         log.info("Đã seed xong 25 GoodsIssue.");
 
-        // 14. Seed Invoice & InvoiceDetail (Hóa đơn bán hàng) - 25 bản ghi
+        // 14. Seed Invoice & InvoiceDetail (Hóa đơn bán hàng) - 25 bản ghi (>= 20 rows)
         if (invoiceRepository.count() == 0) {
             for (int i = 1; i <= 25; i++) {
                 Invoice inv = new Invoice();
                 inv.setInvoiceTime(LocalDateTime.now().minusDays(30 - i).plusHours(4));
                 inv.setCustomer(customers.get(i % customers.size()));
-                inv.setAddress(i + " Đường Trần Phú, Hà Nội");
+                inv.setAddress(i + " Đường Trần Hưng Đạo, Quận 1, TP. HCM");
                 inv.setPaymentMethod(i % 2 == 0 ? Invoice.PaymentMethod.Cash : Invoice.PaymentMethod.Card);
                 inv.setStatus(i % 6 == 0 ? Invoice.InvoiceStatus.Pending : Invoice.InvoiceStatus.Paid);
+                
                 InvoiceDetail invd = new InvoiceDetail();
                 invd.setInvoice(inv);
                 invd.setInventory(inventories.get(i % inventories.size()));
@@ -453,12 +523,13 @@ public class DataInitializer implements CommandLineRunner {
                 invd.setUnitPrice(BigDecimal.valueOf(15000 + i * 2000));
                 invd.setNote("Khách mua đợt " + i);
                 inv.getInvoiceDetails().add(invd);
+                
                 invoiceRepository.save(inv);
             }
             log.info("Đã seed xong 25 Invoice (Hóa đơn bán lẻ).");
         }
 
-        // 15. Seed StockAudit (Phiếu kiểm kê kho) - 25 bản ghi
+        // 15. Seed StockAudit (Phiếu kiểm kê kho) - 25 bản ghi (>= 20 rows)
         for (int i = 1; i <= 25; i++) {
             String auditId = "SA" + String.format("%03d", i);
             if (!stockAuditRepository.existsById(auditId)) {
@@ -472,21 +543,23 @@ public class DataInitializer implements CommandLineRunner {
                 } else {
                     sa.setStatus(StockAudit.AuditStatus.DRAFT);
                 }
-                sa.setNote("Kiểm kê định kỳ đợt " + i);
+                sa.setNote("Kiểm kê định kỳ thực tế đợt " + i);
+                
                 StockAuditDetail sad = new StockAuditDetail();
                 sad.setAudit(sa);
                 sad.setInventory(inventories.get(i % inventories.size()));
                 sad.setSystemQuantity(100 + i);
                 sad.setActualQuantity(100 + i - (i % 3));
                 sad.setDiscrepancy(-(i % 3));
-                sad.setNote("Kiểm kê khớp");
+                sad.setNote("Kiểm kê thực tế");
                 sa.getDetails().add(sad);
+                
                 stockAuditRepository.save(sa);
             }
         }
         log.info("Đã seed xong 25 StockAudit.");
 
-        // 16. Seed InventoryTransaction (Lịch sử giao dịch kho) - 30 bản ghi
+        // 16. Seed InventoryTransaction (Lịch sử giao dịch kho) - 30 bản ghi (>= 20 rows)
         if (inventoryTransactionRepository.count() == 0) {
             for (int i = 1; i <= 30; i++) {
                 InventoryTransaction t = new InventoryTransaction();
@@ -523,6 +596,6 @@ public class DataInitializer implements CommandLineRunner {
             log.info("Đã seed xong 30 InventoryTransaction.");
         }
 
-        log.info("Hoàn tất khởi tạo dữ liệu mẫu!");
+        log.info("Hoàn tất khởi tạo dữ liệu mẫu chuẩn thực tế (DataInitializer2)!");
     }
 }
