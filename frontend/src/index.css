@@ -1321,3 +1321,75 @@ body {
   background-color: #ffffff;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
 }
+/* ==========================================================================
+   RESPONSIVE DESIGN (Media Queries)
+   ========================================================================== */
+
+/* 1. Breakpoint: 992px - 1023px (Tablets Landscape) */
+@media (max-width: 1023px) {
+  .dashboard-layout {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    padding: 15px;
+  }
+  .user-profile {
+    margin-bottom: 15px;
+  }
+  .main-content {
+    overflow-y: visible;
+    padding: 20px;
+  }
+}
+
+/* 2. Breakpoint: 768px - 991px (Tablets Portrait) */
+@media (max-width: 991px) {
+  .table-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrapper, .search-input {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .btn-action, .btn-add-new {
+    width: 100%;
+    justify-content: center;
+  }
+  .custom-table-container, .table-container {
+    overflow-x: auto;
+    display: block;
+    white-space: nowrap;
+  }
+}
+
+/* 3. Breakpoint: <= 767px (Mobile Devices) */
+@media (max-width: 767px) {
+  .main-content {
+    padding: 10px;
+  }
+  .sidebar {
+    padding: 10px;
+  }
+  /* Force Grids to 1 column */
+  div[style*="display: grid"], div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+  .custom-table th, .custom-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+  .modal-content, div[style*="width: 500px"], div[style*="width: 600px"] {
+    width: 95% !important;
+  }
+  .pos-layout {
+    flex-direction: column !important;
+  }
+  .pos-products, .pos-cart {
+    width: 100% !important;
+  }
+}
