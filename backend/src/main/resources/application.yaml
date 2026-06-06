@@ -4,7 +4,7 @@ spring:
   server:
     port: ${SERVER_PORT:8080}
   datasource:
-    url: ${MySQL_JDBC_URL:jdbc:mysql://localhost:3309/pis}
+    url: ${MySQL_JDBC_URL:jdbc:mysql://localhost:3309/pis?createDatabaseIfNotExist=true}
     username: ${MySQL_USER:root}
     password: ${MySQL_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -16,7 +16,7 @@ spring:
       max-lifetime: 1800000
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
