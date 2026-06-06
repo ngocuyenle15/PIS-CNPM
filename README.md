@@ -48,6 +48,14 @@ docker compose up --build -d
 | Backend API  | http://localhost:8080/api           |
 | MySQL        | `localhost:3306` (user: `root`, password: `123456`) |
 
+### 5. Tài khoản dùng thử (Demo accounts)
+
+| Vai trò (Role) | Tài khoản (Username) | Mật khẩu (Password) |
+| -------------- | -------------------- | ------------------- |
+| **Admin**            | `admin`              | `Uyenle123`         |
+| **Product Manager**  | `manager`            | `Vyphan123`         |
+| **Sales**            | `sales`              | `Trankhoan123`      |
+
 ---
 ## Biến môi trường
 

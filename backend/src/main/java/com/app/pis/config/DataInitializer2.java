@@ -156,15 +156,15 @@ public class DataInitializer2 implements CommandLineRunner {
             if (i == 1) {
                 username = "admin";
                 role = adminRole;
-                plainPassword = "admin123";
+                plainPassword = "Uyenle123";
             } else if (i == 2) {
                 username = "sales";
                 role = salesRole;
-                plainPassword = "sales123";
+                plainPassword = "Trankhoan123";
             } else if (i == 3) {
                 username = "manager";
                 role = managerRole;
-                plainPassword = "manager123";
+                plainPassword = "Vyphan123";
             } else {
                 username = "user" + i;
                 role = (i % 2 == 0) ? salesRole : managerRole;
