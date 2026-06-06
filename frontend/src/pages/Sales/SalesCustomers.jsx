@@ -132,15 +132,6 @@ const SalesCustomers = () => {
                         Sửa
                       </button>
                     )}
-                    {role === 'Admin' && (
-                      <button
-                        className="btn-action btn-delete"
-                        style={{ padding: '4px 8px', fontSize: '11px' }}
-                        onClick={() => handleCustomerDelete(selectedCustomer.customerID)}
-                      >
-                        Xóa
-                      </button>
-                    )}
                   </div>
                 </div>
 
@@ -374,19 +365,7 @@ const SalesCustomers = () => {
                             >
                               Chọn
                             </button>
-                            {(role === 'Admin' || role === 'Sales') && (
-                              <button
-                                className="btn-action btn-edit"
-                                style={{ marginRight: '6px' }}
-                                onClick={() => {
-                                  setSelectedCustomer(item);
-                                  setCustomerFormMode('edit');
-                                  setCustomerForm({ ...item });
-                                }}
-                              >
-                                Sửa
-                              </button>
-                            )}
+
                             {role === 'Admin' && (
                               <button
                                 className="btn-action btn-delete"

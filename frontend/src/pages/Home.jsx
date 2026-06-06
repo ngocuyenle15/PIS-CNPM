@@ -658,6 +658,75 @@ function Home() {
     printContent(`Phiếu Kiểm Kê - ${auditToPrint.auditId}`, htmlContent);
   };
 
+  const handlePrintInvoice = (invoice) => {
+    const invToPrint = invoice || invoiceReceiptData;
+    if (!invToPrint) return;
+
+    const detailsRows = invToPrint.details?.map((d) => `
+      <tr>
+        <td>
+          <div style="font-weight: bold;">${d.medicineName}</div>
+          <div style="font-size: 11px; color: #666; margin-top: 2px;">Lô: ${d.batchId}</div>
+          ${d.note ? `<div style="font-size: 11px; color: #b91c1c; margin-top: 2px;">HDSD: ${d.note}</div>` : ''}
+        </td>
+        <td style="text-align: center;">${d.quantity}</td>
+        <td style="text-align: right;">${d.unitPrice?.toLocaleString()}đ</td>
+        <td style="text-align: right; font-weight: bold;">${d.subTotal?.toLocaleString()}đ</td>
+      </tr>
+    `).join('') || '';
+
+    const totalAmount = invToPrint.details?.reduce((sum, d) => sum + (d.subTotal || 0), 0) || 0;
+
+    const htmlContent = `
+      <div style="max-width: 400px; margin: 0 auto; font-family: 'Inter', sans-serif;">
+        <h2 style="text-align: center; margin-bottom: 5px; text-transform: uppercase;">PIS PHARMACY</h2>
+        <p style="text-align: center; font-size: 12px; margin: 2px 0; color: #555;">97 Man Thiện, Thủ Đức, TP.HCM</p>
+        <p style="text-align: center; font-size: 12px; margin: 2px 0; color: #555;">SĐT: 024.1234.5678</p>
+        <div style="border-bottom: 2px dashed #000; margin: 15px 0;"></div>
+        <h3 style="text-align: center; margin: 10px 0; text-transform: uppercase;">HÓA ĐƠN BÁN LẺ</h3>
+        <p style="text-align: center; font-size: 12px; margin: 3px 0; color: #555;">Số: <strong>HĐ-${invToPrint.invoiceID}</strong></p>
+        <p style="text-align: center; font-size: 12px; margin: 3px 0; color: #555;">Ngày: ${new Date(invToPrint.invoiceTime).toLocaleString('vi-VN')}</p>
+        <div style="border-bottom: 1px solid #000; margin: 10px 0;"></div>
+        
+        <div style="font-size: 12px; line-height: 1.6; margin-bottom: 10px;">
+          <div><strong>Khách hàng:</strong> ${invToPrint.customerName || 'Khách vãng lai'}</div>
+          <div><strong>Thanh toán:</strong> ${invToPrint.paymentMethod === 'Cash' ? 'Tiền mặt' : 'Thẻ / Bank'}</div>
+          ${invToPrint.address ? `<div><strong>Địa chỉ:</strong> ${invToPrint.address}</div>` : ''}
+        </div>
+        
+        <div style="border-bottom: 1px solid #000; margin: 10px 0;"></div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <thead>
+            <tr style="border-bottom: 2px solid #000;">
+              <th style="text-align: left; padding: 5px 0;">Tên thuốc</th>
+              <th style="text-align: center; width: 40px; padding: 5px 0;">SL</th>
+              <th style="text-align: right; width: 80px; padding: 5px 0;">Đơn giá</th>
+              <th style="text-align: right; width: 90px; padding: 5px 0;">Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${detailsRows}
+          </tbody>
+        </table>
+        
+        <div style="border-bottom: 2px solid #000; margin: 15px 0;"></div>
+        
+        <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 14px; background: #eee; padding: 8px 10px; border-radius: 4px;">
+          <span>TỔNG CỘNG:</span>
+          <span>${totalAmount.toLocaleString()}đ</span>
+        </div>
+        
+        <div style="text-align: center; font-size: 12px; font-style: italic; margin-top: 25px; color: #555;">
+          <p style="margin: 4px 0;">Cảm ơn quý khách. Hẹn gặp lại!</p>
+          <p style="margin: 4px 0;">Mã tra cứu hóa đơn điện tử: PIS-INV-${invToPrint.invoiceID}</p>
+        </div>
+      </div>
+    `;
+
+    printContent(`Hóa Đơn - ${invToPrint.invoiceID}`, htmlContent);
+  };
+
   const fetchAudits = async (
     page = 1,
     searchType = null,
@@ -986,9 +1055,9 @@ function Home() {
       fetchAudits(1, null, null, null, null, 'IN_PROGRESS');
       fetchAllInventories();
     } else if (activeTab === 'warehouse_history') {
-      fetchReceipts(1);
-      fetchIssues(1);
-      fetchAudits(1);
+      fetchReceipts(1, null, null, null, null, 'ALL');
+      fetchIssues(1, null, null, null, null, 'ALL');
+      fetchAudits(1, null, null, null, null, 'ALL');
       fetchHistoryTransactions('');
     } else if (activeTab === 'sales_pos') {
       fetchInventory(1, '', 'ALL');
@@ -1208,6 +1277,10 @@ function Home() {
   const [activeSearchCustomer, setActiveSearchCustomer] = useState('');
   const [customerCurrentPage, setCustomerCurrentPage] = useState(1);
   const [selectedInvMedicine, setSelectedInvMedicine] = useState(null);
+
+  // States for Quick Customer Creation in Checkout Form
+  const [showAddCustomerQuickModal, setShowAddCustomerQuickModal] = useState(false);
+  const [quickCustomerForm, setQuickCustomerForm] = useState({ fullName: '', phoneNumber: '', gender: 'Male' });
 
   const handleAddNewClick = () => {
     setFormMode('add');
@@ -2075,6 +2148,53 @@ function Home() {
     setCustomerFormMode(null);
   };
 
+  const handleOpenQuickAddCustomer = () => {
+    setQuickCustomerForm({
+      fullName: '',
+      phoneNumber: '',
+      gender: 'Male'
+    });
+    setShowAddCustomerQuickModal(true);
+  };
+
+  const handleQuickCustomerSave = async (e) => {
+    e.preventDefault();
+    if (!quickCustomerForm.fullName.trim()) {
+      alert('Vui lòng nhập Họ và tên!');
+      return;
+    }
+    if (!quickCustomerForm.phoneNumber.trim()) {
+      alert('Vui lòng nhập Số điện thoại!');
+      return;
+    }
+
+    try {
+      const generatedID = 'KH-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+      const payload = {
+        customerID: generatedID,
+        fullName: quickCustomerForm.fullName.trim(),
+        phoneNumber: quickCustomerForm.phoneNumber.trim(),
+        gender: quickCustomerForm.gender
+      };
+
+      await api.post('/customers', payload);
+      alert('Thêm mới khách hàng thành công!');
+
+      await fetchCustomers();
+
+      const savedCustomer = {
+        ...payload,
+        joinDate: new Date().toISOString().split('T')[0]
+      };
+      setPosSelectedCustomer(savedCustomer);
+      setPosAddress(savedCustomer.address || '');
+      setShowAddCustomerQuickModal(false);
+    } catch (error) {
+      console.error('Lỗi thêm nhanh khách hàng:', error);
+      alert(error.response?.data?.message || 'Có lỗi xảy ra khi thêm mới khách hàng!');
+    }
+  };
+
   const handleShowInvoiceModal = async (invoiceId) => {
     try {
       const cleanId = typeof invoiceId === 'string' ? invoiceId.replace(/[^0-9]/g, '') : invoiceId;
@@ -2404,7 +2524,7 @@ function Home() {
     }
   };
 
-  
+
   const contextValue = {
     activeTab,
     setActiveTab,
@@ -2727,6 +2847,7 @@ function Home() {
     handlePrintReceipt,
     handlePrintIssue,
     handlePrintAudit,
+    handlePrintInvoice,
     handleAddNewClick,
     handleEditClick,
     handleSave,
@@ -2805,511 +2926,646 @@ function Home() {
 
   return (
     <HomeContext.Provider value={contextValue}>
-    <div className="dashboard-layout">
-      {/* SIDEBAR BÊN TRÁI */}
-      <Sidebar 
-        username={username}
-        role={role}
-        getRoleClass={getRoleClass}
-        getRoleDisplayName={getRoleDisplayName}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        expandedMenus={expandedMenus}
-        setExpandedMenus={setExpandedMenus}
-        toggleMenu={toggleMenu}
-        handleLogout={handleLogout}
-      />
+      <div className="dashboard-layout">
+        {/* SIDEBAR BÊN TRÁI */}
+        <Sidebar
+          username={username}
+          role={role}
+          getRoleClass={getRoleClass}
+          getRoleDisplayName={getRoleDisplayName}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          expandedMenus={expandedMenus}
+          setExpandedMenus={setExpandedMenus}
+          toggleMenu={toggleMenu}
+          handleLogout={handleLogout}
+        />
 
-      {/* VÙNG MAIN CONTENT */}
-      <main className="main-content">
-        {renderMainContent()}
-      </main>
+        {/* VÙNG MAIN CONTENT */}
+        <main className="main-content">
+          {renderMainContent()}
+        </main>
 
-      {/* CHECKOUT MODAL OVERLAY */}
-      {showPosCheckoutModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-          backdropFilter: 'blur(6px)'
-        }}>
+        {/* CHECKOUT MODAL OVERLAY */}
+        {showPosCheckoutModal && (
           <div style={{
-            background: '#ffffff',
-            width: '520px',
-            padding: '30px',
-            borderRadius: '16px',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
-            border: '1px solid #e2e8f0',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
             display: 'flex',
-            flexDirection: 'column',
-            fontFamily: 'Inter, sans-serif'
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            backdropFilter: 'blur(6px)'
           }}>
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '15px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                XÁC NHẬN THANH TOÁN ĐƠN HÀNG
-              </h3>
-              <button
-                type="button"
-                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#94a3b8', lineHeight: '1' }}
-                onClick={() => setShowPosCheckoutModal(false)}
-              >
-                ×
-              </button>
-            </div>
+            <div style={{
+              background: '#ffffff',
+              width: '520px',
+              padding: '30px',
+              borderRadius: '16px',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              fontFamily: 'Inter, sans-serif'
+            }}>
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '15px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                  XÁC NHẬN THANH TOÁN ĐƠN HÀNG
+                </h3>
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#94a3b8', lineHeight: '1' }}
+                  onClick={() => setShowPosCheckoutModal(false)}
+                >
+                  ×
+                </button>
+              </div>
 
-            {/* Form */}
-            <form onSubmit={handlePosCheckout}>
-              {/* Danh sách sản phẩm thanh toán */}
-              <div style={{ marginBottom: '16px' }}>
-                <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Sản phẩm thanh toán:</label>
-                <div style={{
-                  maxHeight: '150px',
-                  overflowY: 'auto',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  padding: '10px',
-                  background: '#f8fafc',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px'
-                }}>
-                  {posCart.map((line, idx) => {
-                    const currentPrice = line.unitPrice * line.conversionRate;
-                    const uName = line.alternativeUnits && line.transactionUnitId !== line.baseUnit.unitID
-                      ? (line.alternativeUnits.find(au => (au.unitID || au.unit?.unitID) === line.transactionUnitId)?.unitName || line.transactionUnitId)
-                      : line.baseUnit.unitName;
+              {/* Form */}
+              <form onSubmit={handlePosCheckout}>
+                {/* Danh sách sản phẩm thanh toán */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Sản phẩm thanh toán:</label>
+                  <div style={{
+                    maxHeight: '150px',
+                    overflowY: 'auto',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    background: '#f8fafc',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    {posCart.map((line, idx) => {
+                      const currentPrice = line.unitPrice * line.conversionRate;
+                      const uName = line.alternativeUnits && line.transactionUnitId !== line.baseUnit.unitID
+                        ? (line.alternativeUnits.find(au => (au.unitID || au.unit?.unitID) === line.transactionUnitId)?.unitName || line.transactionUnitId)
+                        : line.baseUnit.unitName;
 
-                    return (
-                      <div key={line.inventoryId} style={{ display: 'flex', flexDirection: 'column', paddingBottom: '8px', borderBottom: idx < posCart.length - 1 ? '1px dashed #e2e8f0' : 'none' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>
-                          <span>{idx + 1}. {line.medicineName}</span>
-                          <span style={{ color: 'var(--success-hover)' }}>{(line.quantity * currentPrice).toLocaleString()}đ</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                          <span>SL: {line.quantity} {uName} (Đơn giá: {currentPrice.toLocaleString()}đ)</span>
-                        </div>
-                        {line.note && (
-                          <div style={{
-                            fontSize: '10.5px',
-                            color: '#b91c1c',
-                            background: '#fef2f2',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            borderLeft: '3px solid #ef4444',
-                            marginTop: '4px',
-                            fontWeight: '500',
-                            alignSelf: 'flex-start',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}>
-                            <span>📝 HDSD:</span>
-                            <span>{line.note}</span>
+                      return (
+                        <div key={line.inventoryId} style={{ display: 'flex', flexDirection: 'column', paddingBottom: '8px', borderBottom: idx < posCart.length - 1 ? '1px dashed #e2e8f0' : 'none' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', color: '#1e293b' }}>
+                            <span>{idx + 1}. {line.medicineName}</span>
+                            <span style={{ color: 'var(--success-hover)' }}>{(line.quantity * currentPrice).toLocaleString()}đ</span>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Chọn Khách hàng */}
-              <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Khách hàng thành viên:</label>
-                {(() => {
-                  const mappedCustomers = [
-                    { customerID: '', displayName: 'Khách lẻ vãng lai' },
-                    ...customersList.map(c => ({
-                      ...c,
-                      displayName: `${c.fullName} (${c.phoneNumber})`
-                    }))
-                  ];
-                  return (
-                    <SearchableSelect
-                      options={mappedCustomers}
-                      value={posSelectedCustomer?.customerID || ''}
-                      onChange={(val) => {
-                        const c = customersList.find(cust => cust.customerID === val);
-                        setPosSelectedCustomer(c || null);
-                        if (c) {
-                          setPosAddress(c.address || '');
-                        } else {
-                          setPosAddress('');
-                        }
-                      }}
-                      idKey="customerID"
-                      nameKey="displayName"
-                      placeholder="Chọn khách hàng..."
-                    />
-                  );
-                })()}
-              </div>
-
-              {/* Nhập Địa chỉ */}
-              <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Địa chỉ người mua:</label>
-                <input
-                  type="text"
-                  className="input"
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-                  value={posAddress}
-                  onChange={(e) => setPosAddress(e.target.value)}
-                  placeholder="Nhập địa chỉ giao hàng (không bắt buộc)..."
-                />
-              </div>
-
-              {/* Hình thức thanh toán (Fix cứng Tiền mặt) */}
-              <div className="form-group" style={{ marginBottom: '16px' }}>
-                <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Hình thức thanh toán:</label>
-                <div style={{
-                  padding: '10px 12px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  color: '#0f172a',
-                  fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  Tiền mặt
-                </div>
-              </div>
-
-              {/* Tổng tiền & Tiền mặt thanh toán */}
-              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#475569' }}>
-                  <span>Tổng tiền cần thanh toán:</span>
-                  <span style={{ fontWeight: '700', color: '#0f172a' }}>{posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0).toLocaleString()}đ</span>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '12px', marginTop: '12px' }}>
-                  <label className="label" style={{ fontWeight: '700', color: '#0f172a', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Số tiền khách đưa:</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="number"
-                      className="input"
-                      placeholder="Nhập số tiền khách đưa..."
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        borderRadius: '8px',
-                        border: '2px solid #22c55e',
-                        fontSize: '16px',
-                        fontWeight: '700',
-                        color: '#1e293b'
-                      }}
-                      value={posCashGiven}
-                      onChange={(e) => setPosCashGiven(e.target.value)}
-                      min="0"
-                      required
-                    />
-                    <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '700', color: '#64748b' }}>đ</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                            <span>SL: {line.quantity} {uName} (Đơn giá: {currentPrice.toLocaleString()}đ)</span>
+                          </div>
+                          {line.note && (
+                            <div style={{
+                              fontSize: '10.5px',
+                              color: '#b91c1c',
+                              background: '#fef2f2',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              borderLeft: '3px solid #ef4444',
+                              marginTop: '4px',
+                              fontWeight: '500',
+                              alignSelf: 'flex-start',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}>
+                              <span>HDSD:</span>
+                              <span>{line.note}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Quick money select buttons */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                  {[
-                    posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0),
-                    10000, 20000, 50000, 100000, 200000, 500000
-                  ].map((val, idx) => {
-                    if (val <= 0) return null;
+                {/* Chọn Khách hàng */}
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', margin: 0 }}>Khách hàng thành viên:</label>
+                    <button
+                      type="button"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--success-color)',
+                        fontSize: '12.5px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        textDecoration: 'underline',
+                        transition: 'color 0.2s'
+                      }}
+                      onClick={handleOpenQuickAddCustomer}
+                    >
+                      + Tạo mới khách hàng
+                    </button>
+                  </div>
+                  {(() => {
+                    const mappedCustomers = [
+                      { customerID: '', displayName: 'Khách lẻ vãng lai' },
+                      ...customersList.map(c => ({
+                        ...c,
+                        displayName: `${c.fullName} (${c.phoneNumber})`
+                      }))
+                    ];
                     return (
-                      <button
-                        key={idx}
-                        type="button"
-                        style={{
-                          padding: '6px 10px',
-                          fontSize: '12px',
-                          borderRadius: '6px',
-                          border: '1px solid #cbd5e1',
-                          backgroundColor: '#fff',
-                          cursor: 'pointer',
-                          color: '#334155',
-                          fontWeight: '500'
+                      <SearchableSelect
+                        options={mappedCustomers}
+                        value={posSelectedCustomer?.customerID || ''}
+                        onChange={(val) => {
+                          const c = customersList.find(cust => cust.customerID === val);
+                          setPosSelectedCustomer(c || null);
+                          if (c) {
+                            setPosAddress(c.address || '');
+                          } else {
+                            setPosAddress('');
+                          }
                         }}
-                        onClick={() => setPosCashGiven(val.toString())}
-                      >
-                        {idx === 0 ? 'Đủ tiền' : val.toLocaleString() + 'đ'}
-                      </button>
+                        idKey="customerID"
+                        nameKey="displayName"
+                        placeholder="Chọn khách hàng..."
+                      />
                     );
-                  })}
+                  })()}
                 </div>
 
-                {/* Tiền thừa trả khách */}
-                {(() => {
-                  const total = posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0);
-                  const given = Number(posCashGiven) || 0;
-                  const change = given - total;
-                  return (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#475569' }}>Tiền thối lại cho khách:</span>
-                      <span style={{
-                        fontSize: '18px',
-                        fontWeight: '800',
-                        color: change < 0 ? '#ef4444' : '#22c55e'
-                      }}>
-                        {change < 0 ? 'Chưa đủ tiền khách đưa' : `${change.toLocaleString()}đ`}
-                      </span>
+                {/* Nhập Địa chỉ */}
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Địa chỉ người mua:</label>
+                  <input
+                    type="text"
+                    className="input"
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                    value={posAddress}
+                    onChange={(e) => setPosAddress(e.target.value)}
+                    placeholder="Nhập địa chỉ giao hàng (không bắt buộc)..."
+                  />
+                </div>
+
+                {/* Hình thức thanh toán (Fix cứng Tiền mặt) */}
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Hình thức thanh toán:</label>
+                  <div style={{
+                    padding: '10px 12px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    color: '#0f172a',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    Tiền mặt
+                  </div>
+                </div>
+
+                {/* Tổng tiền & Tiền mặt thanh toán */}
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#475569' }}>
+                    <span>Tổng tiền cần thanh toán:</span>
+                    <span style={{ fontWeight: '700', color: '#0f172a' }}>{posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0).toLocaleString()}đ</span>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '12px', marginTop: '12px' }}>
+                    <label className="label" style={{ fontWeight: '700', color: '#0f172a', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Số tiền khách đưa:</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="number"
+                        className="input"
+                        placeholder="Nhập số tiền khách đưa..."
+                        style={{
+                          width: '100%',
+                          padding: '12px 14px',
+                          borderRadius: '8px',
+                          border: '2px solid #22c55e',
+                          fontSize: '16px',
+                          fontWeight: '700',
+                          color: '#1e293b'
+                        }}
+                        value={posCashGiven}
+                        onChange={(e) => setPosCashGiven(e.target.value)}
+                        min="0"
+                        required
+                      />
+                      <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '700', color: '#64748b' }}>đ</span>
                     </div>
-                  );
-                })()}
+                  </div>
+
+                  {/* Quick money select buttons */}
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    {[
+                      posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0),
+                      10000, 20000, 50000, 100000, 200000, 500000
+                    ].map((val, idx) => {
+                      if (val <= 0) return null;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          style={{
+                            padding: '6px 10px',
+                            fontSize: '12px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            backgroundColor: '#fff',
+                            cursor: 'pointer',
+                            color: '#334155',
+                            fontWeight: '500'
+                          }}
+                          onClick={() => setPosCashGiven(val.toString())}
+                        >
+                          {idx === 0 ? 'Đủ tiền' : val.toLocaleString() + 'đ'}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tiền thừa trả khách */}
+                  {(() => {
+                    const total = posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0);
+                    const given = Number(posCashGiven) || 0;
+                    const change = given - total;
+                    return (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#475569' }}>Tiền thối lại cho khách:</span>
+                        <span style={{
+                          fontSize: '18px',
+                          fontWeight: '800',
+                          color: change < 0 ? '#ef4444' : '#22c55e'
+                        }}>
+                          {change < 0 ? 'Chưa đủ tiền khách đưa' : `${change.toLocaleString()}đ`}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn-action btn-cancel"
+                    style={{ flex: 1, padding: '12px', borderRadius: '6px', fontWeight: '600' }}
+                    onClick={() => setShowPosCheckoutModal(false)}
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-action btn-select"
+                    style={{
+                      flex: 2,
+                      padding: '12px',
+                      borderRadius: '6px',
+                      fontWeight: '700',
+                      backgroundColor: (Number(posCashGiven) || 0) < posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0) ? '#cbd5e1' : 'var(--success-color)',
+                      color: 'white',
+                      border: 'none',
+                      cursor: (Number(posCashGiven) || 0) < posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0) ? 'not-allowed' : 'pointer'
+                    }}
+                    disabled={(Number(posCashGiven) || 0) < posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0)}
+                  >
+                    HOÀN TẤT & IN HÓA ĐƠN
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showAddCustomerQuickModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1100,
+            backdropFilter: 'blur(4px)'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              width: '420px',
+              padding: '24px',
+              borderRadius: '12px',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15), 0 10px 10px -5px rgba(0,0,0,0.06)',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              fontFamily: 'Inter, sans-serif'
+            }}>
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                  THÊM NHANH KHÁCH HÀNG MỚI
+                </h3>
+                <button
+                  type="button"
+                  style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8', lineHeight: '1' }}
+                  onClick={() => setShowAddCustomerQuickModal(false)}
+                >
+                  ×
+                </button>
               </div>
 
-              {/* Buttons */}
+              {/* Form */}
+              <form onSubmit={handleQuickCustomerSave}>
+                {/* Họ tên */}
+                <div className="form-group" style={{ marginBottom: '14px' }}>
+                  <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Họ và tên *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    value={quickCustomerForm.fullName}
+                    onChange={(e) => setQuickCustomerForm(prev => ({ ...prev, fullName: e.target.value }))}
+                    placeholder="Nhập họ và tên khách hàng..."
+                    required
+                  />
+                </div>
+
+                {/* Số điện thoại */}
+                <div className="form-group" style={{ marginBottom: '14px' }}>
+                  <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Số điện thoại *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    value={quickCustomerForm.phoneNumber}
+                    onChange={(e) => setQuickCustomerForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                    placeholder="Nhập số điện thoại..."
+                    required
+                  />
+                </div>
+
+                {/* Giới tính */}
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label className="label" style={{ fontWeight: '600', color: '#334155', fontSize: '13px', display: 'block', marginBottom: '6px' }}>Giới tính</label>
+                  <select
+                    className="select-input"
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', height: '38px' }}
+                    value={quickCustomerForm.gender}
+                    onChange={(e) => setQuickCustomerForm(prev => ({ ...prev, gender: e.target.value }))}
+                  >
+                    <option value="Male">Nam</option>
+                    <option value="Female">Nữ</option>
+                    <option value="Other">Khác</option>
+                  </select>
+                </div>
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                  <button
+                    type="button"
+                    className="btn-action btn-cancel"
+                    style={{ padding: '8px 16px', borderRadius: '6px', fontWeight: '600', fontSize: '13px' }}
+                    onClick={() => setShowAddCustomerQuickModal(false)}
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-action btn-select"
+                    style={{
+                      padding: '8px 20px',
+                      borderRadius: '6px',
+                      fontWeight: '700',
+                      fontSize: '13px',
+                      backgroundColor: 'var(--success-color)',
+                      color: 'white',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Lưu lại
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* SIMULATED THERMAL RECEIPT MODAL */}
+        {showReceiptModal && invoiceReceiptData && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            backdropFilter: 'blur(6px)'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              width: '640px',
+              padding: '36px',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              color: '#1e293b',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              border: '1px solid #e2e8f0'
+            }}>
+              {/* Header */}
+              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '26px', fontWeight: '900', margin: '0 0 6px 0', color: 'var(--primary-color)', letterSpacing: '0.05em' }}>PIS PHARMACY</h2>
+                <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b', fontWeight: '500' }}>97 Man Thiện, Thủ Đức, TP.HCM</p>
+                <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b', fontWeight: '500' }}>SĐT: 02838226404</p>
+                <div style={{ borderBottom: '2px dashed #e2e8f0', margin: '16px 0' }} />
+                <h3 style={{ fontSize: '20px', fontWeight: '800', margin: '8px 0', color: '#0f172a', letterSpacing: '0.1em' }}>HÓA ĐƠN BÁN LẺ</h3>
+                <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b' }}>Số: <strong style={{ color: '#0f172a' }}>HĐ-{invoiceReceiptData.invoiceID}</strong></p>
+                <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b' }}>Ngày: {new Date(invoiceReceiptData.invoiceTime).toLocaleString('vi-VN')}</p>
+              </div>
+
+              {/* Customer Details */}
+              <div style={{
+                fontSize: '13.5px',
+                marginBottom: '16px',
+                background: '#f8fafc',
+                padding: '16px',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px'
+              }}>
+                <div><span style={{ color: '#64748b' }}>Khách hàng:</span> <strong style={{ color: '#0f172a' }}>{invoiceReceiptData.customerName || 'Khách vãng lai'}</strong></div>
+                <div><span style={{ color: '#64748b' }}>Thanh toán:</span> <strong style={{ color: '#16a34a' }}>{invoiceReceiptData.paymentMethod === 'Cash' ? 'Tiền mặt' : 'Thẻ / Bank'}</strong></div>
+                {invoiceReceiptData.address && (
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ color: '#64748b' }}>Địa chỉ:</span> <strong style={{ color: '#0f172a' }}>{invoiceReceiptData.address}</strong>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ borderBottom: '1px solid #e2e8f0', margin: '12px 0' }} />
+
+              {/* Items Table */}
+              <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #0f172a', color: '#0f172a' }}>
+                    <th style={{ padding: '8px 4px', fontWeight: '800' }}>Tên thuốc</th>
+                    <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center', width: '50px' }}>SL</th>
+                    <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'right', width: '90px' }}>Đơn giá</th>
+                    <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'right', width: '110px' }}>Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoiceReceiptData.details && invoiceReceiptData.details.map((d, i) => (
+                    <React.Fragment key={i}>
+                      <tr style={{ borderBottom: d.note ? 'none' : '1px solid #f1f5f9', verticalAlign: 'top' }}>
+                        <td style={{ padding: '12px 4px 6px 4px' }}>
+                          <div style={{ fontWeight: '700', color: '#1e293b' }}>{d.medicineName}</div>
+                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Lô: {d.batchId}</div>
+                        </td>
+                        <td style={{ padding: '12px 4px 6px 4px', textAlign: 'center', fontWeight: '600' }}>{d.quantity}</td>
+                        <td style={{ padding: '12px 4px 6px 4px', textAlign: 'right', color: '#475569' }}>{d.unitPrice?.toLocaleString()}đ</td>
+                        <td style={{ padding: '12px 4px 6px 4px', textAlign: 'right', fontWeight: '700', color: '#0f172a' }}>{d.subTotal?.toLocaleString()}đ</td>
+                      </tr>
+                      {d.note && (
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td colSpan="4" style={{ padding: '0 4px 12px 4px' }}>
+                            <div style={{
+                              fontSize: '11px',
+                              color: '#b91c1c',
+                              background: '#fef2f2',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              borderLeft: '3px solid #ef4444',
+                              fontWeight: '500',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              <span>HDSD:</span>
+                              <span>{d.note}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+
+              <div style={{ borderBottom: '2px solid #0f172a', margin: '16px 0' }} />
+
+              {/* Calculations */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+                <div style={{
+                  background: '#ecfdf5',
+                  padding: '16px 24px',
+                  borderRadius: '12px',
+                  border: '1px solid #a7f3d0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                  <span style={{ fontSize: '14px', fontWeight: '800', color: '#065f46', letterSpacing: '0.05em' }}>TỔNG CỘNG THANH TOÁN:</span>
+                  <span style={{ fontSize: '22px', fontWeight: '900', color: '#059669' }}>
+                    {invoiceReceiptData.details?.reduce((sum, d) => sum + (d.subTotal || 0), 0).toLocaleString()}đ
+                  </span>
+                </div>
+              </div>
+
+              {/* Footer text */}
+              <div style={{ textAlign: 'center', fontSize: '12.5px', color: '#64748b', fontStyle: 'italic', marginBottom: '24px' }}>
+                <p style={{ margin: '4px 0', fontWeight: '500' }}>Cảm ơn quý khách. Hẹn gặp lại!</p>
+                <p style={{ margin: '4px 0' }}>Mã tra cứu hóa đơn điện tử: PIS-INV-{invoiceReceiptData.invoiceID}</p>
+              </div>
+
+              {/* Close buttons */}
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   type="button"
                   className="btn-action btn-cancel"
-                  style={{ flex: 1, padding: '12px', borderRadius: '6px', fontWeight: '600' }}
-                  onClick={() => setShowPosCheckoutModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '13px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#f8fafc',
+                    color: '#475569',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onClick={() => setShowReceiptModal(false)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                    e.currentTarget.style.color = '#1e293b';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.color = '#475569';
+                  }}
                 >
-                  Hủy bỏ
+                  Đóng
                 </button>
                 <button
-                  type="submit"
+                  type="button"
                   className="btn-action btn-select"
                   style={{
-                    flex: 2,
+                    flex: 1,
+                    backgroundColor: 'var(--primary-color)',
+                    color: '#ffffff',
                     padding: '12px',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     fontWeight: '700',
-                    backgroundColor: (Number(posCashGiven) || 0) < posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0) ? '#cbd5e1' : 'var(--success-color)',
-                    color: 'white',
+                    fontSize: '13px',
                     border: 'none',
-                    cursor: (Number(posCashGiven) || 0) < posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0) ? 'not-allowed' : 'pointer'
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+                    transition: 'all 0.15s'
                   }}
-                  disabled={(Number(posCashGiven) || 0) < posCart.reduce((sum, item) => sum + item.quantity * (item.unitPrice * item.conversionRate), 0)}
+                  onClick={() => {
+                    handlePrintInvoice(invoiceReceiptData);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.filter = 'brightness(0.95)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px -1px rgba(59, 130, 246, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.filter = 'none';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.2)';
+                  }}
                 >
-                  HOÀN TẤT & IN HÓA ĐƠN
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                  </svg>
+                  In hóa đơn
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* SIMULATED THERMAL RECEIPT MODAL */}
-      {showReceiptModal && invoiceReceiptData && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.6)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-          backdropFilter: 'blur(6px)'
-        }}>
-          <div style={{
-            background: '#ffffff',
-            width: '640px',
-            padding: '36px',
-            borderRadius: '16px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            display: 'flex',
-            flexDirection: 'column',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            color: '#1e293b',
-            maxHeight: '85vh',
-            overflowY: 'auto',
-            border: '1px solid #e2e8f0'
-          }}>
-            {/* Header */}
-            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '26px', fontWeight: '900', margin: '0 0 6px 0', color: 'var(--primary-color)', letterSpacing: '0.05em' }}>PIS PHARMACY</h2>
-              <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b', fontWeight: '500' }}>📍 123 Đường Láng, Đống Đa, Hà Nội</p>
-              <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b', fontWeight: '500' }}>📞 SĐT: 024.1234.5678</p>
-              <div style={{ borderBottom: '2px dashed #e2e8f0', margin: '16px 0' }} />
-              <h3 style={{ fontSize: '20px', fontWeight: '800', margin: '8px 0', color: '#0f172a', letterSpacing: '0.1em' }}>HÓA ĐƠN BÁN LẺ</h3>
-              <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b' }}>Số: <strong style={{ color: '#0f172a' }}>HĐ-{invoiceReceiptData.invoiceID}</strong></p>
-              <p style={{ fontSize: '13px', margin: '4px 0', color: '#64748b' }}>Ngày: {new Date(invoiceReceiptData.invoiceTime).toLocaleString('vi-VN')}</p>
-            </div>
-
-            {/* Customer Details */}
-            <div style={{
-              fontSize: '13.5px',
-              marginBottom: '16px',
-              background: '#f8fafc',
-              padding: '16px',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '8px'
-            }}>
-              <div><span style={{ color: '#64748b' }}>Khách hàng:</span> <strong style={{ color: '#0f172a' }}>{invoiceReceiptData.customerName || 'Khách vãng lai'}</strong></div>
-              <div><span style={{ color: '#64748b' }}>Thanh toán:</span> <strong style={{ color: '#16a34a' }}>{invoiceReceiptData.paymentMethod === 'Cash' ? '💵 Tiền mặt' : '💳 Thẻ / Bank'}</strong></div>
-              {invoiceReceiptData.address && (
-                <div style={{ gridColumn: 'span 2' }}>
-                  <span style={{ color: '#64748b' }}>Địa chỉ:</span> <strong style={{ color: '#0f172a' }}>{invoiceReceiptData.address}</strong>
-                </div>
-              )}
-            </div>
-
-            <div style={{ borderBottom: '1px solid #e2e8f0', margin: '12px 0' }} />
-
-            {/* Items Table */}
-            <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #0f172a', color: '#0f172a' }}>
-                  <th style={{ padding: '8px 4px', fontWeight: '800' }}>Tên thuốc</th>
-                  <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'center', width: '50px' }}>SL</th>
-                  <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'right', width: '90px' }}>Đơn giá</th>
-                  <th style={{ padding: '8px 4px', fontWeight: '800', textAlign: 'right', width: '110px' }}>Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoiceReceiptData.details && invoiceReceiptData.details.map((d, i) => (
-                  <React.Fragment key={i}>
-                    <tr style={{ borderBottom: d.note ? 'none' : '1px solid #f1f5f9', verticalAlign: 'top' }}>
-                      <td style={{ padding: '12px 4px 6px 4px' }}>
-                        <div style={{ fontWeight: '700', color: '#1e293b' }}>{d.medicineName}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Lô: {d.batchId}</div>
-                      </td>
-                      <td style={{ padding: '12px 4px 6px 4px', textAlign: 'center', fontWeight: '600' }}>{d.quantity}</td>
-                      <td style={{ padding: '12px 4px 6px 4px', textAlign: 'right', color: '#475569' }}>{d.unitPrice?.toLocaleString()}đ</td>
-                      <td style={{ padding: '12px 4px 6px 4px', textAlign: 'right', fontWeight: '700', color: '#0f172a' }}>{d.subTotal?.toLocaleString()}đ</td>
-                    </tr>
-                    {d.note && (
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td colSpan="4" style={{ padding: '0 4px 12px 4px' }}>
-                          <div style={{
-                            fontSize: '11px',
-                            color: '#b91c1c',
-                            background: '#fef2f2',
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            borderLeft: '3px solid #ef4444',
-                            fontWeight: '500',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}>
-                            <span>📝 HDSD:</span>
-                            <span>{d.note}</span>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-
-            <div style={{ borderBottom: '2px solid #0f172a', margin: '16px 0' }} />
-
-            {/* Calculations */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
-              <div style={{
-                background: '#ecfdf5',
-                padding: '16px 24px',
-                borderRadius: '12px',
-                border: '1px solid #a7f3d0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                width: '100%',
-                boxSizing: 'border-box'
-              }}>
-                <span style={{ fontSize: '14px', fontWeight: '800', color: '#065f46', letterSpacing: '0.05em' }}>TỔNG CỘNG THANH TOÁN:</span>
-                <span style={{ fontSize: '22px', fontWeight: '900', color: '#059669' }}>
-                  {invoiceReceiptData.details?.reduce((sum, d) => sum + (d.subTotal || 0), 0).toLocaleString()}đ
-                </span>
-              </div>
-            </div>
-
-            {/* Footer text */}
-            <div style={{ textAlign: 'center', fontSize: '12.5px', color: '#64748b', fontStyle: 'italic', marginBottom: '24px' }}>
-              <p style={{ margin: '4px 0', fontWeight: '500' }}>Cảm ơn quý khách. Hẹn gặp lại!</p>
-              <p style={{ margin: '4px 0' }}>Mã tra cứu hóa đơn điện tử: PIS-INV-{invoiceReceiptData.invoiceID}</p>
-            </div>
-
-            {/* Close buttons */}
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                type="button"
-                className="btn-action btn-cancel"
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '13px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#f8fafc',
-                  color: '#475569',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s'
-                }}
-                onClick={() => setShowReceiptModal(false)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f1f5f9';
-                  e.currentTarget.style.color = '#1e293b';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f8fafc';
-                  e.currentTarget.style.color = '#475569';
-                }}
-              >
-                Đóng
-              </button>
-              <button
-                type="button"
-                className="btn-action btn-select"
-                style={{
-                  flex: 1,
-                  backgroundColor: 'var(--primary-color)',
-                  color: '#ffffff',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontWeight: '700',
-                  fontSize: '13px',
-                  border: 'none',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
-                  transition: 'all 0.15s'
-                }}
-                onClick={() => {
-                  window.print();
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.filter = 'brightness(0.95)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px -1px rgba(59, 130, 246, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.filter = 'none';
-                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.2)';
-                }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                  <rect x="6" y="14" width="12" height="8"></rect>
-                </svg>
-                In hóa đơn
-              </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
     </HomeContext.Provider>
   );
 }

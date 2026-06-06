@@ -162,7 +162,7 @@ const WarehouseSupplier = () => {
             {role !== 'Sales' && (
               <div className="split-right content-card" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff' }}>
                 <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                  {supplierFormMode === 'add' ? 'Thêm Mới Nhà Cung Cấp' : '✏️ Hiệu Chỉnh Nhà Cung Cấp'}
+                  {supplierFormMode === 'add' ? 'Thêm Mới Nhà Cung Cấp' : 'Hiệu Chỉnh Nhà Cung Cấp'}
                 </h2>
                 <form onSubmit={handleSupplierSave}>
                   <div className="form-group" style={{ marginBottom: '16px' }}>

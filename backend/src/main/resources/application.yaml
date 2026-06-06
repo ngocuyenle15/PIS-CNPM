@@ -4,7 +4,7 @@ spring:
   server:
     port: ${SERVER_PORT:8080}
   datasource:
-    url: ${MySQL_JDBC_URL:jdbc:mysql://localhost:3309/pis?createDatabaseIfNotExist=true}
+    url: ${MySQL_JDBC_URL:jdbc:mysql://localhost:3306/pis?createDatabaseIfNotExist=true}
     username: ${MySQL_USER:root}
     password: ${MySQL_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -39,3 +39,9 @@ spring:
             required: true
           ssl:
             trust: smtp.gmail.com
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:9a7f82e1c39054ab3c89f5d4e3210ab78d9e6f5c4b3a2901ef87d6c5b4a39281}
+    access-expiration-ms: ${JWT_EXPIRATION_MS:900000}
+  

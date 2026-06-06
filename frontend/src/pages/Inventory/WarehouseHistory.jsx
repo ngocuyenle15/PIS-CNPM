@@ -276,17 +276,17 @@ const WarehouseHistory = () => {
                     >
                       Tìm kiếm
                     </button>
-                    {(stockCardSearchVal || filterStockCardStart || filterStockCardEnd) && (
+                    {(stockCardSearchVal || filterStockCardStart || filterStockCardEnd || activeStockCardSearchVal || activeFilterStockCardStart || activeFilterStockCardEnd) && (
                       <button
                         type="button"
                         className="btn-create"
                         style={{ backgroundColor: '#64748b', whiteSpace: 'nowrap' }}
                         onClick={() => {
-                          setStockCardSearchType('time');
+                          setStockCardSearchType('referenceId');
                           setStockCardSearchVal('');
                           setFilterStockCardStart('');
                           setFilterStockCardEnd('');
-                          setActiveStockCardSearchType('time');
+                          setActiveStockCardSearchType('referenceId');
                           setActiveStockCardSearchVal('');
                           setActiveFilterStockCardStart('');
                           setActiveFilterStockCardEnd('');

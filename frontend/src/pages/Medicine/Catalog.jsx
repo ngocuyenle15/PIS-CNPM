@@ -148,7 +148,7 @@ const Catalog = () => {
             {/* CỘT PHẢI: FORM THÊM / SỬA */}
             <div className="split-right content-card" style={{ borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)', background: '#ffffff', border: '1px solid #e2e8f0', opacity: role === 'Sales' ? 0.75 : 1 }}>
               <h2 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '20px', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                {catalogFormMode === 'add' ? 'Thêm Mới Danh Mục' : '✏️ Hiệu Chỉnh Danh Mục'}
+                {catalogFormMode === 'add' ? 'Thêm Mới Danh Mục' : 'Hiệu Chỉnh Danh Mục'}
               </h2>
               <form onSubmit={role === 'Sales' ? (e) => e.preventDefault() : handleCatalogSave}>
                 <div className="form-group" style={{ marginBottom: '16px' }}>

@@ -12,12 +12,14 @@ import java.util.Map;
 @Component
 public class JwtTokenProvider {
 
-    // Using a strong 256-bit key for HMAC-SHA256 (minimum 32 bytes)
-    private static final String SECRET_STRING = "9a7f82e1c39054ab3c89f5d4e3210ab78d9e6f5c4b3a2901ef87d6c5b4a39281";
-    private final Key key = Keys.hmacShaKeyFor(SECRET_STRING.getBytes());
+    private final Key key;
 
     @Value("${app.jwt.access-expiration-ms:900000}") // 15 mins default (15 * 60 * 1000)
     private long accessExpirationMs;
+
+    public JwtTokenProvider(@Value("${app.jwt.secret}") String secretString) {
+        this.key = Keys.hmacShaKeyFor(secretString.getBytes());
+    }
 
     public String generateAccessToken(String username, String role) {
         Map<String, Object> claims = new HashMap<>();

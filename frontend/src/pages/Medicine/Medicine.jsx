@@ -319,7 +319,7 @@ const Medicine = () => {
                     <button
                       type="button"
                       className="btn-create"
-                      style={{ backgroundColor: 'var(--success-color)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ backgroundColor: '#64748b', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}
                       onClick={async () => {
                         setSearchMedicine('');
                         setSearchField('medicineName');

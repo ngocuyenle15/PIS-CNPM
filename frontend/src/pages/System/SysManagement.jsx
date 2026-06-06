@@ -90,7 +90,7 @@ const SysManagement = () => {
                         setEmployeeCurrentPage(1);
                       }}
                     >
-                      active
+                      Hoạt động
                     </button>
                     <button
                       type="button"
@@ -101,7 +101,7 @@ const SysManagement = () => {
                         setEmployeeCurrentPage(1);
                       }}
                     >
-                      notactive
+                      Bị khóa 
                     </button>
                   </div>
 
@@ -475,7 +475,7 @@ const SysManagement = () => {
                                     </label>
                                   </div>
                                   <div className="form-group" style={{ gridColumn: 'span 2', marginTop: '4px' }}>
-                                    <label className="label" style={{ fontSize: '13px', marginBottom: '4px', color: '#e11d48', fontWeight: '600' }}>🔑 Đặt lại mật khẩu (Để trống nếu không đổi):</label>
+                                    <label className="label" style={{ fontSize: '13px', marginBottom: '4px', color: '#e11d48', fontWeight: '600' }}>Đặt lại mật khẩu (Để trống nếu không đổi):</label>
                                     <input
                                       type="password"
                                       className="input"
