@@ -20,10 +20,7 @@ public class DatabaseRefreshTokenStore implements RefreshTokenStore {
     @Override
     @Transactional
     public void save(RefreshToken refreshToken) {
-        // Xóa token cũ của user trước khi lưu token mới (rotation)
-        if (refreshToken.getUsername() != null) {
-            refreshTokenRepository.deleteByUsername(refreshToken.getUsername());
-        }
+        // Hỗ trợ đăng nhập từ nhiều tab/thiết bị: Không xóa token cũ nữa, chỉ lưu thêm dòng mới
         refreshTokenRepository.save(refreshToken);
     }
 

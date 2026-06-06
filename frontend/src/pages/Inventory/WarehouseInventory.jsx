@@ -598,7 +598,7 @@ const WarehouseInventory = () => {
                         <span className="medicine-info-label">Nước sản xuất:</span> {selectedInvMedicine.origin?.originName || '---'}
                       </div>
                       <div className="medicine-info-row">
-                        <span className="medicine-info-label">Đơn giá cơ bản:</span> <span style={{ color: '#059669', fontWeight: 'bold' }}>{(selectedInvMedicine.unitPrice || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} VND / {selectedInvMedicine.baseUnit?.unitName || '---'}</span>
+                        <span className="medicine-info-label">Đơn giá cơ bản:</span> <span style={{ color: '#059669', fontWeight: 'bold' }}>{(selectedInvMedicine.unitPrice || 0).toLocaleString('en-US')} VND / {selectedInvMedicine.baseUnit?.unitName || '---'}</span>
                       </div>
 
                       {/* HIỂN THỊ DANH SÁCH ĐƠN VỊ QUY ĐỔI PHỤ VÀ TỰ ĐỘNG TÍNH GIÁ */}
@@ -612,7 +612,7 @@ const WarehouseInventory = () => {
                                 <div key={alt.unitID || alt.unit?.unitID} className="alt-unit-badge">
                                   <span className="alt-unit-title">{uName}</span>
                                   <span>Tỉ lệ: 1 {uName} = {alt.conversionRate} {selectedInvMedicine.baseUnit?.unitName || '---'}</span>
-                                  <span className="alt-unit-price">{((selectedInvMedicine.unitPrice || 0) * alt.conversionRate).toLocaleString('en-US', { minimumFractionDigits: 2 })} VND</span>
+                                  <span className="alt-unit-price">{((selectedInvMedicine.unitPrice || 0) * alt.conversionRate).toLocaleString('en-US')} VND</span>
                                 </div>
                               );
                             })}

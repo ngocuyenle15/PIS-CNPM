@@ -1,6 +1,7 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { useHomeContext } from '../../context/HomeContext';
+import api from '../../services/api';
 import { printContent } from '../Home';
 import SearchableSelect from '../../components/SearchableSelect';
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';

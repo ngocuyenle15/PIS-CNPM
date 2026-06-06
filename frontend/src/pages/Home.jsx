@@ -2735,6 +2735,8 @@ function Home() {
     handleCatalogChange,
     handleOriginChange,
     handleAltUnitChange,
+    addAlternativeUnit,
+    removeAlternativeUnit,
     handleCatalogSave,
     handleCatalogEditClick,
     handleCatalogDelete,
