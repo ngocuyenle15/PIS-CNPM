@@ -343,9 +343,46 @@ public class DataInitializer2 implements CommandLineRunner {
                 m.setImage("https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=300&q=80");
                 m.setIngredients(ingredientsList.get(i) + " và tá dược vừa đủ");
                 m.setCatalog(catalogs.get(i % catalogs.size()));
-                m.setBaseUnit(units.get(i % units.size()));
                 m.setOrigin(origins.get(i % origins.size()));
-                m.setUnitPrice(BigDecimal.valueOf(10000 + i * 2000));
+
+                // Determine realistic base unit and unit price (price of base unit)
+                String medName = medicineNames.get(i).toLowerCase();
+                String baseUnitId = "UNIT001"; // Default: Viên
+                double basePrice = 500.0 + (i % 10) * 500.0; // Default price: 500 to 5000 VND
+                
+                if (medName.contains("phosphalugel") || medName.contains("gaviscon") || medName.contains("smecta") 
+                        || medName.contains("oresol") || medName.contains("duphalac") || medName.contains("acetylcysteine") 
+                        || medName.contains("acemuc")) {
+                    baseUnitId = "UNIT006"; // Gói
+                    basePrice = 2000.0 + (i % 5) * 1000.0; // 2000 to 6000 VND
+                } else if (medName.contains("ventolin") || (medName.contains("zofran") && i % 2 == 0)) {
+                    baseUnitId = "UNIT007"; // Ống
+                    basePrice = 5000.0 + (i % 5) * 1500.0; // 5000 to 11000 VND
+                } else if (medName.contains("seretide")) {
+                    baseUnitId = "UNIT011"; // Bình
+                    basePrice = 120000.0 + (i % 3) * 20000.0; // 120000 to 160000 VND (inhaler bottle is expensive but base unit)
+                } else if (medName.contains("sandoz")) {
+                    baseUnitId = "UNIT019"; // Viên sủi
+                    basePrice = 3000.0 + (i % 3) * 1000.0; // 3000 to 5000 VND
+                } else if (medName.contains("daktarin") || medName.contains("kamistad") || medName.contains("gel") || medName.contains("cream")) {
+                    baseUnitId = "UNIT005"; // Tuýp
+                    basePrice = 20000.0 + (i % 5) * 5000.0; // 20000 to 40000 VND
+                } else if (medName.contains("drops") || medName.contains("syrup") || medName.contains("solution")) {
+                    baseUnitId = "UNIT003"; // Chai
+                    basePrice = 15000.0 + (i % 5) * 5000.0; // 15000 to 35000 VND
+                } else if (medName.contains("nexium") || medName.contains("lipitor") || medName.contains("crestor") || medName.contains("singulair") || medName.contains("tavanic") || medName.contains("zinnat")) {
+                    baseUnitId = "UNIT001"; // Viên (nhưng là biệt dược đắt tiền)
+                    basePrice = 10000.0 + (i % 5) * 2000.0; // 10000 to 18000 VND per tablet
+                }
+
+                final String targetUnitId = baseUnitId;
+                Unit baseUnit = units.stream()
+                        .filter(u -> u.getUnitID().equals(targetUnitId))
+                        .findFirst()
+                        .orElse(units.get(0));
+
+                m.setBaseUnit(baseUnit);
+                m.setUnitPrice(BigDecimal.valueOf(basePrice));
                 medicines.add(medicineRepository.save(m));
             } else {
                 medicines.add(medicineRepository.findById(id).orElse(null));
@@ -418,7 +455,8 @@ public class DataInitializer2 implements CommandLineRunner {
                 inv.setId(invId);
                 inv.setBatchId("BATCH" + String.format("%03d", i + 1));
                 inv.setMedicine(medicines.get(i % medicines.size()));
-                inv.setImportPrice(BigDecimal.valueOf(8000 + i * 200));
+                BigDecimal medPrice = inv.getMedicine().getUnitPrice();
+                inv.setImportPrice(medPrice.multiply(BigDecimal.valueOf(0.8)));
                 inv.setStockQuantity(100 + i * 5);
                 if (i % 10 == 2) { 
                     inv.setExpiryDate(LocalDate.now().minusMonths(1)); 
@@ -466,14 +504,15 @@ public class DataInitializer2 implements CommandLineRunner {
                 
                 GoodsReceiptDetail grd = new GoodsReceiptDetail();
                 grd.setReceipt(gr);
-                grd.setMedicine(medicines.get(i % medicines.size()));
+                Medicine m = medicines.get(i % medicines.size());
+                grd.setMedicine(m);
                 grd.setBatchId("BATCH" + String.format("%03d", i));
                 grd.setQuantity(50 + i * 10);
-                grd.setImportPrice(BigDecimal.valueOf(5000 + i * 1000));
                 grd.setExpiryDate(LocalDate.now().plusYears(1 + i % 2));
                 grd.setManufacturedDate(LocalDate.now().minusMonths(6));
-                grd.setTransactionUnit(unitHop);
-                grd.setConversionRate(10);
+                grd.setTransactionUnit(m.getBaseUnit());
+                grd.setConversionRate(1);
+                grd.setImportPrice(m.getUnitPrice().multiply(BigDecimal.valueOf(0.8)));
                 gr.getDetails().add(grd);
                 
                 goodsReceiptRepository.save(gr);
@@ -495,9 +534,10 @@ public class DataInitializer2 implements CommandLineRunner {
                 
                 GoodsIssueDetail gid = new GoodsIssueDetail();
                 gid.setIssue(gi);
-                gid.setInventory(inventories.get(i % inventories.size()));
+                Inventory inv = inventories.get(i % inventories.size());
+                gid.setInventory(inv);
                 gid.setQuantity(2 + i % 5);
-                gid.setTransactionUnit(unitVien);
+                gid.setTransactionUnit(inv.getMedicine().getBaseUnit());
                 gid.setConversionRate(1);
                 gi.getDetails().add(gid);
                 
@@ -520,7 +560,7 @@ public class DataInitializer2 implements CommandLineRunner {
                 invd.setInvoice(inv);
                 invd.setInventory(inventories.get(i % inventories.size()));
                 invd.setQuantity(1 + i % 10);
-                invd.setUnitPrice(BigDecimal.valueOf(15000 + i * 2000));
+                invd.setUnitPrice(invd.getInventory().getMedicine().getUnitPrice());
                 invd.setNote("Khách mua đợt " + i);
                 inv.getInvoiceDetails().add(invd);
                 

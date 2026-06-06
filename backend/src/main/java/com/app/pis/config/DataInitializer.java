@@ -296,9 +296,35 @@ public class DataInitializer implements CommandLineRunner {
                 m.setIngredients("Thành phần hoạt chất chính của " + m.getMedicineName() + " và tá dược vừa đủ");
                 
                 m.setCatalog(catalogs.get(i % catalogs.size()));
-                m.setBaseUnit(units.get(i % units.size()));
                 m.setOrigin(origins.get(i % origins.size()));
-                m.setUnitPrice(BigDecimal.valueOf(10000 + i * 5000));
+
+                String baseUnitId = "UNIT001"; // Viên
+                double basePrice = 500.0 + (i % 10) * 500.0;
+                
+                // Let's vary the base unit randomly among basic units
+                int unitIdx = i % 5;
+                if (unitIdx == 1) {
+                    baseUnitId = "UNIT006"; // Gói
+                    basePrice = 2000.0 + (i % 5) * 500.0;
+                } else if (unitIdx == 2) {
+                    baseUnitId = "UNIT003"; // Chai
+                    basePrice = 15000.0 + (i % 5) * 2000.0;
+                } else if (unitIdx == 3) {
+                    baseUnitId = "UNIT005"; // Tuýp
+                    basePrice = 10000.0 + (i % 5) * 1500.0;
+                } else if (unitIdx == 4) {
+                    baseUnitId = "UNIT007"; // Ống
+                    basePrice = 4000.0 + (i % 5) * 1000.0;
+                }
+                
+                final String targetUnitId = baseUnitId;
+                Unit baseUnit = units.stream()
+                        .filter(u -> u.getUnitID().equals(targetUnitId))
+                        .findFirst()
+                        .orElse(units.get(0));
+                
+                m.setBaseUnit(baseUnit);
+                m.setUnitPrice(BigDecimal.valueOf(basePrice));
                 
                 medicines.add(medicineRepository.save(m));
             } else {
@@ -372,7 +398,8 @@ public class DataInitializer implements CommandLineRunner {
                 inv.setId(invId);
                 inv.setBatchId("BATCH" + String.format("%03d", i + 1));
                 inv.setMedicine(medicines.get(i % medicines.size()));
-                inv.setImportPrice(BigDecimal.valueOf(8000 + i * 2000));
+                BigDecimal medPrice = inv.getMedicine().getUnitPrice();
+                inv.setImportPrice(medPrice.multiply(BigDecimal.valueOf(0.8)));
                 inv.setStockQuantity(100 + i * 50);
                 if (i % 10 == 2) { inv.setExpiryDate(LocalDate.now().minusMonths(1)); inv.setManufacturedDate(LocalDate.now().minusMonths(13)); }
                 else if (i % 10 == 5) { inv.setExpiryDate(LocalDate.now().plusDays(15)); inv.setManufacturedDate(LocalDate.now().minusDays(350)); }
@@ -400,14 +427,15 @@ public class DataInitializer implements CommandLineRunner {
                 gr.setNote("Nhập hàng đợt " + i);
                 GoodsReceiptDetail grd = new GoodsReceiptDetail();
                 grd.setReceipt(gr);
-                grd.setMedicine(medicines.get(i % medicines.size()));
+                Medicine m = medicines.get(i % medicines.size());
+                grd.setMedicine(m);
                 grd.setBatchId("BATCH" + String.format("%03d", i));
                 grd.setQuantity(50 + i * 10);
-                grd.setImportPrice(BigDecimal.valueOf(5000 + i * 1000));
                 grd.setExpiryDate(LocalDate.now().plusYears(1 + i % 2));
                 grd.setManufacturedDate(LocalDate.now().minusMonths(6));
-                grd.setTransactionUnit(unitHop);
-                grd.setConversionRate(10);
+                grd.setTransactionUnit(m.getBaseUnit());
+                grd.setConversionRate(1);
+                grd.setImportPrice(m.getUnitPrice().multiply(BigDecimal.valueOf(0.8)));
                 gr.getDetails().add(grd);
                 goodsReceiptRepository.save(gr);
             }
@@ -427,9 +455,10 @@ public class DataInitializer implements CommandLineRunner {
                 gi.setNote("Xuất kho đợt " + i);
                 GoodsIssueDetail gid = new GoodsIssueDetail();
                 gid.setIssue(gi);
-                gid.setInventory(inventories.get(i % inventories.size()));
+                Inventory inv = inventories.get(i % inventories.size());
+                gid.setInventory(inv);
                 gid.setQuantity(2 + i % 5);
-                gid.setTransactionUnit(unitVien);
+                gid.setTransactionUnit(inv.getMedicine().getBaseUnit());
                 gid.setConversionRate(1);
                 gi.getDetails().add(gid);
                 goodsIssueRepository.save(gi);
@@ -450,7 +479,7 @@ public class DataInitializer implements CommandLineRunner {
                 invd.setInvoice(inv);
                 invd.setInventory(inventories.get(i % inventories.size()));
                 invd.setQuantity(1 + i % 10);
-                invd.setUnitPrice(BigDecimal.valueOf(15000 + i * 2000));
+                invd.setUnitPrice(invd.getInventory().getMedicine().getUnitPrice());
                 invd.setNote("Khách mua đợt " + i);
                 inv.getInvoiceDetails().add(invd);
                 invoiceRepository.save(inv);
