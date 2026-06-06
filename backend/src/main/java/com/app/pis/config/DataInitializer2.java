@@ -54,7 +54,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
+// @Component
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer2 implements CommandLineRunner {

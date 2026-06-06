@@ -48,7 +48,7 @@ CREATE TABLE `account` (
 
 LOCK TABLES `account` WRITE;
 /*!40000 ALTER TABLE `account` DISABLE KEYS */;
-INSERT INTO `account` VALUES (1,_binary '',_binary '\0',_binary '',1,'EMP001','admin','$2a$10$nTAZmGppwUaVuXcF4YD7oOQCc5CEDYjEQ7eKBhlIrRgpLfeIoMKTq'),(2,_binary '',_binary '\0',_binary '',2,'EMP002','sales','$2a$10$VKG/KEGSevLr/ehOfyQNJOnUR.YBY8ZGpmwkZhkC5CHQcuZH5i38O'),(3,_binary '',_binary '\0',_binary '',3,'EMP003','manager','$2a$10$lYG6PMZRADrO7MLB/O4pWOQ6hRQ9IUVqI9j52svbdt3bOs6nUAema'),(4,_binary '',_binary '\0',_binary '',2,'EMP004','user4','$2a$10$2Snm7jwjpX10KqyPp2qZBeG.drFOMpBk5oStgAxbJN3.RqK1Eo/J6'),(5,_binary '',_binary '\0',_binary '',3,'EMP005','user5','$2a$10$Nqr7u5OWCFP3eMRee7QOr.LuXrxGOwZRu/AqXhvxyc5kxYTUX7sQi');
+INSERT INTO `account` VALUES (1,_binary '',_binary '\0',_binary '',1,'EMP001','admin','$2a$10$QiH.jAJ/GPN4dYWVSZbcze8CcFn2ktl8RtPEnHHNTbiZpyMXlh9K2'),(2,_binary '',_binary '\0',_binary '',2,'EMP002','sales','$2a$10$kOTJCcbR949BV0ksOaxsA.JZ6vG1LY1LsWxJtum7ZrMwRtpB5pV7q'),(3,_binary '',_binary '\0',_binary '',3,'EMP003','manager','$2a$10$UQfGpo3mkMyYL4Bk7GnX/.zAvOh8wClmZkHF4klXbNIedkv20jUeO'),(4,_binary '',_binary '\0',_binary '',2,'EMP004','user4','$2a$10$2Snm7jwjpX10KqyPp2qZBeG.drFOMpBk5oStgAxbJN3.RqK1Eo/J6'),(5,_binary '',_binary '\0',_binary '',3,'EMP005','user5','$2a$10$Nqr7u5OWCFP3eMRee7QOr.LuXrxGOwZRu/AqXhvxyc5kxYTUX7sQi');
 /*!40000 ALTER TABLE `account` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -133,7 +133,7 @@ CREATE TABLE `employee` (
 
 LOCK TABLES `employee` WRITE;
 /*!40000 ALTER TABLE `employee` DISABLE KEYS */;
-INSERT INTO `employee` VALUES ('2026-01-02',_binary '',1990,'0123456789','EMP001','admin@example.com','Lê Ngọc Uyển   ','Male'),('2026-01-03',_binary '',1995,'0987654321','EMP002','sales@example.com','Trần Quang Khoan','Female'),('2026-01-04',_binary '',1988,'0911223344','EMP003','manager@example.com','Phan Thiện Vỹ','Male'),('2026-01-05',_binary '',1994,'0900000004','EMP004','employee4@example.com','Dương Quốc Khánh','Male'),('2026-01-06',_binary '',1995,'0900000005','EMP005','employee5@example.com','Dương Văn Hay','Female');
+INSERT INTO `employee` VALUES ('2026-01-02',_binary '',2005,'0123456789','EMP001','ngocuyenle15@gmail.com','Lê Ngọc Uyển','Male'),('2026-01-03',_binary '',1995,'0987654321','EMP002','sales@example.com','Trần Quang Khoan','Female'),('2026-01-04',_binary '',1988,'0911223344','EMP003','manager@example.com','Phan Thiện Vỹ','Male'),('2026-01-05',_binary '',1994,'0900000004','EMP004','employee4@example.com','Dương Quốc Khánh','Male'),('2026-01-06',_binary '',1995,'0900000005','EMP005','employee5@example.com','Dương Văn Hay','Female');
 /*!40000 ALTER TABLE `employee` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -556,7 +556,7 @@ CREATE TABLE `refresh_token` (
   UNIQUE KEY `UKr4k4edos30bx9neoq81mdvwph` (`token`),
   KEY `idx_refresh_token_username` (`username`),
   KEY `idx_refresh_token_expiry` (`expiry_date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -565,6 +565,7 @@ CREATE TABLE `refresh_token` (
 
 LOCK TABLES `refresh_token` WRITE;
 /*!40000 ALTER TABLE `refresh_token` DISABLE KEYS */;
+INSERT INTO `refresh_token` VALUES ('2026-06-13 16:22:49.813221',1,'admin','76802644-1857-4ecf-8644-d8fd9be2659a'),('2026-06-13 16:23:22.567356',2,'admin','21078338-8c26-45b0-8daa-273b13854924'),('2026-06-13 16:24:55.258724',3,'manager','247419fc-a3f7-4542-af9b-8d85a2805733'),('2026-06-13 16:25:04.797376',4,'sales','597a94d1-980b-475b-a6d7-759518683ff7'),('2026-06-13 16:25:19.087081',5,'admin','7e2d8c4b-af70-482a-99db-7b588775c44a');
 /*!40000 ALTER TABLE `refresh_token` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -692,4 +693,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-06 23:16:15
+-- Dump completed on 2026-06-06 23:26:30
