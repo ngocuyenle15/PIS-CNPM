@@ -168,7 +168,7 @@ function Login() {
                 required
                 disabled={loading}
               />
-              <p className="helper-text">Mật khẩu mới sẽ được sinh ngẫu nhiên và in tại log hệ thống.</p>
+              <p className="helper-text"></p>
             </div>
 
             <button type="submit" className="btn" disabled={loading}>
