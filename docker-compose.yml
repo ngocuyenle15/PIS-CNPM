@@ -38,6 +38,8 @@ services:
       MySQL_PASSWORD: 123456
       EMAIL_USERNAME: 
       EMAIL_PASSWORD: 
+      JWT_SECRET: 9a7f82e1c39054ab3c89f5d4e3210ab78d9e6f5c4b3a2901ef87d6c5b4a39281
+      JWT_EXPIRATION_MS: 900000
     depends_on:
       mysql:
         condition: service_healthy

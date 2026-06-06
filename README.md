@@ -61,8 +61,10 @@ docker compose up --build -d
 | `MySQL_PASSWORD`    | MySQL password                | `123456`                                  |
 | `EMAIL_USERNAME`    | Email gửi thông báo           | **Bắt buộc**                          |
 | `EMAIL_PASSWORD`    | App password của email        | **Bắt buộc**                          |
+| `JWT_SECRET`        | Khóa bí mật dùng để ký ký JWT (tối thiểu 256-bit) | `9a7f82e1c39054ab3c89f5d4e3210ab78d9e6f5c4b3a2901ef87d6c5b4a39281` |
+| `JWT_EXPIRATION_MS` | Thời hạn của Access Token (ms)| `900000` (15 phút)                        |
 
-> **Quan trọng:** Phải cấu hình `EMAIL_USERNAME` và `EMAIL_PASSWORD` trong `docker-compose.yml` trước khi chạy. Backend sẽ không gửi được email nếu thiếu.
+> **Quan trọng:** Phải cấu hình `EMAIL_USERNAME` và `EMAIL_PASSWORD` trong `docker-compose.yml` trước khi chạy. Backend sẽ không gửi được email nếu thiếu. Khóa bí mật `JWT_SECRET` cũng có thể được tùy biến qua biến môi trường để tăng tính bảo mật.
 
 ### Frontend (build-time)
 
