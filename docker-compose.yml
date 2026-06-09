@@ -12,7 +12,6 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
       - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     networks:
       - pis-network
@@ -62,10 +61,6 @@ services:
       - backend
     networks:
       - pis-network
-
-volumes:
-  mysql_data:
-    driver: local
 
 networks:
   pis-network:
